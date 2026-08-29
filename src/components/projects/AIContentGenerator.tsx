@@ -155,7 +155,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
   
   const canUseAI = canAccess('ai-content-generation');
   
-  // Load API key from localStorage
+  // Load an optional personal API key. The server proxy can still run without this.
   useEffect(() => {
     const savedApiKey = localStorage.getItem('gemini_api_key');
     if (savedApiKey) {
@@ -201,11 +201,6 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
   const handleGenerate = async () => {
     if (!canUseAI) {
       toast.error("This feature requires a premium account");
-      return;
-    }
-    
-    if (!isApiKeySet) {
-      toast.error("Please set your Gemini API key first");
       return;
     }
     
@@ -428,9 +423,9 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
           {!isApiKeySet ? (
             <Card className="mb-4">
               <CardHeader>
-                <CardTitle className="text-lg">Set Gemini API Key</CardTitle>
+                <CardTitle className="text-lg">Personal Gemini API key optional</CardTitle>
                 <CardDescription>
-                  You need a Gemini API key to use AI content generation
+                  Add your own key for your quota, or use the school/server key when it is configured.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -451,7 +446,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                   </div>
                   <p className="text-xs text-muted-foreground">
                     You can get a Gemini API key from the Google AI Studio. 
-                    Your API key is stored locally and never sent to our servers.
+                    Signup keys are saved to your UHPAB profile; keys added here stay on this browser.
                   </p>
                 </div>
               </CardContent>
@@ -471,7 +466,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                   <Label htmlFor="component">Research Component</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between" disabled={!isApiKeySet || isGenerating}>
+                      <Button variant="outline" className="w-full justify-between" disabled={isGenerating}>
                         {selectedComponent ? researchComponents.find(c => c.id === selectedComponent)?.label : "Select a component"}
                         <ChevronRight className="h-4 w-4 ml-2" />
                       </Button>
@@ -515,7 +510,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                 <div className="space-y-2">
                   <Label htmlFor="mode">Generation Mode</Label>
                   <RadioGroup 
-                    disabled={!isApiKeySet || isGenerating}
+                    disabled={isGenerating}
                     value={generationMode} 
                     onValueChange={(value) => setGenerationMode(value as 'generate' | 'improve')}
                     className="flex gap-4"
@@ -540,7 +535,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                       value={temporaryContent}
                       onChange={(e) => setTemporaryContent(e.target.value)}
                       className="h-24"
-                      disabled={!isApiKeySet || isGenerating}
+                      disabled={isGenerating}
                     />
                   </div>
                 )}
@@ -549,7 +544,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                   <Label htmlFor="context">Additional Context (Optional)</Label>
                   <Textarea
                     id="context"
-                    disabled={!isApiKeySet || isGenerating}
+                    disabled={isGenerating}
                     placeholder="Add any specific requirements or information..."
                     value={contextPrompt}
                     onChange={(e) => setContextPrompt(e.target.value)}
@@ -559,7 +554,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                 
                 <Button 
                   onClick={handleGenerate} 
-                  disabled={!isApiKeySet || isGenerating || !selectedComponent || (generationMode === 'improve' && !temporaryContent)}
+                  disabled={isGenerating || !selectedComponent || (generationMode === 'improve' && !temporaryContent)}
                   className="w-full gap-2"
                 >
                   <Sparkles className="h-4 w-4" />

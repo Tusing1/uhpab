@@ -1,6 +1,6 @@
 
 import { proposalStructure, reportStructure } from '@/data/uhpabGuidelines';
-import { getBrowserGeminiApiKey, setBrowserGeminiApiKey } from '@/lib/aiKeys';
+import { setBrowserGeminiApiKey } from '@/lib/aiKeys';
 import { generateContent } from '@/integrations/gemini';
 
 export interface GeminiResponse {
@@ -10,7 +10,7 @@ export interface GeminiResponse {
 
 // For compatibility with existing components
 export const setGeminiApiKey = (apiKey: string) => {
-  setBrowserGeminiApiKey(apiKey);
+  setBrowserGeminiApiKey(apiKey, { persist: true });
 };
 
 /**
@@ -55,14 +55,6 @@ export const callGeminiApi = async (
   context?: string
 ): Promise<GeminiResponse> => {
   try {
-    const apiKey = getBrowserGeminiApiKey();
-    if (!apiKey) {
-      return {
-        text: '',
-        error: 'Gemini generation is not configured. Add a Google AI key in settings or environment variables.'
-      };
-    }
-
     const generatedText = await generateContent(
       context ? `Context: ${context}\n\nPrompt: ${prompt}` : prompt
     );

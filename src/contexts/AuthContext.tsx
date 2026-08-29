@@ -3,6 +3,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import { findSchoolById } from "@/data/schools";
 import { supabase } from "@/integrations/supabase/client";
+import { setBrowserGeminiApiKey } from "@/lib/aiKeys";
 import { isDemoAuthEnabled, isSupabaseConfigured } from "@/lib/runtimeConfig";
 import { School, User, UserRole } from "@/types";
 
@@ -11,6 +12,7 @@ type StudentRegistrationProfile = {
   className: string;
   htin: string;
   researchTopic?: string;
+  geminiApiKey?: string;
 };
 
 type DemoUser = User & { password: string };
@@ -179,6 +181,41 @@ const toAppUser = (supabaseUser: SupabaseUser): User => {
   };
 };
 
+const toAppUserWithProfile = async (supabaseUser: SupabaseUser): Promise<User> => {
+  const fallbackUser = toAppUser(supabaseUser);
+
+  if (!supabase) return fallbackUser;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("name, role, htin, class_name, research_topic, school_id, school_name, school_location, gemini_api_key")
+    .eq("id", supabaseUser.id)
+    .maybeSingle();
+
+  if (error || !data) return fallbackUser;
+
+  if (data.gemini_api_key) {
+    setBrowserGeminiApiKey(data.gemini_api_key);
+  } else {
+    setBrowserGeminiApiKey("");
+  }
+
+  const role = isUserRole(data.role) ? data.role : fallbackUser.role;
+
+  return {
+    ...fallbackUser,
+    name: data.name || fallbackUser.name,
+    role,
+    studentId: data.htin || fallbackUser.studentId,
+    htin: data.htin || fallbackUser.htin,
+    className: data.class_name || fallbackUser.className,
+    researchTopic: data.research_topic || fallbackUser.researchTopic,
+    schoolId: data.school_id || fallbackUser.schoolId,
+    schoolName: data.school_name || fallbackUser.schoolName,
+    schoolLocation: data.school_location || fallbackUser.schoolLocation,
+  };
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [school, setSchool] = useState<School | null>(null);
@@ -229,14 +266,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!isMounted) return;
 
         if (data.session?.user) {
-          applyUser(toAppUser(data.session.user));
+          applyUser(await toAppUserWithProfile(data.session.user));
         } else {
           loadStoredDemoSession();
         }
 
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
           if (!isMounted) return;
-          applyUser(session?.user ? toAppUser(session.user) : null);
+          if (!session?.user) {
+            setBrowserGeminiApiKey("");
+            applyUser(null);
+            return;
+          }
+
+          window.setTimeout(() => {
+            void toAppUserWithProfile(session.user).then((profileUser) => {
+              if (isMounted) applyUser(profileUser);
+            });
+          }, 0);
         });
         unsubscribe = () => authListener.subscription.unsubscribe();
       } else {
@@ -266,7 +313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (!error && data.user) {
-          applyUser(toAppUser(data.user));
+          applyUser(await toAppUserWithProfile(data.user));
           return;
         }
 
@@ -315,6 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         schoolId: selectedSchool?.id || profile.schoolId,
         schoolName: selectedSchool?.name || customSchoolName || profile.schoolId,
         schoolLocation: selectedSchool?.location,
+        geminiApiKey: profile.geminiApiKey?.trim() || undefined,
       };
 
       if (supabase) {
@@ -327,7 +375,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) throw new Error(error.message);
         if (!data.user) throw new Error("Account could not be created. Please try again.");
 
-        applyUser(toAppUser(data.user));
+        const cleanedGeminiApiKey = profile.geminiApiKey?.trim();
+        if (cleanedGeminiApiKey && data.session) {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({ gemini_api_key: cleanedGeminiApiKey })
+            .eq("id", data.user.id);
+
+          if (profileError) {
+            console.warn("Gemini key profile update will rely on the signup trigger:", profileError.message);
+          }
+          setBrowserGeminiApiKey(cleanedGeminiApiKey);
+        }
+
+        applyUser(await toAppUserWithProfile(data.user));
         return;
       }
 

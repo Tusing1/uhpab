@@ -78,7 +78,6 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { generateContent } from '@/integrations/gemini';
-import { getBrowserGeminiApiKey } from '@/lib/aiKeys';
 
 const projectDownloadSteps = [
   'Collect sections',
@@ -1141,36 +1140,6 @@ const ProjectEdit = () => {
         interpret: 'Write a concise Chapter Four interpretation of the presented result in academic style.'
       };
 
-      const sourceText = temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent);
-      if (!getBrowserGeminiApiKey()) {
-        if (action === 'draft' || !stripHtml(sourceText).trim()) {
-          const starterDraft = getLocalStarterDraft(selectedComponent, componentLabel, projectData?.title || formData.title, requirements, selectedSection);
-          setTemporaryContent(starterDraft);
-          setIsEditing(true);
-          toast.warning("Starter draft added", {
-            description: "A local UHPAB starter was inserted. Edit it with your real details before saving.",
-          });
-          return;
-        }
-
-        if (action === 'uhpab') {
-          toast.info("Local UHPAB check is available in the checker panel", {
-            description: "AI correction needs an API key. The section is open for manual editing and local checks still show missing areas.",
-          });
-          setTemporaryContent(sourceText);
-          setIsEditing(true);
-          return;
-        }
-
-        const humanReview = humanizeResearchText(stripHtml(sourceText));
-        setTemporaryContent(humanReview.revisedText || sourceText);
-        setIsEditing(true);
-        toast.warning("AI writing is not configured", {
-          description: "I opened the section for editing and applied safe local cleanup where possible.",
-        });
-        return;
-      }
-      
       const generatedDraft = await generateContent(
         `You are helping write a ${projectData?.type || 'proposal'} for the research titled: "${projectData?.title}".
                 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
-import { AlertCircle, Sparkles, UserPlus } from 'lucide-react';
+import { AlertCircle, KeyRound, Sparkles, UserPlus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import SchoolPicker from '@/components/forms/SchoolPicker';
 import { findSchoolById } from '@/data/schools';
@@ -27,6 +27,7 @@ const Register = () => {
   const [htin, setHtin] = useState('');
   const [researchTopic, setResearchTopic] = useState('');
   const [topicMode, setTopicMode] = useState<TopicMode>('have-topic');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -115,7 +116,8 @@ const Register = () => {
         schoolId,
         className,
         htin,
-        researchTopic: topicMode === 'have-topic' ? researchTopic.trim() || undefined : undefined
+        researchTopic: topicMode === 'have-topic' ? researchTopic.trim() || undefined : undefined,
+        geminiApiKey: geminiApiKey.trim() || undefined,
       });
       window.sessionStorage.removeItem(registrationDraftKey);
       navigate(topicMode === 'generate-topic' ? '/research-topic-generator?from=signup&type=proposal' : '/dashboard');
@@ -234,6 +236,29 @@ const Register = () => {
                     onInput={updateFromInput(setHtin, (value) => value.toUpperCase())}
                     required
                   />
+                </div>
+                <div className="space-y-3 rounded-lg border bg-emerald-50/70 p-3 text-emerald-950">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
+                      <KeyRound className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Label htmlFor="geminiApiKey">Gemini API key optional</Label>
+                      <Input
+                        id="geminiApiKey"
+                        type="password"
+                        autoComplete="off"
+                        placeholder="Paste your Google AI Studio key if you have one"
+                        value={geminiApiKey}
+                        onChange={(e) => setGeminiApiKey(e.target.value)}
+                        onInput={updateFromInput(setGeminiApiKey)}
+                        className="bg-white/90"
+                      />
+                      <p className="text-xs leading-5 text-emerald-800">
+                        This helps your AI tools work under your own quota. You can skip it now and add it later in Settings.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3 rounded-lg border bg-white/60 p-3 dark:bg-card/60">
                   <Label htmlFor="researchTopic">Research topic</Label>

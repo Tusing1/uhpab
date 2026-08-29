@@ -60,10 +60,6 @@ export function AuthShell({
         <main className="grid flex-1 items-center gap-8 py-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,0.72fr)]">
           <section className="hidden min-w-0 lg:block">
             <div className="max-w-xl">
-              <span className="soft-marker border-info/20 bg-info-muted text-info-foreground">
-                <GraduationCap className="h-4 w-4" />
-                Built for nursing research
-              </span>
               <h1 className="mt-4 text-4xl font-bold leading-tight">{sideTitle}</h1>
               <p className="mt-3 text-base leading-7 text-muted-foreground">{sideDescription}</p>
               <div className="mt-6 grid gap-3">

@@ -54,6 +54,54 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          class_name: string | null
+          created_at: string
+          email: string
+          gemini_api_key: string | null
+          htin: string | null
+          id: string
+          name: string | null
+          research_topic: string | null
+          role: string
+          school_id: string | null
+          school_location: string | null
+          school_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          class_name?: string | null
+          created_at?: string
+          email: string
+          gemini_api_key?: string | null
+          htin?: string | null
+          id: string
+          name?: string | null
+          research_topic?: string | null
+          role?: string
+          school_id?: string | null
+          school_location?: string | null
+          school_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          class_name?: string | null
+          created_at?: string
+          email?: string
+          gemini_api_key?: string | null
+          htin?: string | null
+          id?: string
+          name?: string | null
+          research_topic?: string | null
+          role?: string
+          school_id?: string | null
+          school_location?: string | null
+          school_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

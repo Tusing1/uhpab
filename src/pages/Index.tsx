@@ -51,7 +51,7 @@ const Index = () => {
     <div className="study-surface min-h-screen text-foreground">
       <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur-xl">
         <div className="container flex min-h-16 items-center justify-between gap-4 py-2">
-          <BrandLogo subtitle="Research help for nursing students" markClassName="h-9 w-9" />
+          <BrandLogo subtitle="Research help for health students" markClassName="h-9 w-9" />
 
           <div className="flex items-center gap-2">
             <Link to="/login">
@@ -70,9 +70,6 @@ const Index = () => {
       <main>
         <section className="container grid gap-8 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-16">
           <div className="animate-fade-up space-y-6">
-            <span className="soft-marker bg-emerald-100 text-emerald-800">
-              Made for student nurses and midwives
-            </span>
             <div className="space-y-4">
               <img
                 src="/uhpab-logo.svg"
@@ -83,7 +80,7 @@ const Index = () => {
                 Build your research work with less stress and more confidence.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                A focused research workspace for UHPAB proposals and reports. Start a project, follow the roadmap, check your draft, and improve your writing one step at a time.
+                A focused research workspace for nurses, midwives, and allied health students writing UHPAB proposals and reports. Start a project, follow the roadmap, check your draft, and improve your writing one step at a time.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">

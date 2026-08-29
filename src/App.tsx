@@ -106,7 +106,7 @@ const AppRoutes = () => (
 
 const App = () => (
   <AppErrorBoundary>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />

@@ -1,3 +1,5 @@
+import { runtimeConfig } from "@/lib/runtimeConfig";
+
 const geminiStorageKey = "gemini_api_key";
 let sessionGeminiApiKey = "";
 
@@ -6,9 +8,9 @@ const getLocalStorageValue = (key: string) => {
   return window.localStorage.getItem(key)?.trim() || "";
 };
 
-export const setBrowserGeminiApiKey = (apiKey: string) => {
+export const setBrowserGeminiApiKey = (apiKey: string, options: { persist?: boolean } = {}) => {
   sessionGeminiApiKey = apiKey.trim();
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && options.persist) {
     if (sessionGeminiApiKey) {
       window.localStorage.setItem(geminiStorageKey, sessionGeminiApiKey);
     } else {
