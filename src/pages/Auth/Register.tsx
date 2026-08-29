@@ -132,7 +132,7 @@ const Register = () => {
         geminiApiKey: geminiApiKey.trim() || undefined,
       });
       window.sessionStorage.removeItem(registrationDraftKey);
-      navigate(topicMode === 'generate-topic' ? '/research-topic-generator?from=signup&type=proposal' : '/dashboard');
+      navigate(topicMode === 'generate-topic' ? '/research-topic-generator?from=signup&type=proposal' : '/getting-started');
     } catch (err) {
       setError((err as Error).message);
     }

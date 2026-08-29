@@ -354,7 +354,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const metadata = {
         name: name.trim(),
-        role: "school-student" satisfies UserRole,
+        role: "free" satisfies UserRole,
+        accountSource: "self-signup",
         htin: profile.htin.trim(),
         studentId: profile.htin.trim(),
         className: profile.className.trim(),
@@ -405,7 +406,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: normalizedEmail,
         password,
         name: metadata.name,
-        role: "school-student",
+        role: "free",
         studentId: metadata.studentId,
         htin: metadata.htin,
         className: metadata.className,
