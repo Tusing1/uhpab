@@ -154,7 +154,9 @@ const Register = () => {
                   <Label htmlFor="name">Full Name</Label>
                   <Input 
                     id="name"
+                    name="name"
                     type="text" 
+                    autoComplete="name"
                     placeholder="John Doe" 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -166,9 +168,13 @@ const Register = () => {
                   <Label htmlFor="email">Email</Label>
                   <Input 
                     id="email"
+                    name="email"
                     type="text"
                     inputMode="email"
                     autoComplete="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     placeholder="name@example.com" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -229,7 +235,11 @@ const Register = () => {
                   <Label htmlFor="htin">HTIN Number</Label>
                   <Input 
                     id="htin"
+                    name="htin"
                     type="text" 
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
                     placeholder="e.g., JUL25/U094/DCM/071/2025" 
                     value={htin}
                     onChange={(e) => setHtin(e.target.value.toUpperCase())}
@@ -246,8 +256,12 @@ const Register = () => {
                       <Label htmlFor="geminiApiKey">Gemini API key optional</Label>
                       <Input
                         id="geminiApiKey"
+                        name="geminiApiKey"
                         type="password"
                         autoComplete="off"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         placeholder="Paste your Google AI Studio key if you have one"
                         value={geminiApiKey}
                         onChange={(e) => setGeminiApiKey(e.target.value)}
@@ -283,7 +297,8 @@ const Register = () => {
                   </div>
                   {topicMode === 'have-topic' ? (
                     <Textarea
-                      id="researchTopic"
+                    id="researchTopic"
+                    name="researchTopic"
                       value={researchTopic}
                       onChange={(e) => setResearchTopic(e.target.value)}
                       onInput={updateFromInput(setResearchTopic)}
@@ -303,7 +318,9 @@ const Register = () => {
                   <Label htmlFor="password">Password</Label>
                   <Input 
                     id="password"
+                    name="new-password"
                     type="password" 
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onInput={updateFromInput(setPassword)}
@@ -314,7 +331,9 @@ const Register = () => {
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <Input 
                     id="confirmPassword"
+                    name="confirm-password"
                     type="password" 
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     onInput={updateFromInput(setConfirmPassword)}
