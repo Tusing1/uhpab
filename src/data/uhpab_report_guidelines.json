@@ -1,0 +1,1702 @@
+[
+  {
+    "section_id": "report_preliminary_main",
+    "document_type": "report",
+    "section_name": "Preliminary Pages (Report)",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "These pages precede Chapter One of the final report.",
+      "Specific order and content are required as per guidelines."
+    ],
+    "formatting_notes": [
+      "Page numbering: Roman numerals (i, ii, iii, etc.) starting after the Title Page, Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Generally double-spaced unless specified otherwise (e.g., Abstract).",
+      "Preliminary pages are exempted from plagiarism check."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "report",
+      "preliminary pages",
+      "front matter"
+    ]
+  },
+  {
+    "section_id": "report_title_page",
+    "document_type": "report",
+    "section_name": "Title Page",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Title of study – Not more than 20 words.",
+      "Include: Name of candidate.",
+      "Include: Health Trainee Identification Number (HTIN).",
+      "Include: Supervisor's name and academic qualifications.",
+      "Include: Purpose statement reflecting report submission (e.g., 'A Research Report submitted to...in partial fulfilment...').",
+      "Include: Date (Month and Year) of submission/completion."
+    ],
+    "formatting_notes": [
+      "No page number on this page."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Evaluation of Prevalence of Depression among HIV/AIDS Patients\nA Case Study of Lyamujungu Hospital\nBy\nJaquez Owino\nHTIN: JAN09/U200/10\nSupervisor: Antonio R. Jaquiline\nA Research Report submitted to\nUganda Health Professions Assessment Board in\nPartial Fulfilment of the Requirements for the Award of a\nDiploma in Nursing\nJune 2024"
+    ],
+    "prompt_keywords": [
+      "title",
+      "candidate name",
+      "HTIN",
+      "supervisor",
+      "purpose statement",
+      "date",
+      "final report"
+    ]
+  },
+  {
+    "section_id": "report_declaration",
+    "document_type": "report",
+    "section_name": "Declaration",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "States the work is original.",
+      "States the work has not been submitted elsewhere for any award.",
+      "Must be signed by the researcher (candidate).",
+      "Must include the Research Report Title and Candidate Name."
+    ],
+    "formatting_notes": [
+      "Heading: Centered.",
+      "Page numbering: Roman numeral 'i', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Declaration\nThis research report entitled “[Insert Research Title]” has been conducted by [Insert Candidate Name] and has never been submitted to any institution of higher learning for any award.\n\nSignature ...........................\nName of candidate ..............\nDate ..............................."
+    ],
+    "prompt_keywords": [
+      "originality",
+      "declaration",
+      "candidate signature",
+      "final report"
+    ]
+  },
+  {
+    "section_id": "report_approval",
+    "document_type": "report",
+    "section_name": "Approval",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Uses the completed Research Proposal Approval Format (from Annex 3).",
+      "Confirms the initial proposal was approved.",
+      "Includes signatures from Chairperson IRC, Research Supervisor, Principal, and Candidate.",
+      "Must include the Research Title and Candidate Name."
+    ],
+    "formatting_notes": [
+      "Heading: 'APPROVAL' (Typically Centered)",
+      "Page numbering: Roman numeral 'ii', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "APPROVAL\n\nWe the undersigned with guidance of the IRC hereby approve the research proposal entitled “[Insert Research Title]” conducted by [Insert Candidate Name] for submission to the [Insert Name of Training Institution] Institutional Research Committee (IRC).\n\nChairperson IRC\nSignature ..................\nName ..................\nDate ..................\n\nResearch Supervisor\nSignature ..................\nName ..................\nDate ..................\n\nPrincipal\nSignature ..................\nName ..................\nDate ..................\n\nCandidate\nSignature ..................\nName ..................\nDate .................."
+    ],
+    "prompt_keywords": [
+      "approval",
+      "proposal approval",
+      "IRC",
+      "supervisor signature",
+      "principal signature",
+      "candidate signature",
+      "chairperson signature"
+    ]
+  },
+  {
+    "section_id": "report_supervisor_commitment",
+    "document_type": "report",
+    "section_name": "Commitment by Research Supervisor",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Uses the completed Commitment form (from Annex 4).",
+      "Supervisor explicitly agrees to serve/has served for the specific candidate.",
+      "Supervisor pledges/pledged commitment, time, guidance.",
+      "Supervisor pledges/pledged to act professionally.",
+      "Must be signed by the Research Supervisor.",
+      "Must be Witnessed by the Principal (including Name, Date, and official stamp)."
+    ],
+    "formatting_notes": [
+      "Heading: 'COMMITMENT BY THE RESEARCH SUPERVISOR' (Typically Centered)",
+      "Page numbering: Roman numeral 'iii', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "COMMITMENT BY THE RESEARCH SUPERVISOR\n\nI, [Insert Supervisor Name], hereby agree/agreed to serve as a supervisor of the research study for [Insert Candidate Name] entitled '[Insert Research Title]'. I pledge/pledged to commit myself, devote time, provide all the necessary guidance, and act professionally throughout the process of the study.\n\nSignature: …………………………….\nName of Supervisor: …………………………………………\nDate: …………………………….\n\nWitnessed by\nSignature …………………………….\nName of Principal………………………….\nDate and official stamp"
+    ],
+    "prompt_keywords": [
+      "commitment",
+      "supervisor guidance",
+      "professionalism",
+      "supervisor signature",
+      "principal witness",
+      "official stamp"
+    ]
+  },
+  {
+    "section_id": "report_authorisation_copyright",
+    "document_type": "report",
+    "section_name": "Authorisation and copy rights",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Based on Annex 5.",
+      "States that unpublished reports submitted to the Training Institution library are open for inspection.",
+      "Specifies that use must be with due regard to the rights of the author.",
+      "Mentions the name of the Training Institution."
+    ],
+    "formatting_notes": [
+      "Heading: 'AUTHORISATION AND COPY RIGHTS' (Typically Centered)",
+      "Page numbering: Roman numeral 'iv', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "AUTHORISATION AND COPY RIGHTS\n\nUnpublished research reports submitted to [Insert Name of the Training Institution] and kept in the school library, are open for inspection, but shall be used with due regard to the rights of the author."
+    ],
+    "prompt_keywords": [
+      "authorisation",
+      "copyright",
+      "library",
+      "inspection",
+      "author rights"
+    ]
+  },
+  {
+    "section_id": "report_dedication",
+    "document_type": "report",
+    "section_name": "Dedication",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Optional page.",
+      "Allows the researcher to dedicate the work to specific individuals or groups."
+    ],
+    "formatting_notes": [
+      "Heading: 'DEDICATION' (Typically Centered)",
+      "Page numbering: Roman numeral 'v', Bottom center. Actual number depends on preceding pages."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "DEDICATION\n\nThis research report is dedicated to my family for their unwavering support and encouragement throughout my studies."
+    ],
+    "prompt_keywords": [
+      "dedication"
+    ]
+  },
+  {
+    "section_id": "report_acknowledgement",
+    "document_type": "report",
+    "section_name": "Acknowledgement",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Acknowledge individuals, institutions, or organizations that provided support (financial, technical, moral).",
+      "Typically thanks supervisor, institution staff, participants, funding bodies (if any), family, etc."
+    ],
+    "formatting_notes": [
+      "Heading: 'ACKNOWLEDGEMENT' (Typically Centered)",
+      "Page numbering: Roman numeral 'vi', Bottom center. Actual number depends on preceding pages."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "ACKNOWLEDGEMENT\n\nI wish to express my sincere gratitude to my research supervisor, [Supervisor's Name], for their invaluable guidance and support throughout this research process. My appreciation also extends to the Principal and staff of [Training Institution Name] and [Health Facility Name] for granting permission and facilitating this study. I am deeply indebted to the study participants who generously shared their time and experiences. Finally, I thank my family and friends for their constant encouragement."
+    ],
+    "prompt_keywords": [
+      "acknowledgement",
+      "gratitude",
+      "support",
+      "supervisor",
+      "participants",
+      "institution"
+    ]
+  },
+  {
+    "section_id": "report_table_of_contents",
+    "document_type": "report",
+    "section_name": "Table of Contents",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "List all major sections of the final report (Preliminary pages, Chapters with headings/subheadings, References, Appendices).",
+      "Include List of Tables and List of Figures if present.",
+      "Provide accurate corresponding page numbers.",
+      "Must be consistent with the actual report structure."
+    ],
+    "formatting_notes": [
+      "Heading: 'TABLE OF CONTENTS' (Typically Centered)",
+      "Page numbering: Roman numeral 'vii', Bottom center. Actual number depends on preceding pages."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "TABLE OF CONTENTS\\nDeclaration...................................i\\nApproval.....................................ii\\nCommitment by Research Supervisor............iii\\nAuthorisation and copy rights................iv\\nDedication...................................v\\nAcknowledgement..............................vi\\nTable of Contents............................vii\\nList of Tables...............................viii\\nList of Figures..............................ix\\nList of Acronyms.............................x\\nDefinition of Terms..........................xi\\nAbstract.....................................xii\\nCHAPTER ONE: INTRODUCTION...................1\\n1.1 Background...............................1\\n...\\nCHAPTER FOUR: FINDINGS OF THE STUDY.........X\\n...\\nCHAPTER FIVE: DISCUSSION, CONCLUSIONS...\\....X\\nReferences...................................X\\nAppendices...................................X\\n..."
+    ],
+    "prompt_keywords": [
+      "table of contents",
+      "structure",
+      "headings",
+      "page numbers",
+      "final report"
+    ]
+  },
+  {
+    "section_id": "report_list_of_tables",
+    "document_type": "report",
+    "section_name": "List of Tables",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Required if tables are included in the report body (especially Chapter 4).",
+      "List each table number (e.g., Table 1), its full title, and the page number where it appears.",
+      "Order should match the appearance in the text."
+    ],
+    "formatting_notes": [
+      "Heading: 'LIST OF TABLES' (Typically Centered)",
+      "Page numbering: Roman numeral 'viii', Bottom center. Actual number depends on preceding pages."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "LIST OF TABLES\nTable 1: Socio-Demographic Characteristics of Respondents..................X\nTable 2: Level of Knowledge on Malaria Prevention.........................X\nTable 3: Attitudes towards Malaria Prevention.............................X\n..."
+    ],
+    "prompt_keywords": [
+      "list of tables",
+      "tables",
+      "titles",
+      "page numbers"
+    ]
+  },
+  {
+    "section_id": "report_list_of_figures",
+    "document_type": "report",
+    "section_name": "List of Figures",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Required if figures (graphs, charts, images) are included in the report body.",
+      "List each figure number (e.g., Figure 1), its full title, and the page number where it appears.",
+      "Order should match the appearance in the text."
+    ],
+    "formatting_notes": [
+      "Heading: 'LIST OF FIGURES' (Typically Centered)",
+      "Page numbering: Roman numeral 'ix', Bottom center. Actual number depends on preceding pages."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "LIST OF FIGURES\nFigure 1: Distribution of Respondents by Age Group.........................X\nFigure 2: Sources of Information on Malaria Prevention....................X\n..."
+    ],
+    "prompt_keywords": [
+      "list of figures",
+      "figures",
+      "graphs",
+      "charts",
+      "titles",
+      "page numbers"
+    ]
+  },
+  {
+    "section_id": "report_acronyms",
+    "document_type": "report",
+    "section_name": "List of Acronyms/Abbreviations",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "List all acronyms and abbreviations used throughout the entire report.",
+      "Provide the full meaning for each.",
+      "Arrange the list in alphabetical order."
+    ],
+    "formatting_notes": [
+      "Heading: 'LIST OF ACRONYMS/ABBREVIATIONS' (Typically Centered)",
+      "Page numbering: Roman numeral 'x', Bottom center. Actual number depends on preceding pages."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "LIST OF ACRONYMS/ABBREVIATIONS\nANC - Antenatal Care\nART - Antiretroviral Therapy\nCI - Confidence Interval\nHC - Health Centre\nHIV - Human Immunodeficiency Virus\nIRC - Institutional Research Committee\nKMC - Kangaroo Mother Care\nMoH - Ministry of Health\nHTIN - Health Trainee Identification Number\nOR - Odds Ratio\nPPH - Postpartum Hemorrhage\nSPSS - Statistical Package for the Social Sciences\nUHPAB - Uganda Health Professions Assessment Board\nWHO - World Health Organization"
+    ],
+    "prompt_keywords": [
+      "acronyms",
+      "abbreviations",
+      "definitions",
+      "alphabetical",
+      "final report"
+    ]
+  },
+  {
+    "section_id": "report_definitions",
+    "document_type": "report",
+    "section_name": "Definition of Terms",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Define key terms operationally as they were used and measured within the context of the completed study.",
+      "Focus on key variables or concepts critical to understanding the research."
+    ],
+    "formatting_notes": [
+      "Heading: 'DEFINITION OF TERMS' (Typically Centered)",
+      "Page numbering: Roman numeral 'xi', Bottom center. Actual number depends on preceding pages."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "DEFINITION OF TERMS\n**Effective Management (of PPH):** In this study, refers to the timely initiation and correct execution of recommended interventions for postpartum hemorrhage (including uterine massage, administration of uterotonics, fluid resuscitation, and referral if needed) by healthcare workers according to national guidelines.\n**Knowledge Level (on Malaria Prevention):** Refers to the score obtained by pregnant mothers on a structured questionnaire assessing their understanding of malaria transmission, symptoms, risks during pregnancy, and recommended preventive measures (ITNs, IPTp), categorized as high, moderate, or low based on pre-defined cut-off points."
+    ],
+    "prompt_keywords": [
+      "definitions",
+      "operational definitions",
+      "key terms",
+      "study context",
+      "measurement"
+    ]
+  },
+  {
+    "section_id": "report_abstract",
+    "document_type": "report",
+    "section_name": "Abstract",
+    "parent_section_id": "report_preliminary_main",
+    "rules_and_guidelines": [
+      "Must be a summary of the entire study.",
+      "Include: Introduction/Background, Purpose, Methodology, Results/Key Findings, Implications to Nursing Practice, and Conclusions.",
+      "Use bolded subheadings for these components.",
+      "Key findings under each objective and key recommendations should be picked.",
+      "No in-text citations allowed.",
+      "APA publication Manual writing style should be used."
+    ],
+    "formatting_notes": [
+      "Heading: 'ABSTRACT' (Typically Centered)",
+      "Page numbering: Roman numeral 'xii', Bottom center. Actual number depends on preceding pages.",
+      "Maximum 1 page.",
+      "Maximum 300 words.",
+      "Spacing: Single-spaced.",
+      "Alignment: Justified (based on general text rules)."
+    ],
+    "page_count_limits": "Not more than one page and not more than 300 words.",
+    "examples": [
+      "ABSTRACT\n\n**Introduction/Background:** Malaria in pregnancy remains a significant public health issue in Madi Okollo District, contributing to adverse maternal and fetal outcomes. Limited knowledge and negative attitudes towards prevention hinder the effective utilization of control measures. This study assessed the knowledge and attitudes of pregnant mothers towards malaria prevention in Aliba Parish.\n\n**Purpose:** The study aimed to assess the knowledge and attitudes of pregnant mothers towards malaria prevention in Aliba Parish, Rigbo Sub-County, Madi Okollo District.\n\n**Methodology:** A descriptive cross-sectional study using quantitative methods was conducted among [Number] pregnant mothers selected via [Sampling Method] in Aliba Parish. Data were collected using an interviewer-administered questionnaire assessing socio-demographics, knowledge (scored), and attitudes (Likert scale). Data were analyzed using descriptive statistics in SPSS.\n\n**Results/Key Findings:** The majority ([Percentage]%) of respondents were aged [Age range] and [Percentage]% had primary education. Overall knowledge level was insufficient in [Percentage]% of mothers. Specific knowledge gaps existed regarding IPTp dosage and timing. While [Percentage]% perceived malaria as serious, [Percentage]% expressed concerns about ITN usability. A significant association was found between education level and knowledge score (p<0.05).\n\n**Conclusions:** Knowledge regarding malaria prevention among pregnant mothers in Aliba Parish is generally low, although attitudes are somewhat positive. Education level significantly impacts knowledge.\n\n**Recommendations:** Targeted health education focusing on IPTp and ITN use is needed during ANC visits. Community sensitization programs involving local leaders should be strengthened.\n\n**Implications to Nursing Practice:** Nurses and midwives should tailor health education during ANC to address specific knowledge gaps identified and reinforce positive attitudes towards malaria prevention strategies to improve maternal and child health outcomes."
+    ],
+    "prompt_keywords": [
+      "abstract",
+      "summary",
+      "introduction",
+      "background",
+      "purpose",
+      "methodology",
+      "results",
+      "findings",
+      "conclusions",
+      "recommendations",
+      "implications",
+      "nursing practice",
+      "single-spaced",
+      "300 words"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_introduction_main",
+    "document_type": "report",
+    "section_name": "Chapter One: Introduction",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Introduces the research study that was conducted.",
+      "Includes the background, problem statement, purpose, objectives, research questions, justification, and significance of the completed study.",
+      "Content is similar to the proposal's Chapter One but should be framed in the context of introducing a completed study."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER ONE: INTRODUCTION'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals (starting with '1'), Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow APA 7th edition levels."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "report chapter one",
+      "introduction",
+      "overview",
+      "completed study",
+      "past context"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_0_intro_paragraph",
+    "document_type": "report",
+    "section_name": "1.0 Introduction Paragraph",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Should introduce the summary of Chapter One.",
+      "Briefly mention the key components covered in the chapter for the completed study."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter One heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": "One (1) paragraph.",
+    "examples": [
+      "Example: This chapter introduces the study undertaken on [briefly state topic]. It begins with the background information that provided context to the research problem investigated. Subsequently, the chapter outlines the problem statement that guided the study, the purpose of the research, its specific objectives, and the corresponding research questions that were answered. Finally, the justification for conducting the study and its significance are presented."
+    ],
+    "prompt_keywords": [
+      "report chapter introduction",
+      "summary",
+      "overview",
+      "components",
+      "completed study"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_1_background",
+    "document_type": "report",
+    "section_name": "1.1 Background",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Provide context to the research problem that was investigated.",
+      "Should be concise and precise.",
+      "Briefly touch upon the global, regional, and local context of the problem.",
+      "Highlight the importance or magnitude of the problem.",
+      "Lead logically towards the problem statement."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": "Maximum two (2) pages.",
+    "examples": [
+      "Example: Globally, postpartum hemorrhage (PPH) remains a leading cause of maternal mortality... [Similar content to proposal example, framed as context for the study conducted]"
+    ],
+    "prompt_keywords": [
+      "report background",
+      "context",
+      "magnitude",
+      "problem overview",
+      "completed study context"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_2_problem_statement",
+    "document_type": "report",
+    "section_name": "1.2 Problem Statement",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Clearly and concisely state the specific problem the research addressed.",
+      "Highlight the gap in knowledge or practice that the study filled.",
+      "Explain the negative consequences or implications of the problem.",
+      "Should logically follow from the background."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": "Should be half a page.",
+    "examples": [
+      "Example: Despite the implementation of national guidelines for postpartum hemorrhage (PPH) management, anecdotal evidence... suggested inconsistent application... There was a lack of documented evidence specifically identifying the barriers... This study was conducted to address this gap by identifying these specific barriers..."
+    ],
+    "prompt_keywords": [
+      "report problem statement",
+      "gap addressed",
+      "consequences",
+      "research focus"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_3_purpose",
+    "document_type": "report",
+    "section_name": "1.3 Research Objectives",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "State the overall aim or goal that the research achieved.",
+      "Should clearly reflect the main focus derived from the problem statement.",
+      "Often starts with 'The purpose of this study was to...'"
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The purpose of this study was to identify and describe the barriers to the effective management of postpartum hemorrhage among healthcare workers at Bugembe Health Centre IV, Jinja District."
+    ],
+    "prompt_keywords": [
+      "report purpose",
+      "aim achieved",
+      "goal achieved",
+      "study focus"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_4_specific_objectives",
+    "document_type": "report",
+    "section_name": "1.3.1 Purpose of the Study or General Objective",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "State the specific, measurable tasks the study accomplished.",
+      "Should be SMART.",
+      "Use action verbs appropriate for reporting completed tasks (e.g., To identify, To determine, To assess, To describe).",
+      "Must be 2-3 objectives."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold).",
+      "Often presented as a numbered or bulleted list."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example:\nThe specific objectives of this study were:\n1. To identify the healthcare worker-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV.\n2. To determine the health system-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV.\n3. To explore the resource-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV."
+    ],
+    "prompt_keywords": [
+      "report objectives",
+      "specific tasks accomplished",
+      "SMART",
+      "action verbs"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_5_research_questions",
+    "document_type": "report",
+    "section_name": "1.3.2 Specific Objectives",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "State the questions that the research answered.",
+      "Must directly correspond to the specific objectives.",
+      "Should be clear, focused, and researchable."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold).",
+      "Often presented as a numbered or bulleted list."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example:\nThis study sought to answer the following research questions:\n1. What were the healthcare worker-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV?\n2. What were the health system-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV?\n3. What were the resource-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV?"
+    ],
+    "prompt_keywords": [
+      "report research questions",
+      "questions answered",
+      "linked to objectives"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_6_justification",
+    "document_type": "report",
+    "section_name": "1.3.3 Research Questions",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Explain the rationale for having conducted the study.",
+      "State the reason(s) why the researcher focused on this topic.",
+      "Highlight why the study was necessary or important.",
+      "May link back to the problem statement and gap that was addressed."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Postpartum hemorrhage remains a major cause of preventable maternal deaths... Understanding the specific barriers at Bugembe Health Centre IV was essential because context-specific information was lacking... This knowledge was necessary to inform targeted quality improvement initiatives..."
+    ],
+    "prompt_keywords": [
+      "report justification",
+      "rationale",
+      "importance",
+      "necessity",
+      "why study was done"
+    ]
+  },
+  {
+    "section_id": "report_chapter_1_7_significance",
+    "document_type": "report",
+    "section_name": "1.5 Significance of the Study",
+    "parent_section_id": "report_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Explain the importance or contribution of the study's findings.",
+      "Highlight the impact on the academic field, nursing practice, policy, or specific stakeholders.",
+      "Explain who benefits from the research findings and how.",
+      "Should demonstrate the value of the completed research."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The findings of this study are significant for several stakeholders... For the management and staff... it provides evidence-based insights... For the Ministry of Health... the study offers valuable information... For the nursing and midwifery profession, this research contributes to the body of knowledge... Ultimately, the identification and subsequent addressing of barriers are expected to contribute to improved maternal health outcomes..."
+    ],
+    "prompt_keywords": [
+      "report significance",
+      "contribution",
+      "impact",
+      "value",
+      "beneficiaries",
+      "nursing practice",
+      "policy"
+    ]
+  },
+  {
+    "section_id": "report_chapter_2_literature_review_main",
+    "document_type": "report",
+    "section_name": "Chapter Two: Literature Review",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Reviews existing literature relevant to the study topic and objectives as background for the completed study.",
+      "Establishes the context, identifies gaps addressed by the study, and justifies the research undertaken.",
+      "Demonstrates understanding of previous research relevant to the study's findings.",
+      "Content is similar to proposal but serves as the foundation for discussion in Chapter 5."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER TWO: LITERATURE REVIEW'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals, Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow APA 7th edition levels.",
+      "Referencing: Use APA 7th Edition format for in-text citations and the final reference list.",
+      "Minimum 20 references cited in the report.",
+      "Oldest references should be less than 10 years before study year."
+    ],
+    "page_count_limits": "3-5 pages total (including introduction and body).",
+    "examples": [],
+    "prompt_keywords": [
+      "report chapter two",
+      "literature review",
+      "existing research",
+      "context",
+      "gaps",
+      "study foundation"
+    ]
+  },
+  {
+    "section_id": "report_chapter_2_0_intro_paragraph",
+    "document_type": "report",
+    "section_name": "2.0 Introduction Paragraph",
+    "parent_section_id": "report_chapter_2_literature_review_main",
+    "rules_and_guidelines": [
+      "Briefly introduce the purpose and scope of the literature review as presented in the final report.",
+      "Outline the main themes or sections covered, aligned with the study objectives."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter Two heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": "This shall not be more than half a page.",
+    "examples": [
+      "Example: This chapter reviews existing literature relevant to the barriers influencing the effective management of postpartum hemorrhage (PPH)... The review is organized thematically, focusing on healthcare worker-related factors, health system challenges, and resource limitations... By examining the current body of knowledge, this review provides context for the study's findings and identifies existing gaps..."
+    ],
+    "prompt_keywords": [
+      "report literature review introduction",
+      "scope",
+      "themes",
+      "objectives alignment"
+    ]
+  },
+  {
+    "section_id": "report_chapter_2_1_body",
+    "document_type": "report",
+    "section_name": "2.1 Body of Literature Review",
+    "parent_section_id": "report_chapter_2_literature_review_main",
+    "rules_and_guidelines": [
+      "Organize the review thematically, using sub-headings.",
+      "Sub-headings MUST be in line with the specific study objectives.",
+      "Synthesize findings from various sources.",
+      "Critically analyze the literature.",
+      "Clearly identify the research gap(s) the study addressed.",
+      "Cite all sources accurately using APA 7th Edition format.",
+      "Ensure minimum 20 references are cited in the report.",
+      "Ensure references are primarily less than 10 years old."
+    ],
+    "formatting_notes": [
+      "Use appropriate APA heading levels for sub-headings.",
+      "Double-spaced.",
+      "Justified alignment."
+    ],
+    "page_count_limits": "Body shall be 3-5 pages.",
+    "examples": [
+      "Example: [Similar content structure to proposal examples, presenting synthesized literature under objective-aligned themes, clearly citing sources]"
+    ],
+    "prompt_keywords": [
+      "report literature synthesis",
+      "thematic review",
+      "objective alignment",
+      "critical analysis",
+      "gap identification",
+      "citations",
+      "recent literature"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_methodology_main",
+    "document_type": "report",
+    "section_name": "Chapter Three: Methodology",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Describes the actual plan and procedures used to conduct the research.",
+      "MUST be written primarily in the PAST TENSE.",
+      "Details how the study *was* conducted, allowing for assessment of rigor and potential replication."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER THREE: METHODOLOGY'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals, Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow APA 7th edition levels."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "report chapter three",
+      "methodology",
+      "procedures used",
+      "past tense",
+      "study execution"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_0_intro_paragraph",
+    "document_type": "report",
+    "section_name": "3.0 Introduction",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Introduce the summary of Chapter Three, outlining the methods used.",
+      "Write in PAST TENSE.",
+      "Briefly outline the key methodological aspects that were implemented (design, setting, population, sampling, data collection, analysis, ethics)."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter Three heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": "One (1) paragraph.",
+    "examples": [
+      "Example: This chapter outlines the methodology that *was* employed to investigate the barriers... It details the research design, the study setting, and the target population from which the sample *was* drawn. Furthermore, it describes the sampling strategy, sample size determination, data collection instruments and procedures *used*, methods for data management and analysis *implemented*, quality assurance measures *taken*, ethical considerations *adhered to*, limitations *encountered*, and the plan *followed* for disseminating the study findings."
+    ],
+    "prompt_keywords": [
+      "report methodology introduction",
+      "chapter summary",
+      "research approach used",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_1_study_design",
+    "document_type": "report",
+    "section_name": "3.1 Study design",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "State the specific research design that *was* employed.",
+      "MUST include the rationale for choosing this design.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: This study *employed* a descriptive cross-sectional design using quantitative methods. This design *was chosen* because it *was* suitable for identifying and describing the prevalence and nature of barriers... at a specific point in time. It *allowed* for the collection of data..."
+    ],
+    "prompt_keywords": [
+      "report study design",
+      "research approach used",
+      "rationale",
+      "justification",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_2_study_setting",
+    "document_type": "report",
+    "section_name": "3.2 Study setting",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the location/institution where the study *was* conducted.",
+      "Provide relevant details about the setting.",
+      "MUST include the rationale for having chosen this setting.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The study *was conducted* at Bugembe Health Centre IV, located in... Bugembe HC IV *served* a large... This setting *was chosen* because it *represented* a typical level IV health center..."
+    ],
+    "prompt_keywords": [
+      "report study setting",
+      "location",
+      "facility",
+      "rationale",
+      "context",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_3_study_population",
+    "document_type": "report",
+    "section_name": "3.3 Study population",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Define the specific group of individuals that the study investigated.",
+      "Clearly specify the characteristics of the target population.",
+      "Write in context of the completed study."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The study population *consisted* of all nurses and midwives who *were* employed and working in the maternity and labor wards of Bugembe Health Centre IV during the study period..."
+    ],
+    "prompt_keywords": [
+      "report study population",
+      "target group",
+      "participants",
+      "characteristics",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_4_sample_size",
+    "document_type": "report",
+    "section_name": "3.4 Sample size determination and justification",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "State the calculated sample size and the final sample size achieved.",
+      "Explain the method used for calculation (simple scientific methods).",
+      "Provide the parameters used.",
+      "Justify why the achieved sample size was considered adequate.",
+      "Write in PAST TENSE regarding calculation and achievement."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The sample size *was calculated* using the Kish Leslie formula... Assuming an estimated 50% prevalence... the calculated sample size *was* 96. Considering a potential non-response rate of 10%, the target sample size *was set* at 106. The final number of participants successfully recruited and included in the analysis *was* [Actual Number Achieved]."
+    ],
+    "prompt_keywords": [
+      "report sample size",
+      "calculation",
+      "formula",
+      "justification",
+      "achieved size",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_5_sampling_method",
+    "document_type": "report",
+    "section_name": "3.5 Sampling method/procedure",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the specific technique that *was used* to select the sample.",
+      "MUST include the rationale for having chosen this method.",
+      "Explain the step-by-step procedure *followed* for selecting participants.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: A simple random sampling technique *was used*. A list (sampling frame) of all eligible pregnant mothers... *was obtained*... Each mother *was assigned* a unique number. Numbers *were* then selected using a random number generator... until the desired sample size *was reached*..."
+    ],
+    "prompt_keywords": [
+      "report sampling method",
+      "technique used",
+      "procedure followed",
+      "rationale",
+      "selection",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_6_inclusion_exclusion",
+    "document_type": "report",
+    "section_name": "3.6 Inclusion and exclusion criteria",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "State the criteria participants *had* to meet to be included.",
+      "State the criteria that *disqualified* potential participants.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example:\n**Inclusion Criteria:** Participants *were included* if they *were* pregnant mothers residing in Aliba Parish, *attended* antenatal care..., and *were* willing and able to provide informed consent.\n**Exclusion Criteria:** Pregnant mothers *were excluded* if they *were* severely ill... or *did not* consent to participate."
+    ],
+    "prompt_keywords": [
+      "report inclusion criteria",
+      "report exclusion criteria",
+      "eligibility",
+      "participant selection",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_7_study_variables",
+    "document_type": "report",
+    "section_name": "3.7 Study variables",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Identify the key variables the study measured or explored.",
+      "Specify dependent and independent variables.",
+      "Write in context of the completed study."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example:\n**Dependent Variables:** The key outcomes measured *were* level of knowledge regarding malaria prevention... and attitude towards malaria prevention...\n**Independent Variables:** Factors examined for potential influence *included* socio-demographic characteristics..., access to information sources, and previous experience..."
+    ],
+    "prompt_keywords": [
+      "report study variables",
+      "dependent variable",
+      "independent variable",
+      "measured variables"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_8_instruments_tools",
+    "document_type": "report",
+    "section_name": "3.8 Research instruments/tools",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the specific tools that *were used* to collect data.",
+      "Mention if the tool was standardized/validated or researcher-developed.",
+      "Briefly describe the sections of the tool(s) and what they measured.",
+      "Refer to the final tool(s) in the appendices.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Data *were collected* using a pre-tested, semi-structured interviewer-administered questionnaire (Appendix II). The questionnaire *was developed* by the researcher... It *comprised* three sections: Section A *collected* socio-demographic information; Section B *assessed* knowledge...; and Section C *measured* attitudes..."
+    ],
+    "prompt_keywords": [
+      "report instruments",
+      "tools used",
+      "questionnaire",
+      "interview guide",
+      "measurement",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_9_data_collection_procedure",
+    "document_type": "report",
+    "section_name": "3.9 Data collection method/procedure",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the step-by-step process of how data *were* collected.",
+      "Explain how participants *were* approached and recruited.",
+      "Describe how consent *was* obtained.",
+      "Explain how the instruments/tools *were* administered.",
+      "Mention the role of the researcher/data collectors.",
+      "Specify the actual duration of data collection.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Upon obtaining ethical approval..., the researcher *approached* eligible pregnant mothers... The purpose of the study *was explained*, and written informed consent *was sought*. For those who *consented*, the researcher *administered* the questionnaire... Each interview *took* approximately 20-25 minutes. Data collection *occurred* over a period of four weeks from [Start Date] to [End Date]."
+    ],
+    "prompt_keywords": [
+      "report data collection",
+      "procedure followed",
+      "recruitment",
+      "consent obtained",
+      "administration",
+      "timeline",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_10_data_management_analysis",
+    "document_type": "report",
+    "section_name": "3.10 Data management and analysis",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe how collected data *were* managed (checking, coding, entry).",
+      "Specify the software *used* for analysis.",
+      "Outline the statistical methods *used* (descriptive, inferential).",
+      "Explain how the analysis addressed the research questions/objectives.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Collected questionnaires *were checked* daily... Data *were coded* and *entered* into Microsoft Excel. Data cleaning *was performed*... Descriptive statistics (frequencies, percentages...) *were used* to summarize... Associations... *were explored* using chi-square tests... Analysis *was performed* using Microsoft Excel."
+    ],
+    "prompt_keywords": [
+      "report data management",
+      "report data analysis",
+      "statistics used",
+      "software used",
+      "analysis performed",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_11_quality_assurance",
+    "document_type": "report",
+    "section_name": "3.11 Quality Assurance: Validity and Reliability",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Explain measures *taken* to ensure the quality of the data.",
+      "Describe how the validity and reliability of the instrument(s) *were* ensured (expert review, pre-testing).",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: To ensure content validity, the questionnaire *was reviewed* by the research supervisor... The questionnaire *was pre-tested* on 5 pregnant mothers... Necessary adjustments *were made*. The researcher *administered* all questionnaires to ensure consistency..."
+    ],
+    "prompt_keywords": [
+      "report quality assurance",
+      "validity measures taken",
+      "reliability measures taken",
+      "pre-testing conducted",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_12_ethical_considerations",
+    "document_type": "report",
+    "section_name": "3.12 Ethical considerations",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Outline the ethical principles that *guided* the study.",
+      "Describe how approval *was sought and obtained*.",
+      "Explain how informed consent *was obtained*.",
+      "Describe measures *taken* to ensure privacy and confidentiality.",
+      "Write in PAST TENSE."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Ethical approval *was sought and obtained* from the [Name of Training Institution] IRC... Permission *was obtained* from... Written informed consent *was obtained* from each participant... Participant anonymity *was maintained*... Data *were stored* securely..."
+    ],
+    "prompt_keywords": [
+      "report ethics",
+      "ethical approval obtained",
+      "informed consent obtained",
+      "confidentiality maintained",
+      "past tense"
+    ]
+  },
+  {
+    "section_id": "report_chapter_3_13_dissemination",
+    "document_type": "report",
+    "section_name": "3.13 Dissemination of study findings",
+    "parent_section_id": "report_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Outline the plan that *was followed* or *will be followed* for sharing findings.",
+      "Mention target audiences and methods.",
+      "Write primarily in PAST TENSE regarding submission, FUTURE/PRESENT tense regarding ongoing/planned dissemination."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The final research report *was submitted* to the Uganda Health Professions Assessment Board (UHPAB) and the [Name of Training Institution] library. Findings *were shared* with the management and staff of [Facility Name] through a presentation held on [Date]. A summary report *will be provided* to the District Health Office."
+    ],
+    "prompt_keywords": [
+      "report dissemination",
+      "sharing findings",
+      "reporting plan",
+      "target audience"
+    ]
+  },
+  {
+    "section_id": "report_chapter_4_findings_main",
+    "document_type": "report",
+    "section_name": "Chapter Four: Findings of the Study",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Presents the results of the data analysis objectively.",
+      "Should directly address the research objectives and questions.",
+      "Highlight key findings.",
+      "Use tables and figures effectively where appropriate.",
+      "Avoid interpretation or discussion of results in this chapter."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER FOUR: FINDINGS OF THE STUDY'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals, Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow APA 7th edition levels (e.g., 4.1, 4.2 corresponding to objectives).",
+      "Tables/Figures: Use maximum 2 tables or figures per research objective.",
+      "Table/Figure headings: Must be written ABOVE the table/figure."
+    ],
+    "page_count_limits": "3-5 pages.",
+    "examples": [],
+    "prompt_keywords": [
+      "report chapter four",
+      "findings",
+      "results",
+      "data presentation",
+      "objective results"
+    ]
+  },
+  {
+    "section_id": "report_chapter_4_0_intro_paragraph",
+    "document_type": "report",
+    "section_name": "4.0 Introduction",
+    "parent_section_id": "report_chapter_4_findings_main",
+    "rules_and_guidelines": [
+      "Briefly introduce the chapter.",
+      "Describe the final sample size achieved.",
+      "Outline the methods used for data presentation (e.g., tables, figures, narrative statements)."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter Four heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: This chapter presents the findings obtained from the analysis of data collected from [Number] [participant type, e.g., pregnant mothers] at [Study Setting]. The results are organized according to the study objectives and research questions. Descriptive statistics, including frequencies, percentages, means, and standard deviations, are used. Key findings are presented using tables, figures, and narrative summaries as appropriate."
+    ],
+    "prompt_keywords": [
+      "findings introduction",
+      "sample size achieved",
+      "data presentation methods"
+    ]
+  },
+  {
+    "section_id": "report_chapter_4_1_demographics",
+    "document_type": "report",
+    "section_name": "4.1 Demographic characteristics",
+    "parent_section_id": "report_chapter_4_findings_main",
+    "rules_and_guidelines": [
+      "Present the socio-demographic characteristics of the study sample.",
+      "Use frequencies and percentages.",
+      "Preferably present in one summary table."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold).",
+      "Present data clearly, often using a table (Table 1)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The socio-demographic characteristics of the [Number] respondents are presented in Table 1. The majority of participants ([Percentage]%) were aged between [Age Range], while [Percentage]% had completed primary education..."
+    ],
+    "prompt_keywords": [
+      "demographics",
+      "sample characteristics",
+      "frequencies",
+      "percentages",
+      "table"
+    ]
+  },
+  {
+    "section_id": "report_chapter_4_2_objective1_results",
+    "document_type": "report",
+    "section_name": "4.2 Findings Related to Objective 1",
+    "parent_section_id": "report_chapter_4_findings_main",
+    "rules_and_guidelines": [
+      "Present the findings specifically addressing the first research objective/question.",
+      "Use tables and/or figures (max 2 total for this objective) or summarized narrative statements.",
+      "Present data objectively without interpretation."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold), title reflects objective 1.",
+      "Ensure clear labeling of any tables/figures used."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Objective one sought to determine the level of knowledge... Table 2 shows the distribution of knowledge scores among participants. The mean knowledge score was [Mean Score] (SD = [SD]). Overall, [Percentage]% demonstrated insufficient knowledge, while [Percentage]% had moderate and [Percentage]% had high knowledge regarding malaria prevention..."
+    ],
+    "prompt_keywords": [
+      "results objective 1",
+      "findings",
+      "data",
+      "tables",
+      "figures",
+      "narrative summary"
+    ]
+  },
+  {
+    "section_id": "report_chapter_4_3_objective2_results",
+    "document_type": "report",
+    "section_name": "4.3 Findings Related to Objective 2",
+    "parent_section_id": "report_chapter_4_findings_main",
+    "rules_and_guidelines": [
+      "Present the findings specifically addressing the second research objective/question.",
+      "Use tables and/or figures (max 2 total for this objective) or summarized narrative statements.",
+      "Present data objectively without interpretation."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold), title reflects objective 2.",
+      "Ensure clear labeling of any tables/figures used."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The second objective examined attitudes towards malaria prevention... Figure 1 illustrates the responses to key attitude statements using a Likert scale. While [Percentage]% strongly agreed that malaria is a serious illness, only [Percentage]% strongly agreed that ITNs are comfortable to use..."
+    ],
+    "prompt_keywords": [
+      "results objective 2",
+      "findings",
+      "data",
+      "tables",
+      "figures",
+      "narrative summary"
+    ]
+  },
+  {
+    "section_id": "report_chapter_4_4_objective3_results",
+    "document_type": "report",
+    "section_name": "4.4 Findings Related to Objective 3",
+    "parent_section_id": "report_chapter_4_findings_main",
+    "rules_and_guidelines": [
+      "Present the findings specifically addressing the third research objective/question (if applicable).",
+      "Use tables and/or figures (max 2 total for this objective) or summarized narrative statements.",
+      "Present data objectively without interpretation."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold), title reflects objective 3.",
+      "Ensure clear labeling of any tables/figures used."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Objective three explored resource-related barriers... Narrative summary: The most frequently mentioned resource barrier by healthcare workers was the inconsistent supply of essential PPH drugs ([Percentage]%), followed by lack of functional equipment ([Percentage]%)."
+    ],
+    "prompt_keywords": [
+      "results objective 3",
+      "findings",
+      "data",
+      "tables",
+      "figures",
+      "narrative summary"
+    ]
+  },
+  {
+    "section_id": "report_chapter_5_main",
+    "document_type": "report",
+    "section_name": "Chapter Five: Discussion, Conclusions and Recommendations",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Provides interpretation of the findings presented in Chapter 4.",
+      "Relates findings back to the literature reviewed in Chapter 2 and the study objectives.",
+      "Draws conclusions based solely on the study's results.",
+      "Makes actionable recommendations based on the conclusions.",
+      "Discusses the specific implications of the findings for nursing and midwifery practice."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER FIVE: DISCUSSION, CONCLUSIONS AND RECOMMENDATIONS'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals, Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow specific guideline numbering (e.g., 5.1.5a, 5.1.5b) or standard APA levels."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "report chapter five",
+      "discussion",
+      "conclusions",
+      "recommendations",
+      "interpretation",
+      "implications"
+    ]
+  },
+  {
+    "section_id": "report_chapter_5_intro",
+    "document_type": "report",
+    "section_name": "Introduction (Chapter 5)",
+    "parent_section_id": "report_chapter_5_main",
+    "rules_and_guidelines": [
+      "Briefly introduce the chapter, outlining the sections to be covered (Discussion, Limitations, Conclusions, Recommendations, Implications)."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter Five heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: This chapter discusses the findings presented in Chapter Four, interpreting them in the context of the study objectives and existing literature. It addresses the study limitations, draws conclusions based on the results, provides recommendations for relevant stakeholders, and highlights the implications of the findings for nursing practice."
+    ],
+    "prompt_keywords": [
+      "chapter five introduction",
+      "overview"
+    ]
+  },
+  {
+    "section_id": "report_chapter_5_1_5a_discussion",
+    "document_type": "report",
+    "section_name": "5.1.5a) Discussion",
+    "parent_section_id": "report_chapter_5_main",
+    "rules_and_guidelines": [
+      "Interpret the key findings presented in Chapter 4.",
+      "Relate the findings to the problem statement and purpose of the study.",
+      "Compare and contrast the findings with the literature reviewed in Chapter 2.",
+      "Provide possible explanations for the findings.",
+      "Should NOT simply copy and paste findings from Chapter 4.",
+      "Minimize speculation.",
+      "Should be aligned with the study objectives and presented as subheadings."
+    ],
+    "formatting_notes": [
+      "Heading numbering follows guideline (5.1.5a) or standard APA Level 2 (e.g., 5.1 Discussion) with subsequent objective-based subheadings.",
+      "Double-spaced."
+    ],
+    "page_count_limits": "2-3 pages.",
+    "examples": [
+      "Example (Discussing Knowledge Findings): The finding that a majority ([Percentage]%) of pregnant mothers in Aliba Parish had insufficient knowledge aligns with studies from [Region/Country] (Author X, 2018) but contrasts slightly with findings by Taremwa et al. (2017) in Kagadi, Uganda, who reported moderate knowledge levels. This difference might be attributable to the specific socio-demographic context of Aliba Parish, potentially lower access to health information, or differences in health education delivery at the local facility. The identified gaps in knowledge regarding IPTp dosage, also noted by Author Z (2019) in Ghana, suggest a need for more targeted and clear communication during ANC visits..."
+    ],
+    "prompt_keywords": [
+      "discussion",
+      "interpretation",
+      "compare literature",
+      "contrast literature",
+      "explain findings",
+      "objective alignment"
+    ]
+  },
+  {
+    "section_id": "report_chapter_5_1_5b_limitations",
+    "document_type": "report",
+    "section_name": "5.1.5b) Limitations",
+    "parent_section_id": "report_chapter_5_main",
+    "rules_and_guidelines": [
+      "Acknowledge the constraints or weaknesses encountered during the study.",
+      "Explain how these limitations might affect the validity, reliability, or generalizability of the findings.",
+      "Should reflect the actual limitations faced."
+    ],
+    "formatting_notes": [
+      "Heading numbering follows guideline (5.1.5b) or standard APA Level 2."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The study's reliance on self-reported data for attitudes might have introduced social desirability bias, potentially overestimating positive attitudes. Furthermore, the cross-sectional design limits the ability to establish causal relationships between knowledge/attitudes and prevention practices. Conducting the study in only one parish limits the generalizability of findings to the entire Madi Okollo District. Logistical challenges related to transport occasionally delayed data collection in remote villages within the parish."
+    ],
+    "prompt_keywords": [
+      "limitations",
+      "weaknesses",
+      "constraints",
+      "validity",
+      "reliability",
+      "generalizability",
+      "bias"
+    ]
+  },
+  {
+    "section_id": "report_chapter_5_1_5c_conclusions",
+    "document_type": "report",
+    "section_name": "5.1.5c) Conclusions",
+    "parent_section_id": "report_chapter_5_main",
+    "rules_and_guidelines": [
+      "Summarize the main findings of the study directly based on the results.",
+      "Must be consistent with the study objectives.",
+      "Should provide direct answers to the research questions.",
+      "Avoid introducing new information."
+    ],
+    "formatting_notes": [
+      "Heading numbering follows guideline (5.1.5c) or standard APA Level 2.",
+      "Present as summarized paragraphs."
+    ],
+    "page_count_limits": "Cover half a page.",
+    "examples": [
+      "Example: Based on the findings, it is concluded that pregnant mothers in Aliba Parish generally possess insufficient knowledge regarding malaria prevention, particularly concerning specific interventions like IPTp. While attitudes towards malaria prevention are moderately positive, certain barriers like concerns about ITN use exist. The level of education was found to be a significant factor associated with knowledge levels. These findings highlight a critical need for targeted health education interventions within this community."
+    ],
+    "prompt_keywords": [
+      "conclusions",
+      "summary of findings",
+      "answers to research questions",
+      "objective alignment"
+    ]
+  },
+  {
+    "section_id": "report_chapter_5_1_5d_recommendations",
+    "document_type": "report",
+    "section_name": "5.1.5d) Recommendations",
+    "parent_section_id": "report_chapter_5_main",
+    "rules_and_guidelines": [
+      "Provide actionable suggestions based on the study conclusions.",
+      "Refer to the conclusions drawn.",
+      "Clearly state which authority or individual should take which action.",
+      "Should be practical and feasible.",
+      "Present not more than 4 key recommendations."
+    ],
+    "formatting_notes": [
+      "Heading numbering follows guideline (5.1.5d) or standard APA Level 2.",
+      "Often presented as a numbered or bulleted list."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: Based on the study conclusions, the following recommendations are made:\n1. The Ministry of Health and Madi Okollo District Health Office should strengthen targeted health education during ANC at Aliba Parish health facilities, focusing on correct IPTp dosage/timing and addressing misconceptions about ITN use.\n2. Healthcare workers (nurses/midwives) at Aliba Parish facilities should utilize simplified visual aids and local language during health education sessions to improve understanding, particularly for mothers with lower education levels.\n3. Community leaders and Village Health Teams (VHTs) in Aliba Parish should be engaged to conduct community sensitization campaigns on malaria prevention in pregnancy.\n4. Further research using qualitative methods is recommended to explore the underlying reasons for specific attitudes and barriers in more depth."
+    ],
+    "prompt_keywords": [
+      "recommendations",
+      "actionable",
+      "based on conclusions",
+      "stakeholders",
+      "practical",
+      "max 4"
+    ]
+  },
+  {
+    "section_id": "report_chapter_5_1_5e_implications",
+    "document_type": "report",
+    "section_name": "5.1.5e) Implications to Nursing Practice",
+    "parent_section_id": "report_chapter_5_main",
+    "rules_and_guidelines": [
+      "Highlight the impact and relevancy of the findings specifically for nursing and midwifery practice.",
+      "Explain how the findings can be used to improve nursing care, health education, or patient outcomes.",
+      "Connect the research back to practical aspects of the nursing profession."
+    ],
+    "formatting_notes": [
+      "Heading numbering follows guideline (5.1.5e) or standard APA Level 2."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: The findings imply a critical need for nurses and midwives providing ANC in settings like Aliba Parish to enhance their health education approaches. Standard information dissemination may not be sufficient; tailored communication addressing specific knowledge gaps (like IPTp details) and cultural contexts is essential. Nurses should actively assess patient understanding and address concerns, particularly regarding ITNs, to improve adherence. These results underscore the role of nurses not only as care providers but also as key educators and advocates for evidence-based malaria prevention strategies to improve maternal and neonatal health."
+    ],
+    "prompt_keywords": [
+      "implications",
+      "nursing practice",
+      "midwifery practice",
+      "relevance",
+      "impact",
+      "improving care",
+      "health education"
+    ]
+  },
+  {
+    "section_id": "report_references",
+    "document_type": "report",
+    "section_name": "References",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "List all sources cited within the body of the final report (Chapters 1-5).",
+      "Must include a minimum of 20 references.",
+      "References must be those cited within the body of the report.",
+      "Follow APA 7th Edition formatting strictly for all entries.",
+      "Ensure references cited in the text match the entries in this list, and vice versa.",
+      "References should primarily be less than 10 years old before the study year."
+    ],
+    "formatting_notes": [
+      "Heading: 'REFERENCES' (Typically centered, depends on institutional style or APA level 1 heading format)",
+      "Starts on a new page after Chapter 5.",
+      "Entries listed alphabetically by author's last name.",
+      "Use hanging indent for each entry (first line flush left, subsequent lines indented).",
+      "Double-spaced.",
+      "Page numbering: Arabic numerals continued, Bottom center.",
+      "Exempted from plagiarism check."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "REFERENCES\n\nAdum, P. J., et al. (2023). Title of Article. *Journal Name*, Volume(Issue), Pages. DOI [If available]\n\nMinistry of Health Uganda. (2019). *Title of Report or Guideline*. Publisher. [Ensure full APA 7th details]\n\nMusimenta, C. (2022). Title of Work. Publisher or Source. [Ensure full APA 7th details]\n\nWHO. (2020). *World Malaria Report 2020*. World Health Organization. [Ensure full APA 7th details]\n\n[... Add all other references alphabetically, following APA 7th format precisely ...]"
+    ],
+    "prompt_keywords": [
+      "references",
+      "bibliography",
+      "citations",
+      "APA 7th edition",
+      "alphabetical",
+      "hanging indent",
+      "minimum 20",
+      "cited sources only"
+    ]
+  },
+  {
+    "section_id": "report_appendices_main",
+    "document_type": "report",
+    "section_name": "Appendices",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Contain supplementary materials relevant to the final report, as listed in Section 7.0.",
+      "Each appendix should be labeled clearly (e.g., Appendix I, Appendix II, following guideline numbering).",
+      "Refer to appendices within the main text where appropriate."
+    ],
+    "formatting_notes": [
+      "Heading: 'APPENDICES' (Typically centered, starts on a new page)",
+      "Page numbering: Arabic numerals continued, Bottom center.",
+      "Each appendix starts on a new page with a clear label (e.g., 'Appendix I: Consent form')."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "appendices",
+      "supplementary material",
+      "attachments",
+      "final report"
+    ]
+  },
+  {
+    "section_id": "report_appendix_I_consent",
+    "document_type": "report",
+    "section_name": "Appendix I: Consent form",
+    "parent_section_id": "report_appendices_main",
+    "rules_and_guidelines": [
+      "Include the final version of the informed consent form that was used in the study.",
+      "Content should match requirements outlined in ethical considerations (purpose, procedures, risks/benefits, voluntary participation, withdrawal rights, confidentiality, contacts)."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix I: Consent form' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Full text of the final consent form used]"
+    ],
+    "prompt_keywords": [
+      "consent form",
+      "informed consent",
+      "final version",
+      "appendix I"
+    ]
+  },
+  {
+    "section_id": "report_appendix_II_tools",
+    "document_type": "report",
+    "section_name": "Appendix II: Data collection tool(s) or instrument(s)",
+    "parent_section_id": "report_appendices_main",
+    "rules_and_guidelines": [
+      "Include the final version(s) of all data collection tools used (e.g., questionnaire, interview guide).",
+      "Ensure tools align with the methodology described in Chapter 3.",
+      "Tools should consist of a maximum of five (5) core questions per research question or objective."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix II: Data collection tool(s)' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Full text of the final questionnaire/interview guide used]"
+    ],
+    "prompt_keywords": [
+      "data collection tool",
+      "instrument",
+      "questionnaire",
+      "interview guide",
+      "final version",
+      "appendix II",
+      "max 5 core questions"
+    ]
+  },
+  {
+    "section_id": "report_appendix_III_intro_letter",
+    "document_type": "report",
+    "section_name": "Appendix III: Copy of Introduction letter",
+    "parent_section_id": "report_appendices_main",
+    "rules_and_guidelines": [
+      "Include a copy of the official introduction letter issued by the Principal/Institution for conducting the research."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix III: Copy of Introduction letter' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Scanned image or clear copy of the introduction letter]"
+    ],
+    "prompt_keywords": [
+      "introduction letter",
+      "principal letter",
+      "official letter",
+      "appendix III"
+    ]
+  },
+  {
+    "section_id": "report_appendix_IV_authorisation",
+    "document_type": "report",
+    "section_name": "Appendix IV: Letter of authorisation by authorities of study area",
+    "parent_section_id": "report_appendices_main",
+    "rules_and_guidelines": [
+      "Include copies of letters granting permission/authorisation from relevant authorities in the study area (e.g., District Health Officer, facility in-charge, local council)."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix IV: Letter(s) of authorisation' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Scanned image(s) or clear copies of permission letters]"
+    ],
+    "prompt_keywords": [
+      "authorisation letter",
+      "permission letter",
+      "study area authorities",
+      "appendix IV"
+    ]
+  },
+  {
+    "section_id": "report_appendix_V_IRC_letter",
+    "document_type": "report",
+    "section_name": "Appendix V: A Copy of a letter from IRC",
+    "parent_section_id": "report_appendices_main",
+    "rules_and_guidelines": [
+      "Include a copy of the ethical approval letter received from the Institutional Research Committee (IRC)."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix V: IRC Approval Letter' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Scanned image or clear copy of the IRC ethical approval letter]"
+    ],
+    "prompt_keywords": [
+      "IRC letter",
+      "ethical approval",
+      "institutional review",
+      "appendix V"
+    ]
+  },
+  {
+    "section_id": "report_appendix_VI_maps",
+    "document_type": "report",
+    "section_name": "Appendix VI: Maps showing location of study area",
+    "parent_section_id": "report_appendices_main",
+    "rules_and_guidelines": [
+      "Include map(s) if relevant and helpful for understanding the study setting.",
+      "Ensure maps are clear, properly labeled, and sourced if necessary."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix VI: Map(s) of Study Area' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Image file or description indicating where a map of the study area would be inserted]"
+    ],
+    "prompt_keywords": [
+      "map",
+      "study area",
+      "location",
+      "geographical context",
+      "appendix VI"
+    ]
+  },
+  {
+    "section_id": "report_appendix_VII_similarity",
+    "document_type": "report",
+    "section_name": "Appendix VII: Similarity Index Report",
+    "parent_section_id": "report_appendices_main",
+    "rules_and_guidelines": [
+      "Include the report generated by plagiarism checking software (e.g., Turnitin).",
+      "The allowed similarity index MUST NOT be more than 30%.",
+      "Preliminary pages and References are exempted from the plagiarism check.",
+      "Trainee is responsible for performing the check and attaching the report."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix VII: Similarity Index Report' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Copy of the first page or summary page of the Turnitin (or other software) report showing the overall similarity percentage]"
+    ],
+    "prompt_keywords": [
+      "similarity report",
+      "plagiarism check",
+      "Turnitin",
+      "originality",
+      "max 30 percent",
+      "appendix VII"
+    ]
+  }
+]
+
+

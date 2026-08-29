@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Calm academic workspace palette */
+    --background: 206 100% 98%;
+    --foreground: 225 32% 13%;
+
+    /* Card styles with slight transparency for glassmorphism */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    /* Popover styles */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    /* Primary color - friendly academic blue */
+    --primary: 213 94% 52%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary color - soft mint */
+    --secondary: 162 65% 93%;
+    --secondary-foreground: 170 80% 20%;
+
+    /* Muted elements */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent color - warm study peach */
+    --accent: 34 100% 91%;
+    --accent-foreground: 28 85% 26%;
+
+    /* Destructive actions */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* UI elements */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 213 94% 52%;
+
+    --radius: 0.5rem;
+
+    /* Semantic review colors */
+    --success: 160 84% 30%;
+    --success-foreground: 158 64% 18%;
+    --success-muted: 152 81% 96%;
+    --warning: 35 92% 42%;
+    --warning-foreground: 28 80% 22%;
+    --warning-muted: 48 96% 95%;
+    --info: 213 94% 52%;
+    --info-foreground: 216 74% 28%;
+    --info-muted: 210 100% 97%;
+
+    /* Sidebar styles */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 225 32% 13%;
+    --sidebar-primary: 214 100% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 100% 96%;
+    --sidebar-accent-foreground: 214 100% 30%;
+    --sidebar-border: 214 30% 92%;
+    --sidebar-ring: 214 100% 56%;
+  }
+
+  .dark {
+    /* Dark mode with deeper blues */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    /* Card styles for dark mode */
+    --card: 222.2 47% 10%;
+    --card-foreground: 210 40% 98%;
+
+    /* Popover styles */
+    --popover: 222.2 47% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary color - lighter UHPAB blue */
+    --primary: 214 80% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary color */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted elements */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    /* Accent color - deeper lavender */
+    --accent: 273 60% 25%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive actions */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* UI elements */
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    --success: 158 64% 52%;
+    --success-foreground: 152 81% 96%;
+    --success-muted: 160 38% 16%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 48 96% 95%;
+    --warning-muted: 32 45% 18%;
+    --info: 211 100% 68%;
+    --info-foreground: 210 100% 97%;
+    --info-muted: 216 44% 18%;
+    
+    /* Sidebar styles */
+    --sidebar-background: 214 47% 12%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 214 80% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 40% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 214 40% 20%;
+    --sidebar-ring: 214 80% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    letter-spacing: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: 0;
+  }
+}
+
+@layer utilities {
+  .study-surface {
+    background: hsl(var(--background));
+  }
+
+  .study-card {
+    @apply rounded-lg border bg-card shadow-sm dark:bg-card;
+  }
+
+  .soft-marker {
+    @apply inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .uhpab-reduce-motion *,
+  .uhpab-reduce-motion *::before,
+  .uhpab-reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

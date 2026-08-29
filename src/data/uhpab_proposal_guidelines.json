@@ -1,0 +1,1196 @@
+[
+  {
+    "section_id": "proposal_title_page",
+    "document_type": "proposal",
+    "section_name": "Title Page",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Title of study – Not more than 20 words.",
+      "Include: Name of candidate.",
+      "Include: Health Trainee Identification Number (HTIN).",
+      "Include: Supervisor's name and academic qualifications.",
+      "Include: Purpose statement (e.g., 'A Research Proposal submitted to Uganda Health Professions Assessment Board...').",
+      "Include: Date (Month and Year)."
+    ],
+    "formatting_notes": [
+      "No page number on this page."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Evaluation of Prevalence of Depression among HIV/AIDS Patients\nA Case Study of Lyamujungu Hospital\nBy\nJaquez Owino\nHTIN: JAN09/U200/10\nSupervisor: Antonio R. Jaquiline\nA Research Proposal submitted to\nUganda Health Professions Assessment Board in\nPartial Fulfilment of the Requirements for the Award of a\nDiploma in Nursing\nJune 2024"
+    ],
+    "prompt_keywords": [
+      "title",
+      "candidate name",
+      "HTIN",
+      "supervisor",
+      "purpose statement",
+      "date"
+    ]
+  },
+  {
+    "section_id": "proposal_declaration",
+    "document_type": "proposal",
+    "section_name": "Declaration",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "States the work is original.",
+      "States the work has not been submitted elsewhere for any award.",
+      "Must be signed by the researcher (candidate)."
+    ],
+    "formatting_notes": [
+      "Heading: Centered.",
+      "Page numbering: Roman numeral 'i', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Declaration\nI, [Candidate Name], declare that this research proposal entitled '[Research Title]' is my original work and has not been submitted to any other institution for any award.\n\nSignature ...........................\nName of candidate ..............\nDate ..............................."
+    ],
+    "prompt_keywords": [
+      "originality",
+      "declaration",
+      "candidate signature"
+    ]
+  },
+  {
+    "section_id": "proposal_approval_form",
+    "document_type": "proposal",
+    "section_name": "Proposal Approval Form",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Confirms institutional review and approval for submission to the Institutional Research Committee (IRC).",
+      "Requires signatures from Chairperson IRC, Research Supervisor, Principal, and Candidate.",
+      "Must include the Research Proposal Title and Candidate Name."
+    ],
+    "formatting_notes": [
+      "Heading: Centered.",
+      "Page numbering: Roman numeral 'ii', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "PROPOSAL APPROVAL FORM\n\nWe the undersigned with guidance of the IRC hereby approve the research proposal entitled “[Insert Research Title]” conducted by [Insert Candidate Name] for submission to the [Insert Name of Training Institution] Institutional Research Committee (IRC).\n\nChairperson IRC\nSignature ..................\nName ..................\nDate ..................\n\nResearch Supervisor\nSignature ..................\nName ..................\nDate ..................\n\nPrincipal\nSignature ..................\nName ..................\nDate ..................\n\nCandidate\nSignature ..................\nName ..................\nDate .................."
+    ],
+    "prompt_keywords": [
+      "approval",
+      "IRC",
+      "supervisor signature",
+      "principal signature",
+      "candidate signature",
+      "chairperson signature"
+    ]
+  },
+  {
+    "section_id": "proposal_supervisor_commitment",
+    "document_type": "proposal",
+    "section_name": "Commitment by Research Supervisor",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Supervisor explicitly agrees to serve for the specific candidate.",
+      "Supervisor pledges commitment, time, guidance.",
+      "Supervisor pledges to act professionally.",
+      "Must be signed by the Research Supervisor.",
+      "Requires Name of Supervisor line below signature."
+    ],
+    "formatting_notes": [
+      "Heading: Centered.",
+      "Page numbering: Roman numeral 'iii', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "COMMITMENT BY THE RESEARCH SUPERVISOR\n\nI, [Insert Supervisor Name], hereby agree to serve as a supervisor of the research study for [Insert Candidate Name] entitled '[Insert Research Title]'. I pledge to commit myself, devote time, provide all the necessary guidance and act professionally throughout the process of the study.\n\nSignature: …………………………….\nName of Supervisor: …………………………………………"
+    ],
+    "prompt_keywords": [
+      "commitment",
+      "supervisor guidance",
+      "professionalism",
+      "supervisor signature",
+      "supervisor name"
+    ]
+  },
+  {
+    "section_id": "proposal_acronyms",
+    "document_type": "proposal",
+    "section_name": "List of Acronyms",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "List all acronyms used in the proposal.",
+      "Provide the full meaning for each acronym.",
+      "Arrange the list in alphabetical order."
+    ],
+    "formatting_notes": [
+      "Heading: Centered.",
+      "Page numbering: Roman numeral 'iv', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "LIST OF ACRONYMS\nANC - Antenatal Care\nART - Antiretroviral Therapy\nHC - Health Centre\nHIV - Human Immunodeficiency Virus\nKMC - Kangaroo Mother Care\nMoH - Ministry of Health\nHTIN - Health Trainee Identification Number\nUHPAB - Uganda Health Professions Assessment Board"
+    ],
+    "prompt_keywords": [
+      "acronyms",
+      "abbreviations",
+      "definitions",
+      "alphabetical"
+    ]
+  },
+  {
+    "section_id": "proposal_definitions",
+    "document_type": "proposal",
+    "section_name": "Definition of Key Terms (Operational Definitions)",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Define terms as they are specifically used within the context of the study.",
+      "Focus on key variables or concepts that might be ambiguous."
+    ],
+    "formatting_notes": [
+      "Heading: Centered.",
+      "Page numbering: Roman numeral 'v', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "DEFINITION OF KEY TERMS\n**Adherence:** In this study, adherence refers to the extent to which patients follow the agreed recommendations for prescribed treatment, including taking medication correctly and attending scheduled appointments, as measured by self-report and pill counts.\n**Exclusive Breastfeeding:** Feeding the infant only breast milk from the mother or a wet nurse, or expressed breast milk, and no other liquids or solids, not even water, for the first six months of life."
+    ],
+    "prompt_keywords": [
+      "definitions",
+      "operational definitions",
+      "key terms",
+      "study context"
+    ]
+  },
+  {
+    "section_id": "proposal_table_of_contents",
+    "document_type": "proposal",
+    "section_name": "Table of Contents",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "List all major sections (chapters, headings, subheadings) of the proposal.",
+      "Include preliminary pages (starting from Declaration).",
+      "Include References and Appendices.",
+      "Provide accurate corresponding page numbers.",
+      "Must be consistent with the actual proposal structure."
+    ],
+    "formatting_notes": [
+      "Heading: Centered.",
+      "Page numbering: Roman numeral 'vi', Bottom center."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "TABLE OF CONTENTS\nDeclaration...................................i\nProposal Approval Form.......................ii\nCommitment by Research Supervisor............iii\nList of Acronyms.............................iv\nDefinition of Key Terms.......................v\nTable of Contents............................vi\nCHAPTER ONE: INTRODUCTION...................1\n1.0 Introduction.............................1\n1.1 Background to the Study...................X\n1.2 Statement of the Problem..................X\n1.3 Research Objectives.......................X\n1.3.1 Purpose of the Study or General Objective.X\n1.3.2 Specific Objectives.....................X\n1.3.3 Research Questions......................X\n1.4 Justification of the Study................X\n1.5 Significance of the Study.................X\n1.6 Scope of the Study........................X\nCHAPTER TWO: LITERATURE REVIEW..............X\n2.0 Introduction.............................X\n2.1 Body......................................X\nCHAPTER THREE: METHODOLOGY..................X\n3.0 Introduction.............................X\n3.1 Study Design.............................X\n...\nReferences...................................X\nAppendices...................................X\nAppendix 1: Work plan........................X\nAppendix 2: Budget...........................X\nAppendix 3: Consent form.....................X\nAppendix 4: Data collection tools............X\nAppendix 5: Maps.............................X"
+    ],
+    "prompt_keywords": [
+      "table of contents",
+      "structure",
+      "headings",
+      "page numbers"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_introduction_main",
+    "document_type": "proposal",
+    "section_name": "Chapter One: Introduction",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "This chapter introduces the research study.",
+      "It includes background, problem statement, purpose, objectives, research questions, justification, and significance."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER ONE: INTRODUCTION'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals (starting with '1'), Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow APA 7th edition levels (e.g., 1.1, 1.2 are typically Level 2)."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "chapter one",
+      "introduction",
+      "overview"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_0_intro_paragraph",
+    "document_type": "proposal",
+    "section_name": "1.0 Introduction Paragraph",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Should introduce the summary of Chapter One.",
+      "Briefly mention the key components to be covered in the chapter."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter One heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": "One (1) paragraph.",
+    "examples": [
+      "Example 1: This chapter introduces the study on [briefly state topic]. It begins with the background information providing context to the research problem. Subsequently, the chapter outlines the problem statement, the purpose of the study, its specific objectives, and the corresponding research questions. Finally, the justification for conducting the study and its significance to nursing practice and knowledge are presented.",
+      "Example 2: This chapter discusses the background information of the study, problem statement, purpose of the study, specific objectives of the study, research questions, justification and significance."
+    ],
+    "prompt_keywords": [
+      "chapter introduction",
+      "summary",
+      "overview",
+      "components"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_1_background",
+    "document_type": "proposal",
+    "section_name": "1.1 Background",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Provide context to the research problem.",
+      "Should be concise and precise.",
+      "Briefly touch upon the global, regional, and local context of the problem.",
+      "Highlight the importance or magnitude of the problem.",
+      "Lead logically towards the problem statement."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": "Maximum two (2) pages.",
+    "examples": [
+      "Example 1: Globally, postpartum hemorrhage (PPH) remains a leading cause of maternal mortality, accounting for approximately 25% of maternal deaths, particularly in low-resource settings (WHO, 2023). In Sub-Saharan Africa, the burden is disproportionately high due to factors such as limited access to skilled birth attendants and emergency obstetric care (Say et al., 2019). Uganda continues to face challenges in reducing maternal mortality, with PPH being a major contributor (MoH, 2022). At Bugembe Health Centre IV, anecdotal reports suggest challenges in managing PPH effectively, potentially leading to adverse outcomes. Understanding the barriers to effective PPH management in this specific setting is therefore crucial for improving maternal health services...",
+      "Example 2: Malaria is a life threatening parasitic disease caused by the protozoa of the genus plasmodium. Five species are known to inflect humans; P. falciparum, P. malariae, P. ovale, P. vivax, and P. Knowlesi. The disease is transmitted by the bite of infected female anopheles’ mosquito. Malaria in pregnancy is caused mainly by the species P. falciparum which is the most common species in Africa (Musimenta, C., 2022).\nMalaria in pregnancy continues to be a serious public health problem throughout the world, affecting more pregnant women and children due to their vulnerability. Malaria has been regarded as a long-standing global health problem because of the high morbidity and death rates among pregnant women and children (Adum, P., J. et al. 2023). Pregnant women in areas of high prevalence are vulnerable to malaria infection and its adverse effects on both maternal and fetal health (Desai et al., 2018).\nIn Sub-Saharan Africa, 11 million pregnant women in exposed to malaria infections delivered about 872 000 children with low birth weight (16% of all children with low birth weight in these countries), with West Africa having the highest prevalence of low birth weight children due to malaria in pregnancy (Catherine M., Prosper M., 2022). According to the World Health Organization, among the pregnancies recorded in 2019 in 33 African countries, 35% were exposed to malaria. The highest frequency of exposure was recorded in Central Africa at 40%, followed by West Africa at 39%, then 24% in East and Southern Africa (WHO, 2020).\nEast Africa bears a high burden of malaria, with Uganda being one of the countries most affected (WHO, 2020). A multiple indicator cluster survey carried out among pregnant women in Bungoma County, which is one of holo-endemic malaria areas in Western Kenya region, highlighted that out of 57% of population who slept under the mosquito nets, and 22% only had received 2 doses and plus of intermittent preventive treatment (Gitaka, J., et al., 2018).\nIn Uganda, malaria is a leading cause of morbidity and mortality, accounting for a substantial proportion of hospital admissions and deaths, particularly among pregnant women (Ministry of Health Uganda, 2019). Uganda has one of the highest malaria transmission rates in the region and is the 3rd most significant contributor to malaria global burden according to 2018 estimates (WHO 2021).\nMadi Okollo District is an area where malaria transmission is intense (UBOS, 2018). The district faces unique challenges in malaria prevention and control due to factors presence of mosquito breeding sites, inadequate access to healthcare services, and low socio-economic status. Understanding the knowledge gaps and attitudes of pregnant mothers in Aliba parish is essential for designing targeted interventions to improve malaria prevention practices in the local context."
+    ],
+    "prompt_keywords": [
+      "background",
+      "context",
+      "magnitude",
+      "global",
+      "regional",
+      "local",
+      "problem overview"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_2_problem_statement",
+    "document_type": "proposal",
+    "section_name": "1.2 Problem Statement",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Clearly and concisely state the specific problem the research will address.",
+      "Highlight the gap in knowledge or practice.",
+      "Explain the negative consequences or implications of the problem.",
+      "Should logically follow from the background."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": "Should be half a page.",
+    "examples": [
+      "Example 1: Despite the implementation of national guidelines for postpartum hemorrhage (PPH) management, anecdotal evidence and preliminary facility reports from Bugembe Health Centre IV suggest inconsistent application of protocols and delays in critical interventions, leading to potentially preventable maternal morbidity and mortality. There is a lack of documented evidence specifically identifying the barriers hindering effective PPH management by healthcare workers at this facility. Without understanding these specific barriers (e.g., resource limitations, training gaps, system failures), targeted interventions to improve the quality of emergency obstetric care and reduce PPH-related complications cannot be effectively designed or implemented.",
+      "Example 2: Malaria in pregnancy remained a public health concern in Uganda as approximately 25 million pregnancies are at risk of p.falciparum infection every year and 25% of these women have evidence of placental infection at the time of delivery (Robb, A., & Michelle C., 2024). The health management information system of Aliba parish indicated 186 pregnant women with malaria and 36 of them were admitted.\nUganda ministry of health has issued guideline in prevention and control of malaria in pregnancy that involves intermittent preventive treatment in pregnancy (IPTp) with Sulfadoxine-Pyrimethamine (SP) administered as directly observed therapy (DOT), residual house spraying, health education and supply of testing kits to village health teams to confirm the parasite in the body (MOH, 2019 & UBOS, 2018).\nHowever, limited knowledge may result in delayed and inadequate seeking of antenatal care leading to missed opportunities for preventive interventions and early detection and management of malaria during pregnancy. Consequently, this can increase the risk of complications and adverse outcomes for both the mother and the fetus. Addressing the knowledge gap and improving attitudes towards malaria prevention among pregnant mothers in Aliba parish is crucial to reduce the burden of malaria during pregnancy and improve maternal and fetal health outcomes."
+    ],
+    "prompt_keywords": [
+      "problem",
+      "gap",
+      "consequences",
+      "research focus"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_3_purpose",
+    "document_type": "proposal",
+    "section_name": "1.3 Research Objectives",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "State the overall aim or goal of the research.",
+      "Should clearly reflect the main focus derived from the problem statement.",
+      "Often starts with 'The purpose of this study is to...'"
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: The purpose of this study is to identify and describe the barriers to the effective management of postpartum hemorrhage among healthcare workers at Bugembe Health Centre IV, Jinja District.",
+      "Example 2: The purpose of this study is to assess the knowledge and attitude of pregnant mothers towards malaria prevention in Aliba Parish Rigbo Sub-County Madi Okollo District."
+    ],
+    "prompt_keywords": [
+      "purpose",
+      "aim",
+      "goal",
+      "study focus"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_4_specific_objectives",
+    "document_type": "proposal",
+    "section_name": "1.3.1 Purpose of the Study or General Objective",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Break down the general purpose into specific, measurable tasks.",
+      "Should be SMART (Specific, Measurable, Achievable, Relevant, Time-bound - implicitly by study duration).",
+      "Use action verbs (e.g., To identify, To determine, To assess, To describe).",
+      "Must be 2-3 objectives."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold).",
+      "Often presented as a numbered or bulleted list."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1:\nThe specific objectives of this study are:\n1. To identify the healthcare worker-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV.\n2. To determine the health system-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV.\n3. To explore the resource-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV.",
+      "Example 2:\n1) To determine the level of knowledge of pregnant mothers towards malaria prevention in Aliba Parish Rigbo Sub-County Madi Okollo District.\n2) To examine the attitude of pregnant mothers towards malaria prevention in Aliba Parish Rigbo Sub-County Madi Okollo District."
+    ],
+    "prompt_keywords": [
+      "objectives",
+      "specific",
+      "measurable",
+      "SMART",
+      "action verbs"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_5_research_questions",
+    "document_type": "proposal",
+    "section_name": "1.3.2 Specific Objectives",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Formulate questions that the research aims to answer.",
+      "Must directly correspond to the specific objectives.",
+      "Should be clear, focused, and researchable."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold).",
+      "Often presented as a numbered or bulleted list."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1:\nThis study seeks to answer the following research questions:\n1. What are the healthcare worker-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV?\n2. What are the health system-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV?\n3. What are the resource-related barriers to effective management of postpartum hemorrhage at Bugembe Health Centre IV?",
+      "Example 2:\n1) What is the level of knowledge of pregnant mothers towards malaria prevention in Aliba Parish Rigbo Sub-County Madi Okollo District?\n2) What are the attitude of pregnant mothers towards malaria prevention in Aliba Parish Rigbo Sub-County Madi Okollo District?"
+    ],
+    "prompt_keywords": [
+      "research questions",
+      "inquiry",
+      "linked to objectives"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_6_justification",
+    "document_type": "proposal",
+    "section_name": "1.4 Justification of the Study",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Explain the rationale for conducting the study.",
+      "State the reason(s) why the researcher chose to focus on this topic.",
+      "Highlight why the study is necessary or important.",
+      "May link back to the problem statement and gap."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: Postpartum hemorrhage remains a major cause of preventable maternal deaths in Uganda. While national guidelines exist, their effective implementation at the health center level is critical but often challenging. Understanding the specific barriers at Bugembe Health Centre IV is essential because context-specific information is currently lacking. This knowledge is necessary to inform targeted quality improvement initiatives aimed at strengthening PPH management protocols, improving healthcare worker capacity, and ultimately reducing maternal morbidity and mortality within the facility and the community it serves.",
+      "Example 2: The success of malaria control intervention requires high utilization of global and national interventions. However, inadequate knowledge is a main challenge for appropriate use of these interventions at individual and community level. Despite tremendous prevention and control measures, malaria is still a major health problem in many regions including Aliba Parish Madi Okollo district. On the basis of the above, it will be therefore vital to understand the knowledge and attitude towards malaria prevention among pregnant women. The paucity of data on the risk factors associated with malaria in pregnancy, despite the current massive malaria interventions necessitated this study."
+    ],
+    "prompt_keywords": [
+      "justification",
+      "rationale",
+      "importance",
+      "necessity",
+      "why this study"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_7_significance",
+    "document_type": "proposal",
+    "section_name": "1.5 Significance of the Study",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Explain the potential importance or contribution of the study.",
+      "Highlight the potential impact on the academic field, nursing practice, policy, or specific stakeholders.",
+      "Explain who benefits from the research findings and how.",
+      "Should demonstrate the value of the research."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: The findings of this study will be significant for several stakeholders. For the management and staff of Bugembe Health Centre IV, it will provide evidence-based insights into specific challenges in PPH management, guiding targeted interventions and resource allocation. For the Ministry of Health and policymakers, the study may offer valuable information applicable to similar health center settings, potentially informing training programs and guideline adaptations. For the nursing and midwifery profession, this research will contribute to the body of knowledge on emergency obstetric care in resource-limited settings. Ultimately, the identification and subsequent addressing of barriers are expected to contribute to improved maternal health outcomes for women seeking care at the facility.",
+      "Example 2: The result from this study will be a base of knowledge through revelation of knowledge and attitude of pregnant mothers, of which some finding may be integrated into nursing school curriculum and MOH may use the information in formulating a policies aimed at controlling of malaria in pregnancy.\nThe research finding will be used by nurses to influence cultural leaders, community members and political leaders in developing positive strategies to combat malaria among pregnancy\nThe finding from this research may serves as part of existing literature that may be used by others researcher who may have interest in a similar study. On the other hand, the recommendations from this study may serve as basis for further research."
+    ],
+    "prompt_keywords": [
+      "significance",
+      "contribution",
+      "impact",
+      "value",
+      "beneficiaries",
+      "nursing practice",
+      "policy"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_1_8_scope",
+    "document_type": "proposal",
+    "section_name": "1.6 Scope of the Study",
+    "parent_section_id": "proposal_chapter_1_introduction_main",
+    "rules_and_guidelines": [
+      "Provide the boundaries or limits of the research.",
+      "Define the study in terms of content scope.",
+      "Define the geographical area of the study.",
+      "Define the time span of the research."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "The scope of the study should state what content the study covers, where the study will be conducted, and the period within which the research will be carried out."
+    ],
+    "prompt_keywords": [
+      "scope",
+      "content scope",
+      "geographical scope",
+      "time span"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_2_literature_review_main",
+    "document_type": "proposal",
+    "section_name": "Chapter Two: Literature Review",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Reviews existing literature relevant to the study topic and objectives.",
+      "Helps establish the context, identify gaps, and justify the research.",
+      "Should demonstrate understanding of previous research in the area."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER TWO: LITERATURE REVIEW'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals, Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow APA 7th edition levels.",
+      "Referencing: Use APA 7th Edition format for in-text citations and the final reference list."
+    ],
+    "page_count_limits": "3-5 pages total (including introduction and body).",
+    "examples": [],
+    "prompt_keywords": [
+      "chapter two",
+      "literature review",
+      "existing research",
+      "context",
+      "gaps"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_2_0_intro_paragraph",
+    "document_type": "proposal",
+    "section_name": "2.0 Introduction Paragraph",
+    "parent_section_id": "proposal_chapter_2_literature_review_main",
+    "rules_and_guidelines": [
+      "Briefly introduce the purpose and scope of the literature review.",
+      "Outline the main themes or sections that will be covered, usually aligned with the study objectives.",
+      "Should set the stage for the detailed review."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter Two heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": "This shall not be more than half a page.",
+    "examples": [
+      "Example 1: This chapter reviews existing literature relevant to the barriers influencing the effective management of postpartum hemorrhage (PPH) in healthcare settings similar to Bugembe Health Centre IV. The review is organized thematically, focusing on healthcare worker-related factors, health system challenges, and resource limitations identified in previous studies globally, regionally, and locally. By examining the current body of knowledge, this review aims to provide context for the study and identify existing gaps that this research seeks to address.",
+      "Example 2: This chapter presents the literature about malaria prevention in pregnancy with a focus on knowledge and attitude. It will be presented according to the specific objectives of this study. The literature will be obtained from journals, books, research reports, internet and others."
+    ],
+    "prompt_keywords": [
+      "literature review introduction",
+      "scope",
+      "themes",
+      "objectives alignment"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_2_1_body",
+    "document_type": "proposal",
+    "section_name": "2.1 Body of Literature Review",
+    "parent_section_id": "proposal_chapter_2_literature_review_main",
+    "rules_and_guidelines": [
+      "Organize the review thematically, using sub-headings.",
+      "Sub-headings MUST be in line with the specific study objectives.",
+      "Synthesize findings from various sources (do not just summarize individual studies).",
+      "Critically analyze the literature, identifying strengths, weaknesses, and controversies.",
+      "Clearly identify the research gap(s) based on the reviewed literature.",
+      "Cite all sources accurately using APA 7th Edition format.",
+      "Include a minimum of 20 references (from books, journals, articles, websites, other acceptable sources).",
+      "The oldest references should be less than 10 years before the Trainee's year of study.",
+      "Use free sources like HINARI, Google Scholar, PubMed where applicable."
+    ],
+    "formatting_notes": [
+      "Use appropriate APA heading levels for sub-headings (e.g., Level 2: 2.1, 2.2; Level 3: 2.1.1, 2.1.2 if needed).",
+      "Double-spaced.",
+      "Justified alignment."
+    ],
+    "page_count_limits": "Body shall be 3-5 pages.",
+    "examples": [
+      "Example 1 (Illustrative structure based on Objective 1 for PPH study):\n**2.1 Healthcare Worker-Related Barriers to PPH Management**\nStudies globally highlight inadequate knowledge and skills among healthcare workers as a significant barrier to effective PPH management (Author A, 2020; Author B, 2021). In African settings, factors such as lack of regular training, low motivation, and poor adherence to protocols have been frequently cited (Author C, 2019). However, research by Author D (2022) in a similar Ugandan health center found that while knowledge was adequate, confidence in performing procedures like uterine massage was low... [Continue synthesizing literature related to healthcare worker barriers, linking to the gap for Bugembe HC IV].",
+      "Example 2 (Structure based on user's Malaria sample):\n**2.1 Knowledge of pregnant mothers toward malaria prevention**\nAn analytical cross-sectional study conducted from September 15th to October 30th, 2021 in Brazzaville on knowledge and practices of pregnant women on malaria prevention showed that level of knowledge was insufficient in 53.8% of respondents. Pregnant women with no education are 8 times more likely to have insufficient knowledge of malaria prevention. Also, those whose gestational age is between 22 - 27 weeks are 2.54 times more likely to have insufficient knowledge than those with gestational age of 36 weeks and above (Mavoungou, Y., et al., 2022).\nStudies conducted by Atemnkeng et al. (2019) and Muhumuza et al. (2020) revealed significant knowledge gaps regarding malaria prevention among pregnant mothers attending ANC in Zimbabwe and South Africa... [Summary continues as provided in sample] ...A study by Taremwa et al. (2017) in Uganda found that pregnant mothers attending ANC at Kagadi Hospital and other healthcare facilities had a moderate level of knowledge regarding malaria prevention. However, misconceptions and inconsistent knowledge about the effectiveness of interventions were identified.\n\n**2.2 Attitude of pregnant mothers towards malaria prevention**\nPerceived malaria as a serious illness: A study done in both government and private health facilities in Badagry, Lagos State, on malaria prevention and SP utilization, out of the 450 pregnant women attending antenatal clinics in Nigeria.355 (78.8% ) of the pregnant women were found to perceived malaria as a serious illness (Chukwurah et al. 2016)\nA study by Kakuru et al. (2018) in Uganda found that pregnant women attending ANC generally exhibited positive attitudes towards malaria prevention... [Summary continues as provided in sample] ...Research by Mufunda et al. (2016) in Zimbabwe indicated that pregnant women attending ANC had favorable attitudes towards malaria prevention interventions. They recognized the impact of malaria on maternal and fetal health and expressed a willingness to engage in preventive practices."
+    ],
+    "prompt_keywords": [
+      "literature synthesis",
+      "thematic review",
+      "objective alignment",
+      "critical analysis",
+      "gap identification",
+      "citations",
+      "recent literature"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_methodology_main",
+    "document_type": "proposal",
+    "section_name": "Chapter Three: Methodology",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Describes the plan and procedures for conducting the research.",
+      "Should be detailed enough for the study to be potentially replicable.",
+      "Focuses on the 'how' of the research."
+    ],
+    "formatting_notes": [
+      "Chapter Title: 'CHAPTER THREE: METHODOLOGY'",
+      "Chapter Title Alignment: Center-aligned.",
+      "Page numbering: Arabic numerals, Bottom center.",
+      "Font: Times New Roman, 12pt.",
+      "Spacing: Double-spaced.",
+      "Alignment (body text): Justified.",
+      "Paragraphs: Not indented.",
+      "Headings/Subsections: Follow APA 7th edition levels (e.g., 3.1, 3.2 are typically Level 2)."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "chapter three",
+      "methodology",
+      "research plan",
+      "procedures"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_0_intro_paragraph",
+    "document_type": "proposal",
+    "section_name": "3.0 Introduction",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Should introduce the summary of Chapter Three.",
+      "Briefly outline the key methodological aspects to be discussed (e.g., design, setting, population, sampling, data collection, analysis, ethics)."
+    ],
+    "formatting_notes": [
+      "Typically the first paragraph under the Chapter Three heading.",
+      "Double-spaced."
+    ],
+    "page_count_limits": "One (1) paragraph.",
+    "examples": [
+      "Example 1: This chapter outlines the methodology that will be employed to investigate the barriers to effective postpartum hemorrhage management at Bugembe Health Centre IV. It details the research design, the study setting, and the target population. Furthermore, it describes the sampling strategy, sample size determination, data collection instruments and procedures, methods for data management and analysis, quality assurance measures, ethical considerations, anticipated limitations, and the plan for disseminating the study findings.",
+      "Example 2: This chapter describes the methods the researcher will use to obtain data from the respondents which includes study design and rationale, study setting and rationale, study population, sample size determination, sampling procedure, inclusion and criteria, study variables, research instrument, data collection procedures, data management and analysis, quality assurance, ethical considerations, limitations to the study and dissemination of study findings."
+    ],
+    "prompt_keywords": [
+      "methodology introduction",
+      "chapter summary",
+      "research approach"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_1_study_design",
+    "document_type": "proposal",
+    "section_name": "3.1 Study design",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "State the specific research design chosen (e.g., descriptive cross-sectional, cohort, case-control, quasi-experimental, qualitative descriptive).",
+      "MUST include the rationale for choosing this design.",
+      "Explain why the chosen design is appropriate to answer the research questions and meet the objectives."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: This study will employ a descriptive cross-sectional design using quantitative methods. This design was chosen because it is suitable for identifying and describing the prevalence and nature of barriers to effective PPH management among healthcare workers at a specific point in time. It allows for the collection of data on various factors simultaneously from a representative sample within the defined setting. This approach is appropriate for addressing the study objectives which aim to identify and determine healthcare worker, system, and resource-related barriers.",
+      "Example 2: The study will adopt a descriptive cross sectional study design because it will allow the researcher to obtain the necessary information required within the shortest time and it will be cost effective. It will be quantitative methods of data collection."
+    ],
+    "prompt_keywords": [
+      "study design",
+      "research approach",
+      "rationale",
+      "justification",
+      "cross-sectional",
+      "qualitative",
+      "quantitative"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_2_study_setting",
+    "document_type": "proposal",
+    "section_name": "3.2 Study setting",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the geographical location and/or institution where the study will be conducted.",
+      "Provide relevant details about the setting (e.g., type of facility, services offered, population served).",
+      "MUST include the rationale for choosing this specific setting.",
+      "Explain why this setting is suitable for addressing the research problem."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: The study will be conducted at Bugembe Health Centre IV, located in Bugembe Town Council, Jinja District, Eastern Uganda. Bugembe HC IV serves a large peri-urban and rural population and provides comprehensive maternal health services, including antenatal, delivery, and postnatal care. This setting was chosen because it represents a typical level IV health center managing obstetric emergencies like PPH, and anecdotal reports suggest challenges in this area, making it a relevant site to investigate barriers to effective management.",
+      "Example 2: The study will be conducted Aliba Parish. The parish is located in Rigbo Sub-County, Madi Okollo district, about 629 kilometers from Uganda’s capital city Kampala. The Sub-County is bordered by Ewanga Sub-County to the North, to the East it’s bordered by River Nile, Rhino Camp Town Council to the South, and bordered to the West by Rhino Camp Sub-County. The economic activity in the area is fishing and subsistence farming. The indigenous inhabitants are the Madi people and the commonest language spoken is Madi.\nThe rationale for choosing of the study setting is that it provides a good site to capture the target population as it basically deals with malaria in pregnancy. And it’s where the researcher came from and has easy access to the pregnant mothers in the community."
+    ],
+    "prompt_keywords": [
+      "study setting",
+      "location",
+      "facility",
+      "rationale",
+      "justification",
+      "context"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_3_study_population",
+    "document_type": "proposal",
+    "section_name": "3.3 Study population",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Define the specific group of individuals that the study aims to investigate.",
+      "Clearly specify the characteristics of the target population."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: The study population will consist of all nurses and midwives currently employed and working in the maternity and labor wards of Bugembe Health Centre IV who are involved in the management of postpartum hemorrhage.",
+      "Example 2: The study will involve pregnant mothers residing in Aliba Parish, Rigbo Sub-County Madi Okollo district."
+    ],
+    "prompt_keywords": [
+      "study population",
+      "target group",
+      "participants",
+      "characteristics"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_4_sample_size",
+    "document_type": "proposal",
+    "section_name": "3.4 Sample size determination and justification",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "State the calculated sample size.",
+      "Explain the method used for calculation (Use simple scientific methods - e.g., formulas like Kish Leslie for descriptive studies, Yamane formula for finite populations, or census if population is small).",
+      "Provide the parameters used in the calculation (e.g., confidence level, margin of error, estimated prevalence/proportion if applicable, population size 'N' if using finite population formula).",
+      "Justify why the calculated sample size is adequate and feasible for the study."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1 (Using Kish Leslie): The sample size will be calculated using the Kish Leslie formula (1965) for cross-sectional studies: n = Z²P(1-P)/d². Assuming an estimated 50% prevalence (P=0.5) of inadequate knowledge (to maximize sample size), a 95% confidence level (Z=1.96), and a margin of error (d) of 10% (0.10), the initial calculated sample size is n = (1.96² * 0.5 * 0.5) / 0.10² ≈ 96. Considering a potential non-response rate of 10%, the final sample size will be adjusted to approximately 106. This size is considered adequate to provide representative findings.",
+      "Example 2 (Using Yamane Formula): The sample size will be determined using the simplified Yamane formula (1967) for finite populations: n = N / (1 + N(e)²), where N is the population size and e is the level of precision or margin of error. The total estimated population of pregnant mothers attending ANC in Aliba Parish during the anticipated study period is [Estimate N, e.g., 200]. Assuming a 95% confidence level and a margin of error (e) of 10% (0.10), the sample size will be: n = 200 / (1 + 200 * (0.10)²) = 200 / (1 + 200 * 0.01) = 200 / (1 + 2) = 200 / 3 ≈ 67. Therefore, a sample size of 67 pregnant mothers will be targeted. This size is feasible and considered sufficient for the study's descriptive objectives within the given population."
+    ],
+    "prompt_keywords": [
+      "sample size",
+      "calculation",
+      "formula",
+      "justification",
+      "representativeness",
+      "feasibility",
+      "census",
+      "Kish Leslie",
+      "Yamane"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_5_sampling_method",
+    "document_type": "proposal",
+    "section_name": "3.5 Sampling method/procedure",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the specific technique used to select the sample from the study population (e.g., simple random, systematic, stratified, cluster, consecutive, purposive, convenience).",
+      "MUST include the rationale for choosing this particular method.",
+      "Explain the step-by-step procedure for selecting participants."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1 (Simple Random): A simple random sampling technique will be used. A list (sampling frame) of all eligible pregnant mothers attending ANC at Aliba Health Centre III during the study period will be obtained from the facility register. Each mother will be assigned a unique number. Numbers will then be selected using a random number generator or lottery method until the desired sample size is reached. This method is chosen because it ensures that every eligible mother has an equal and independent chance of being selected, reducing selection bias.",
+      "Example 2 (Stratified Random): This study will use stratified sampling. Villages in Aliba Parish will be put in homogeneous groups (strata) and then the researcher will use simple random sampling to choose final members from the various strata. Every pregnant mother present from each village will have equal chance of selection. The researcher will assign numbers to the pregnant mothers within each stratum and then randomly choose from those numbers until the proportional sample for that stratum is reached. Finally, pregnant mothers chosen at each stratum will be the members that shall be included in the sample. This method is used because the researcher desired to avail the opportunity to all pregnant mothers in the parish while ensuring representation from different villages. Each pregnant mother will be interviewed for a maximum of 30 minutes."
+    ],
+    "prompt_keywords": [
+      "sampling method",
+      "sampling technique",
+      "procedure",
+      "rationale",
+      "selection",
+      "random",
+      "stratified",
+      "purposive",
+      "convenience",
+      "consecutive"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_6_inclusion_exclusion",
+    "document_type": "proposal",
+    "section_name": "3.6 Inclusion and exclusion criteria",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Clearly define the criteria participants must meet to be included in the study.",
+      "Clearly define the criteria that will disqualify potential participants from the study.",
+      "Criteria should be specific and relevant to the study population and objectives."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold).",
+      "Often presented as two distinct lists or paragraphs."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1:\n**Inclusion Criteria:**\n- Pregnant mothers residing in Aliba Parish.\n- Attending antenatal care at [Facility Name] during the study period.\n- Willing and able to provide informed consent.\n**Exclusion Criteria:**\n- Pregnant mothers who are severely ill or unable to communicate at the time of data collection.\n- Pregnant mothers who do not consent to participate.",
+      "Example 2:\n**Inclusion criteria:** The inclusion group will compose of pregnant women in Aliba parish present during the period of data collection and willing to consent to take part in carrying out the study.\n**Exclusion criteria:** The exclusion criteria group will compose of pregnant women in Aliba parish but absent during the period of data collection and not willing to consent to take part in carrying out the study."
+    ],
+    "prompt_keywords": [
+      "inclusion criteria",
+      "exclusion criteria",
+      "eligibility",
+      "participant selection"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_7_study_variables",
+    "document_type": "proposal",
+    "section_name": "3.7 Study variables",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Identify the key variables the study will measure or explore.",
+      "Specify dependent variable(s) (the outcome being measured).",
+      "Specify independent variable(s) (factors hypothesized to influence the outcome).",
+      "Mention any significant confounding variables if applicable."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1:\n**Dependent Variables:**\n- Level of knowledge regarding malaria prevention (measured by a knowledge score).\n- Attitude towards malaria prevention (measured using an attitude scale).\n**Independent Variables:**\n- Socio-demographic characteristics (e.g., age, education level, marital status, parity, gestational age).\n- Access to information sources.\n- Previous experience with malaria.",
+      "Example 2:\n**Independent variable:** These are factors in this study which act as the “cause” in that they precede influence and predict the dependent variable (effect or outcome) like Knowledge and attitude.\n**Dependent variables:** These are outcomes or effect in study that they change as a result of being influenced by independent variables like malaria in pregnancy."
+    ],
+    "prompt_keywords": [
+      "study variables",
+      "dependent variable",
+      "independent variable",
+      "outcome",
+      "predictors",
+      "factors"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_8_instruments_tools",
+    "document_type": "proposal",
+    "section_name": "3.8 Research instruments/tools",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the specific tools that will be used to collect data (e.g., structured questionnaire, interview guide, observation checklist).",
+      "Mention if the tool is standardized/validated or researcher-developed.",
+      "Briefly describe the sections or components of the tool(s) and what they measure.",
+      "Attach the draft tool(s) in the appendices."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: Data will be collected using a pre-tested, semi-structured interviewer-administered questionnaire (see Appendix 4). The questionnaire was developed by the researcher based on literature review and study objectives. It comprises three sections: Section A collects socio-demographic information; Section B assesses knowledge on malaria prevention using multiple-choice questions; and Section C measures attitudes using a 5-point Likert scale.",
+      "Example 2: The researcher will develop a questionnaire with multiple choice responses (MCRs) open ended and close ended questions. The tool will be pre-tested on 15 respondents of a similar background outside the study area for validity. The tool will then be refined by the researcher with the help of the supervisor for reliability."
+    ],
+    "prompt_keywords": [
+      "research instruments",
+      "data collection tools",
+      "questionnaire",
+      "interview guide",
+      "measurement",
+      "validity",
+      "reliability"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_9_data_collection_procedure",
+    "document_type": "proposal",
+    "section_name": "3.9 Data collection method/procedure",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe the step-by-step process of how data will be collected.",
+      "Explain how participants will be approached and recruited.",
+      "Describe how consent will be obtained.",
+      "Explain how the instruments/tools will be administered.",
+      "Mention the role of the researcher or data collectors.",
+      "Specify the anticipated duration of data collection."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: Upon obtaining ethical approval and permission from the facility in-charge, the researcher will approach eligible pregnant mothers identified through the ANC register after they have received their routine care. The purpose of the study will be explained, and written informed consent will be sought. For those who consent, the researcher will administer the questionnaire in a private setting within the health facility. Each interview is expected to take approximately 20-25 minutes. Data collection is planned to occur over a period of four weeks.",
+      "Example 2: The researcher will get introduction letter from the Institution Research Committee and delivers it to the Rigbo Sub-County leaders for permission. The researcher will introduce herself to the respondents, explains the purpose of the research and consent will be obtained from the respondents. Respondents who will be able to read, write and understand English will be served with the questionnaires by the researcher. Those who will be unable to read, write and understand English will be interviewed in the local languages and their responses will be filled in by the researcher."
+    ],
+    "prompt_keywords": [
+      "data collection",
+      "procedure",
+      "recruitment",
+      "consent",
+      "administration",
+      "timeline"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_10_data_management_analysis",
+    "document_type": "proposal",
+    "section_name": "3.10 Data management and analysis",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Describe how collected data will be managed (e.g., checking for completeness, coding, data entry).",
+      "Specify the software to be used for analysis (e.g., Microsoft Excel, SPSS, Stata).",
+      "Outline the statistical methods or analytical techniques to be used (e.g., descriptive statistics like frequencies and percentages; inferential statistics like chi-square, t-tests if comparing groups).",
+      "Explain how the analysis will address the research questions/objectives."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: Collected questionnaires will be checked daily for completeness and consistency. Data will be coded and entered into Microsoft Excel. Data cleaning will be performed before analysis. Descriptive statistics (frequencies, percentages, means, standard deviations) will be used to summarize socio-demographic characteristics, knowledge levels, and attitudes. Knowledge scores will be calculated, and attitudes summarized using Likert scale analysis. Associations between socio-demographic factors and knowledge/attitude levels will be explored using chi-square tests where appropriate. Analysis will be performed using Microsoft Excel.",
+      "Example 2:\n**Data management:** Once data collection is done, it will be sorted, checked for completeness, classified, summarized, assigned codes and kept under key and lock.\n**Data analysis:** Data entered in to the computer Statistical Package for the Social Sciences (SPSS) and Microsoft excel program for cleaning and analysis in form of frequencies and percentages will further be presented in pie charts and bar charts to explain the meaning."
+    ],
+    "prompt_keywords": [
+      "data management",
+      "data analysis",
+      "statistics",
+      "software",
+      "coding",
+      "data cleaning",
+      "descriptive",
+      "inferential",
+      "SPSS",
+      "Excel"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_11_quality_assurance",
+    "document_type": "proposal",
+    "section_name": "3.11 Quality Assurance: Validity and Reliability",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Explain measures taken to ensure the quality of the data.",
+      "Describe how the validity (accuracy) of the instrument(s) will be ensured (e.g., content validity through expert review, face validity).",
+      "Describe how the reliability (consistency) of the instrument(s) will be ensured (e.g., pre-testing the questionnaire, training data collectors if used)."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: To ensure content validity, the questionnaire was developed based on existing literature and reviewed by the research supervisor and two experienced midwives at [Another Facility] for relevance and clarity. Face validity will be assessed during pre-testing. The questionnaire will be pre-tested on 5 pregnant mothers (not included in the main study) at a nearby health center to check for clarity, flow, and time taken, and necessary adjustments will be made. The researcher will administer all questionnaires to ensure consistency in data collection.",
+      "Example 2: Right respondents will be selected through the inclusion and exclusion criteria. All activities regarding data collection will be done under the monitoring and supervision of the researcher. Questionnaire pretesting will be done for the purpose of validity at nearby health facility to assess its accuracy, consistency, and reliability after which necessary adjustments and corrections will be made. After data collection, questionnaires would be checked daily, for completeness by the researcher"
+    ],
+    "prompt_keywords": [
+      "quality assurance",
+      "validity",
+      "reliability",
+      "accuracy",
+      "consistency",
+      "pre-testing",
+      "instrument review"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_12_ethical_considerations",
+    "document_type": "proposal",
+    "section_name": "3.12 Ethical considerations",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Outline the ethical principles that will guide the study.",
+      "Describe how approval will be sought (e.g., from Institutional Research Committee - IRC, local authorities).",
+      "Explain how informed consent will be obtained (voluntary participation, right to withdraw, confidentiality, anonymity).",
+      "Describe measures to ensure participant privacy and confidentiality.",
+      "Mention any potential risks and how they will be minimized."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: Ethical approval will be sought from the [Name of Training Institution] Institutional Research Committee (IRC) and permission obtained from the Madi Okollo District Health Officer and the in-charge of [Facility Name]. Written informed consent will be obtained from each participant after explaining the study purpose, procedures, potential risks/benefits, and their right to withdraw at any time without penalty. Participant anonymity will be maintained by using codes instead of names on questionnaires. Data will be stored securely, accessible only to the researcher, and confidentiality will be ensured throughout the study process. There are minimal anticipated risks, primarily related to the time taken for the interview.",
+      "Example 2: Ethical concern will be taken in to consideration by acquiring an introduction letter from Arua School of Nursing and Midwifery IRC to the Rigbo Sub-County leaders for permission. The researcher will obtain consent from respondents by explaining the purpose, anticipated benefits as well as their voluntary acceptance to participate. The researcher will observe privacy, confidentiality and respect for the rights of respondents.\nQuestionnaires will be fill in anonymity and filled questionnaires will be kept under lock and accessed only by the researcher."
+    ],
+    "prompt_keywords": [
+      "ethics",
+      "ethical approval",
+      "informed consent",
+      "confidentiality",
+      "anonymity",
+      "privacy",
+      "voluntary participation",
+      "risk minimization"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_13_limitations",
+    "document_type": "proposal",
+    "section_name": "3.13 Limitations to the Study",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Acknowledge potential weaknesses or constraints of the study design or methodology.",
+      "Examples include potential biases (e.g., recall bias, social desirability bias), limitations of generalizability due to specific setting or sampling method, potential logistical challenges."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: This study will be conducted in a single parish, which may limit the generalizability of the findings to other areas in Madi Okollo District or Uganda. Since data on knowledge and attitudes will be collected through self-report using questionnaires, there may be potential for social desirability bias, where participants provide answers they perceive as favorable rather than reflecting their true knowledge or attitudes. Recall bias may also affect responses related to past experiences.",
+      "Example 2: The research will be quite costly in terms of money aspect which will not allow detailed collection of data thus affecting the over roll result. The researcher will overcome this by working within allocated budget.\nRefusal by the respondents to participate in the study or concealing information due to fear or denial may affect result of the study. Therefore, the purpose of the study will be explained thoroughly to the respondents before data collection.\nLimited time will not allow detailed data collection which may affect the over roll result of the study. The researcher will overcome this by following the work plan."
+    ],
+    "prompt_keywords": [
+      "limitations",
+      "weaknesses",
+      "constraints",
+      "bias",
+      "generalizability"
+    ]
+  },
+  {
+    "section_id": "proposal_chapter_3_14_dissemination",
+    "document_type": "proposal",
+    "section_name": "3.14 Dissemination of study findings",
+    "parent_section_id": "proposal_chapter_3_methodology_main",
+    "rules_and_guidelines": [
+      "Outline the plan for sharing the research findings.",
+      "Mention target audiences (e.g., UHPAB, study institution, healthcare facility, participants, wider academic community).",
+      "Specify potential methods of dissemination (e.g., final report, presentation at facility meeting, publication)."
+    ],
+    "formatting_notes": [
+      "APA Level 2 heading (typically left-aligned, bold)."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example 1: The final research report will be submitted to the Uganda Health Professions Assessment Board (UHPAB) and the [Name of Training Institution] library. Findings will be shared with the management and staff of [Facility Name] through a presentation. A summary report may also be provided to the District Health Office. Efforts may be made to present the findings at relevant local workshops or conferences if opportunities arise.",
+      "Example 2: The research findings will be disseminated to the Uganda Health Professions Assessment Board (UHPAB), School library, Arua School of Nursing and Midwifery, Rigbo Sub-County and copy retained by the researcher."
+    ],
+    "prompt_keywords": [
+      "dissemination",
+      "sharing findings",
+      "reporting",
+      "target audience",
+      "presentation",
+      "publication"
+    ]
+  },
+  {
+    "section_id": "proposal_references",
+    "document_type": "proposal",
+    "section_name": "List of References",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "List all sources cited within the proposal chapters (Introduction, Literature Review, Methodology).",
+      "Follow APA 7th Edition formatting strictly for all entries.",
+      "Ensure references cited in the text match the entries in this list, and vice versa.",
+      "Include a minimum of 20 references (for the final report, implying a substantial number should be identified at proposal stage).",
+      "References should primarily be less than 10 years old before the study year."
+    ],
+    "formatting_notes": [
+      "Heading: 'REFERENCES' (Typically centered, depends on institutional style or APA level 1 heading format)",
+      "Starts on a new page after Chapter 3.",
+      "Entries listed alphabetically by author's last name.",
+      "Use hanging indent for each entry (first line flush left, subsequent lines indented).",
+      "Double-spaced.",
+      "Page numbering: Arabic numerals, Bottom center.",
+      "Exempted from plagiarism check."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "REFERENCES\n\nAdum, P. J., et al. (2023). Title of Article. *Journal Name*, Volume(Issue), Pages. DOI [If available]\n\nMinistry of Health Uganda. (2019). *Title of Report or Guideline*. Publisher. [Ensure full APA 7th details]\n\nMusimenta, C. (2022). Title of Work. Publisher or Source. [Ensure full APA 7th details]\n\nWHO. (2020). *World Malaria Report 2020*. World Health Organization. [Ensure full APA 7th details]\n\nWHO. (2021). *World Malaria Report 2021*. World Health Organization. [Ensure full APA 7th details]\n\n[... Add all other references alphabetically, following APA 7th format precisely ...]"
+    ],
+    "prompt_keywords": [
+      "references",
+      "bibliography",
+      "citations",
+      "APA 7th edition",
+      "alphabetical",
+      "hanging indent"
+    ]
+  },
+  {
+    "section_id": "proposal_appendices_main",
+    "document_type": "proposal",
+    "section_name": "Appendices",
+    "parent_section_id": null,
+    "rules_and_guidelines": [
+      "Contain supplementary materials relevant to the proposal.",
+      "Each appendix should be labeled clearly (e.g., Appendix 1, Appendix 2 or Appendix A, Appendix B).",
+      "Refer to appendices within the main text where appropriate (e.g., 'See Appendix 3 for Consent Form')."
+    ],
+    "formatting_notes": [
+      "Heading: 'APPENDICES' (Typically centered, starts on a new page)",
+      "Page numbering: Arabic numerals continued, Bottom center.",
+      "Each appendix starts on a new page with a clear label (e.g., 'Appendix 1: Work plan')."
+    ],
+    "page_count_limits": null,
+    "examples": [],
+    "prompt_keywords": [
+      "appendices",
+      "supplementary material",
+      "attachments"
+    ]
+  },
+  {
+    "section_id": "proposal_appendix_1_workplan",
+    "document_type": "proposal",
+    "section_name": "Appendix 1: Work plan",
+    "parent_section_id": "proposal_appendices_main",
+    "rules_and_guidelines": [
+      "Provide a realistic timeline for completing the research project.",
+      "Break down the research process into key activities (e.g., proposal finalization, ethical approval, tool pre-testing, data collection, data analysis, report writing, submission).",
+      "Assign estimated start and end dates or durations for each activity.",
+      "Often presented as a Gantt chart or a table."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix 1: Work plan' (Centered or Left-aligned based on style)",
+      "Format: Table or Gantt chart recommended."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example (Table Format):\nAppendix 1: Work plan\n| Activity                   | Estimated Duration | Start Date | End Date   |\n|----------------------------|--------------------|------------|------------|\n| Proposal Refinement        | 1 Week             | [Date]     | [Date]     |\n| Submit for Ethical Approval| 1 Day              | [Date]     | [Date]     |\n| Await Ethical Approval     | 4 Weeks (Est.)     | [Date]     | [Date]     |\n| Tool Pre-testing/Revision  | 1 Week             | [Date]     | [Date]     |\n| Data Collection            | 4 Weeks            | [Date]     | [Date]     |\n| Data Entry & Cleaning      | 1 Week             | [Date]     | [Date]     |\n| Data Analysis              | 2 Weeks            | [Date]     | [Date]     |\n| Report Writing (Draft)     | 4 Weeks            | [Date]     | [Date]     |\n| Supervisor Review/Feedback | 1 Week             | [Date]     | [Date]     |\n| Final Report Writing       | 1 Week             | [Date]     | [Date]     |\n| Submission to UHPAB        | 1 Day              | [Date]     | [Date]     |"
+    ],
+    "prompt_keywords": [
+      "work plan",
+      "timeline",
+      "Gantt chart",
+      "schedule",
+      "activities",
+      "duration"
+    ]
+  },
+  {
+    "section_id": "proposal_appendix_2_budget",
+    "document_type": "proposal",
+    "section_name": "Appendix 2: Budget",
+    "parent_section_id": "proposal_appendices_main",
+    "rules_and_guidelines": [
+      "Provide an estimated breakdown of costs required to conduct the research.",
+      "Include categories like stationery, printing, transport, communication (airtime), data analysis (if applicable), miscellaneous.",
+      "Specify quantity, unit cost, and total cost for each item.",
+      "Calculate the overall total estimated cost.",
+      "Should be realistic and justifiable."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix 2: Budget' (Centered or Left-aligned)",
+      "Format: Table format recommended."
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example (Table Format):\nAppendix 2: Budget\n| Item                   | Quantity | Unit Cost (UGX) | Total Cost (UGX) |\n|------------------------|----------|-----------------|------------------|\n| Stationery (Pens, Paper)| Lump sum | 20,000          | 20,000           |\n| Printing (Questionnaires)| 70 pages | 200             | 14,000           |\n| Printing (Proposal)    | 3 copies | 10,000          | 30,000           |\n| Printing (Final Report)| 3 copies | 15,000          | 45,000           |\n| Transport (Data Coll.) | 10 days  | 5,000           | 50,000           |\n| Communication (Airtime)| Lump sum | 15,000          | 15,000           |\n| Miscellaneous          | Lump sum | 20,000          | 20,000           |\n| **Total Estimated Cost** |          |                 | **194,000**      |"
+    ],
+    "prompt_keywords": [
+      "budget",
+      "cost",
+      "expenses",
+      "stationery",
+      "transport",
+      "printing",
+      "justification"
+    ]
+  },
+  {
+    "section_id": "proposal_appendix_3_consent",
+    "document_type": "proposal",
+    "section_name": "Appendix 3: Consent form",
+    "parent_section_id": "proposal_appendices_main",
+    "rules_and_guidelines": [
+      "Include the draft informed consent form that will be used.",
+      "Must clearly explain the study purpose, procedures, duration, potential risks and benefits.",
+      "Must state that participation is voluntary.",
+      "Must state that the participant can withdraw at any time without penalty.",
+      "Must explain how confidentiality and anonymity will be maintained.",
+      "Must include contact information for the researcher and supervisor.",
+      "Must have space for the participant's signature/thumbprint and date.",
+      "Must be translated into the local language if participants may not understand English."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix 3: Consent form' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Full text of the draft consent form, including sections for Introduction, Purpose, Procedure, Risks/Benefits, Confidentiality, Voluntary Participation, Right to Withdraw, Contact Information, Consent Statement, Signature/Thumbprint lines, Date lines]"
+    ],
+    "prompt_keywords": [
+      "consent form",
+      "informed consent",
+      "voluntary",
+      "confidentiality",
+      "anonymity",
+      "risks",
+      "benefits",
+      "withdrawal",
+      "contact information"
+    ]
+  },
+  {
+    "section_id": "proposal_appendix_4_tools",
+    "document_type": "proposal",
+    "section_name": "Appendix 4: Data collection tools or instruments",
+    "parent_section_id": "proposal_appendices_main",
+    "rules_and_guidelines": [
+      "Include the complete draft version of all data collection tools (e.g., questionnaire, interview guide, checklist).",
+      "Ensure tools align with the study objectives and variables.",
+      "Ensure clarity and appropriateness of questions/items."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix 4: Data collection tool(s)' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Full text of the draft questionnaire, including all sections and questions as described in the methodology]"
+    ],
+    "prompt_keywords": [
+      "data collection tool",
+      "instrument",
+      "questionnaire",
+      "interview guide",
+      "checklist"
+    ]
+  },
+  {
+    "section_id": "proposal_appendix_5_maps",
+    "document_type": "proposal",
+    "section_name": "Appendix 5: Maps showing location of the study area",
+    "parent_section_id": "proposal_appendices_main",
+    "rules_and_guidelines": [
+      "Include map(s) if relevant and helpful for understanding the study setting.",
+      "Ensure maps are clear, properly labeled, and sourced if necessary."
+    ],
+    "formatting_notes": [
+      "Label: 'Appendix 5: Map(s) of Study Area' (Centered or Left-aligned)"
+    ],
+    "page_count_limits": null,
+    "examples": [
+      "Example: [Image file or description indicating where a map of Aliba Parish / Madi Okollo District would be inserted]"
+    ],
+    "prompt_keywords": [
+      "map",
+      "study area",
+      "location",
+      "geographical context"
+    ]
+  }
+]
+
+
