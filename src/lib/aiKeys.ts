@@ -1,5 +1,3 @@
-import { runtimeConfig } from "@/lib/runtimeConfig";
-
 const geminiStorageKey = "gemini_api_key";
 let sessionGeminiApiKey = "";
 
@@ -20,7 +18,7 @@ export const setBrowserGeminiApiKey = (apiKey: string) => {
 };
 
 export const getBrowserGeminiApiKey = () =>
-  sessionGeminiApiKey || getLocalStorageValue(geminiStorageKey) || runtimeConfig.googleAiApiKey;
+  sessionGeminiApiKey || getLocalStorageValue(geminiStorageKey);
 
 export const getBrowserOpenAiApiKey = () =>
   runtimeConfig.allowBrowserOpenAi ? runtimeConfig.openAiApiKey : "";

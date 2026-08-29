@@ -23,7 +23,7 @@ export interface GeminiResponse {
   }>;
   error?: {
     message: string;
-  };
+  } | string;
 }
 
 const extractGeminiText = (data: GeminiResponse) => {
@@ -46,30 +46,32 @@ const extractGeminiText = (data: GeminiResponse) => {
 export const generateContent = async (prompt: string): Promise<string> => {
   try {
     const apiKey = getBrowserGeminiApiKey();
-    if (!apiKey) {
-      throw new Error("Gemini generation is not configured. Add a Google AI key before generating content.");
-    }
-
-    const response = await fetch(GEMINI_INTERACTIONS_URL, {
+    const response = await fetch(apiKey ? GEMINI_INTERACTIONS_URL : "/api/gemini", {
       method: 'POST',
-      headers: {
+      headers: apiKey ? {
         'Content-Type': 'application/json',
         'x-goog-api-key': apiKey,
+      } : {
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
+      body: JSON.stringify(apiKey ? {
         model: runtimeConfig.googleAiModel,
         input: prompt,
         generation_config: {
           max_output_tokens: 4096,
           thinking_level: "medium",
         },
+      } : {
+        model: runtimeConfig.googleAiModel,
+        prompt,
       }),
     });
 
     const data: GeminiResponse = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Failed to generate content');
+      const message = typeof data.error === "string" ? data.error : data.error?.message;
+      throw new Error(message || 'Failed to generate content');
     }
 
     const generatedText = extractGeminiText(data);

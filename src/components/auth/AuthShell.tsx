@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, GraduationCap, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { cn } from "@/lib/utils";
 
 interface AuthShellProps {
@@ -44,15 +45,7 @@ export function AuthShell({
     <div className="study-surface min-h-screen px-4 py-5 text-foreground sm:px-6">
       <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl flex-col">
         <header className="flex items-center justify-between gap-4">
-          <Link to="/" className="flex min-w-0 items-center gap-2">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground shadow-sm">
-              UR
-            </span>
-            <span className="min-w-0">
-              <span className="block font-bold leading-tight text-primary">UHPAB Research Assistant</span>
-              <span className="hidden text-xs text-muted-foreground sm:block">Academic writing workspace</span>
-            </span>
-          </Link>
+          <BrandLogo title="UHPAB Research Assistant" subtitle="Academic writing workspace" />
           {backTo && (
             <Button variant="outline" size="sm" className="gap-2 bg-card" asChild>
               <Link to={backTo}>

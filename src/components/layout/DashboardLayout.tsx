@@ -29,6 +29,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import {
   applyFontSizePreference,
   applyReduceMotionPreference,
@@ -454,26 +455,24 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           "flex h-full w-full flex-col"
         )}>
           <div className={cn("flex items-center justify-between px-4 py-4", isDesktopSidebarCollapsed && "lg:justify-center lg:px-3")}>
-            <Link
-              to="/"
-              className="flex min-w-0 items-center gap-2"
+            <div
+              className="min-w-0"
               title="UHPAB Study"
               onClick={(event) => {
                 if (revealDesktopSidebarBeforeAction()) {
-                  event.preventDefault();
+                  event.preventDefault?.();
                 }
               }}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
-                <span className="text-sm font-bold text-white">UR</span>
-              </div>
-              <span className={cn(
-                "truncate font-bold text-primary transition-[opacity,transform,width] duration-150 ease-out",
-                isDesktopSidebarCollapsed && "lg:w-0 lg:translate-x-1 lg:opacity-0"
-              )}>
-                UHPAB Study
-              </span>
-            </Link>
+              <BrandLogo
+                title="UHPAB Study"
+                markClassName="h-9 w-9"
+                textClassName={cn(
+                  "transition-[opacity,transform,width] duration-150 ease-out",
+                  isDesktopSidebarCollapsed && "lg:w-0 lg:translate-x-1 lg:opacity-0"
+                )}
+              />
+            </div>
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={closeMobileSidebar} aria-label="Close navigation" title="Close navigation">
               <X size={20} />
             </Button>
@@ -683,12 +682,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         <footer className="border-t bg-card py-4">
           <div className="container flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <Link to={homeRoute} className="flex shrink-0 items-center gap-2" title="UHPAB Study">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
-                  UR
-                </span>
-                <span className="font-semibold text-foreground">UHPAB Study</span>
-              </Link>
+              <BrandLogo to={homeRoute} markClassName="h-8 w-8" textClassName="font-semibold text-foreground" />
               <span className="hidden h-4 w-px bg-border sm:block" />
               <p className="min-w-0 truncate">
                 {schoolAdmin

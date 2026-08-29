@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 const studentPaths = [
   {
@@ -50,15 +51,7 @@ const Index = () => {
     <div className="study-surface min-h-screen text-foreground">
       <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur-xl">
         <div className="container flex min-h-16 items-center justify-between gap-4 py-2">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-primary to-emerald-400 text-sm font-bold text-white shadow-sm">
-              US
-            </div>
-            <div>
-              <p className="font-bold leading-tight text-primary">UHPAB Study</p>
-              <p className="hidden text-xs text-muted-foreground sm:block">Research help for nursing students</p>
-            </div>
-          </Link>
+          <BrandLogo subtitle="Research help for nursing students" markClassName="h-9 w-9" />
 
           <div className="flex items-center gap-2">
             <Link to="/login">
@@ -81,6 +74,11 @@ const Index = () => {
               Made for student nurses and midwives
             </span>
             <div className="space-y-4">
+              <img
+                src="/uhpab-logo.svg"
+                alt="UHPAB Study"
+                className="h-20 w-20 rounded-2xl shadow-lg"
+              />
               <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
                 Build your research work with less stress and more confidence.
               </h1>

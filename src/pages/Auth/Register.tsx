@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { courseOptions, otherCourseOption } from '@/data/courses';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const isCustomSchool = (schoolValue: string) => schoolValue.startsWith('custom-school:') && schoolValue.replace('custom-school:', '').trim().length > 0;
+const registrationDraftKey = 'uhpab:registration-draft';
+type TopicMode = 'have-topic' | 'generate-topic';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -24,11 +26,65 @@ const Register = () => {
   const [selectedCourse, setSelectedCourse] = useState('');
   const [htin, setHtin] = useState('');
   const [researchTopic, setResearchTopic] = useState('');
+  const [topicMode, setTopicMode] = useState<TopicMode>('have-topic');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
+  const updateFromInput =
+    (setter: React.Dispatch<React.SetStateAction<string>>, transform: (value: string) => string = (value) => value) =>
+    (event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setter(transform(event.currentTarget.value));
+    };
+
+  useEffect(() => {
+    try {
+      const savedDraft = window.sessionStorage.getItem(registrationDraftKey);
+      if (!savedDraft) return;
+
+      const parsed = JSON.parse(savedDraft) as {
+        name?: string;
+        email?: string;
+        schoolId?: string;
+        className?: string;
+        selectedCourse?: string;
+        htin?: string;
+        researchTopic?: string;
+        topicMode?: TopicMode;
+      };
+
+      setName(parsed.name || '');
+      setEmail(parsed.email || '');
+      setSchoolId(parsed.schoolId || '');
+      setClassName(parsed.className || '');
+      setSelectedCourse(parsed.selectedCourse || '');
+      setHtin(parsed.htin || '');
+      setResearchTopic(parsed.researchTopic || '');
+      if (parsed.topicMode === 'generate-topic') setTopicMode('generate-topic');
+    } catch {
+      window.sessionStorage.removeItem(registrationDraftKey);
+    }
+  }, []);
+
+  useEffect(() => {
+    const draft = {
+      name,
+      email,
+      schoolId,
+      className,
+      selectedCourse,
+      htin,
+      researchTopic,
+      topicMode,
+    };
+
+    try {
+      window.sessionStorage.setItem(registrationDraftKey, JSON.stringify(draft));
+    } catch {
+      // Losing a draft should not block signup.
+    }
+  }, [className, email, htin, name, researchTopic, schoolId, selectedCourse, topicMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +92,11 @@ const Register = () => {
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please enter a valid email address.');
       return;
     }
 
@@ -54,9 +115,10 @@ const Register = () => {
         schoolId,
         className,
         htin,
-        researchTopic: researchTopic.trim() || undefined
+        researchTopic: topicMode === 'have-topic' ? researchTopic.trim() || undefined : undefined
       });
-      navigate('/dashboard');
+      window.sessionStorage.removeItem(registrationDraftKey);
+      navigate(topicMode === 'generate-topic' ? '/research-topic-generator?from=signup&type=proposal' : '/dashboard');
     } catch (err) {
       setError((err as Error).message);
     }
@@ -94,6 +156,7 @@ const Register = () => {
                     placeholder="John Doe" 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    onInput={updateFromInput(setName)}
                     required
                   />
                 </div>
@@ -101,10 +164,13 @@ const Register = () => {
                   <Label htmlFor="email">Email</Label>
                   <Input 
                     id="email"
-                    type="email" 
+                    type="text"
+                    inputMode="email"
+                    autoComplete="email"
                     placeholder="name@example.com" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onInput={updateFromInput(setEmail)}
                     required
                   />
                 </div>
@@ -114,6 +180,7 @@ const Register = () => {
                   label="School"
                   required
                   inputId="student-school"
+                  placeholder="Click to choose or type your school"
                 />
                 <div className="space-y-2">
                   <Label htmlFor="className">Class / Course</Label>
@@ -143,11 +210,12 @@ const Register = () => {
                     <Input
                       id="otherCourse"
                       type="text"
-                      placeholder="Enter your course name"
-                      value={className}
-                      onChange={(e) => setClassName(e.target.value)}
-                      required
-                    />
+                    placeholder="Enter your course name"
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    onInput={updateFromInput(setClassName)}
+                    required
+                  />
                   </div>
                 )}
                 {selectedCourse && selectedCourse !== otherCourseOption && (
@@ -163,29 +231,48 @@ const Register = () => {
                     placeholder="e.g., JUL25/U094/DCM/071/2025" 
                     value={htin}
                     onChange={(e) => setHtin(e.target.value.toUpperCase())}
+                    onInput={updateFromInput(setHtin, (value) => value.toUpperCase())}
                     required
                   />
                 </div>
-                <div className="space-y-2 rounded-lg border bg-white/60 p-3 dark:bg-card/60">
+                <div className="space-y-3 rounded-lg border bg-white/60 p-3 dark:bg-card/60">
                   <Label htmlFor="researchTopic">Research topic</Label>
-                  <Textarea
-                    id="researchTopic"
-                    value={researchTopic}
-                    onChange={(e) => setResearchTopic(e.target.value)}
-                    placeholder="Paste your topic here if you already have one"
-                    className="min-h-20"
-                  />
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      Leave this blank if you came here to create a topic.
-                    </p>
-                    <Button type="button" variant="outline" size="sm" className="gap-2" asChild>
-                      <Link to="/research-topic-generator">
-                        <Sparkles className="h-4 w-4" />
-                        Generate one
-                      </Link>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      variant={topicMode === 'have-topic' ? 'default' : 'outline'}
+                      className="justify-start gap-2"
+                      onClick={() => setTopicMode('have-topic')}
+                    >
+                      I already have a topic
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={topicMode === 'generate-topic' ? 'default' : 'outline'}
+                      className="justify-start gap-2"
+                      onClick={() => setTopicMode('generate-topic')}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Help me generate one
                     </Button>
                   </div>
+                  {topicMode === 'have-topic' ? (
+                    <Textarea
+                      id="researchTopic"
+                      value={researchTopic}
+                      onChange={(e) => setResearchTopic(e.target.value)}
+                      onInput={updateFromInput(setResearchTopic)}
+                      placeholder="Paste your topic here if you already have one"
+                      className="min-h-20"
+                    />
+                  ) : (
+                    <div className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm leading-6 text-sky-950">
+                      Create your account first, then we will take you straight to the topic builder. Your name, school, course, and HTIN stay saved on this form.
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Topic generation opens after signup so your work is saved under your student account.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
@@ -194,6 +281,7 @@ const Register = () => {
                     type="password" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onInput={updateFromInput(setPassword)}
                     required
                   />
                 </div>
@@ -204,6 +292,7 @@ const Register = () => {
                     type="password" 
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    onInput={updateFromInput(setConfirmPassword)}
                     required
                   />
                 </div>
