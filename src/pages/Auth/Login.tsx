@@ -22,9 +22,12 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const submittedForm = new FormData(e.currentTarget as HTMLFormElement);
+    const submittedEmail = String(submittedForm.get('email') || email).trim();
+    const submittedPassword = String(submittedForm.get('password') || password);
 
     try {
-      await login(email, password);
+      await login(submittedEmail, submittedPassword);
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError((err as Error).message);
@@ -78,7 +81,7 @@ const Login = () => {
               autoCorrect="off"
               spellCheck={false}
               placeholder="name@example.com"
-              value={email}
+              defaultValue={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
@@ -95,7 +98,7 @@ const Login = () => {
               name="password"
               type="password"
               autoComplete="current-password"
-              value={password}
+              defaultValue={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />

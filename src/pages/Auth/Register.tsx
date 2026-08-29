@@ -30,6 +30,7 @@ const Register = () => {
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [draftReady, setDraftReady] = useState(false);
   const [error, setError] = useState('');
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -42,7 +43,10 @@ const Register = () => {
   useEffect(() => {
     try {
       const savedDraft = window.sessionStorage.getItem(registrationDraftKey);
-      if (!savedDraft) return;
+      if (!savedDraft) {
+        setDraftReady(true);
+        return;
+      }
 
       const parsed = JSON.parse(savedDraft) as {
         name?: string;
@@ -65,10 +69,14 @@ const Register = () => {
       if (parsed.topicMode === 'generate-topic') setTopicMode('generate-topic');
     } catch {
       window.sessionStorage.removeItem(registrationDraftKey);
+    } finally {
+      setDraftReady(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!draftReady) return;
+
     const draft = {
       name,
       email,
@@ -85,18 +93,22 @@ const Register = () => {
     } catch {
       // Losing a draft should not block signup.
     }
-  }, [className, email, htin, name, researchTopic, schoolId, selectedCourse, topicMode]);
+  }, [className, draftReady, email, htin, name, researchTopic, schoolId, selectedCourse, topicMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const submittedForm = new FormData(e.currentTarget as HTMLFormElement);
+    const submittedEmail = String(submittedForm.get('email') || email).trim();
+    const submittedPassword = String(submittedForm.get('new-password') || password);
+    const submittedConfirmPassword = String(submittedForm.get('confirm-password') || confirmPassword);
 
-    if (password !== confirmPassword) {
+    if (submittedPassword !== submittedConfirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(submittedEmail)) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -112,7 +124,7 @@ const Register = () => {
     }
 
     try {
-      await register(email, password, name, {
+      await register(submittedEmail, submittedPassword, name, {
         schoolId,
         className,
         htin,
@@ -149,7 +161,7 @@ const Register = () => {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {draftReady && <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input 
@@ -176,7 +188,7 @@ const Register = () => {
                     autoCorrect="off"
                     spellCheck={false}
                     placeholder="name@example.com" 
-                    value={email}
+                    defaultValue={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onInput={updateFromInput(setEmail)}
                     required
@@ -263,9 +275,9 @@ const Register = () => {
                         autoCorrect="off"
                         spellCheck={false}
                         placeholder="Paste your Google AI Studio key if you have one"
-                        value={geminiApiKey}
-                        onChange={(e) => setGeminiApiKey(e.target.value)}
-                        onInput={updateFromInput(setGeminiApiKey)}
+                    defaultValue={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    onInput={updateFromInput(setGeminiApiKey)}
                         className="bg-white/90"
                       />
                       <p className="text-xs leading-5 text-emerald-800">
@@ -321,7 +333,7 @@ const Register = () => {
                     name="new-password"
                     type="password" 
                     autoComplete="new-password"
-                    value={password}
+                    defaultValue={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onInput={updateFromInput(setPassword)}
                     required
@@ -334,7 +346,7 @@ const Register = () => {
                     name="confirm-password"
                     type="password" 
                     autoComplete="new-password"
-                    value={confirmPassword}
+                    defaultValue={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     onInput={updateFromInput(setConfirmPassword)}
                     required
@@ -343,7 +355,7 @@ const Register = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Creating Account...' : 'Create Account'}
                 </Button>
-              </form>
+              </form>}
       </div>
     </AuthShell>
   );
