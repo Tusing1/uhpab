@@ -10,6 +10,7 @@ import {
   FolderPlus,
   HardDrive,
   HelpCircle,
+  KeyRound,
   Loader2,
   Monitor,
   PanelLeftOpen,
@@ -41,6 +42,8 @@ import {
   WorkspaceStatusNote,
 } from "@/components/workspace/WorkspaceWorkflow";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { setBrowserGeminiApiKey } from "@/lib/aiKeys";
 import {
   downloadWorkspaceBackup,
   getStoredReviewCount,
@@ -129,6 +132,9 @@ const Settings = () => {
   const [storageSummary, setStorageSummary] = useState<WorkspaceStorageSummary | null>(null);
   const [isCheckingStorage, setIsCheckingStorage] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [geminiApiKeyDraft, setGeminiApiKeyDraft] = useState("");
+  const [hasSavedGeminiApiKey, setHasSavedGeminiApiKey] = useState(false);
+  const [isSavingGeminiApiKey, setIsSavingGeminiApiKey] = useState(false);
 
   const htin = user?.htin || user?.studentId || "";
   const schoolName = user?.schoolName || school?.name || "";
@@ -159,6 +165,23 @@ const Settings = () => {
   useEffect(() => {
     void refreshStorageSummary();
   }, [refreshStorageSummary]);
+
+  useEffect(() => {
+    if (!supabase || !user?.id) return;
+
+    supabase
+      .from("profiles")
+      .select("gemini_api_key")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Could not load Gemini key status", error);
+          return;
+        }
+        setHasSavedGeminiApiKey(Boolean(data?.gemini_api_key));
+      });
+  }, [user?.id]);
 
   const handleFontSizeChange = (value: string) => {
     const nextValue = value as FontSize;
@@ -202,6 +225,39 @@ const Settings = () => {
     }
   };
 
+  const saveGeminiApiKey = async () => {
+    const cleanedKey = geminiApiKeyDraft.trim();
+    if (!cleanedKey) {
+      toast.error("Paste your Gemini API key first");
+      return;
+    }
+
+    setIsSavingGeminiApiKey(true);
+    try {
+      setBrowserGeminiApiKey(cleanedKey);
+
+      if (supabase && user?.id) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ gemini_api_key: cleanedKey })
+          .eq("id", user.id);
+
+        if (error) throw error;
+      } else {
+        setBrowserGeminiApiKey(cleanedKey, { persist: true });
+      }
+
+      setGeminiApiKeyDraft("");
+      setHasSavedGeminiApiKey(true);
+      toast.success("Gemini API key saved");
+    } catch (error) {
+      console.error("Could not save Gemini key", error);
+      toast.error("Gemini API key could not be saved");
+    } finally {
+      setIsSavingGeminiApiKey(false);
+    }
+  };
+
   const reviewCount = storageSummary ? getStoredReviewCount(storageSummary) : 0;
   const settingsLinks = [
     {
@@ -215,6 +271,12 @@ const Settings = () => {
       label: "Display",
       detail: "Theme, text, motion",
       icon: <Monitor className="h-4 w-4" />,
+    },
+    {
+      href: "#ai",
+      label: "AI key",
+      detail: "Gemini setup",
+      icon: <KeyRound className="h-4 w-4" />,
     },
     {
       href: "#workspace",
@@ -274,7 +336,7 @@ const Settings = () => {
           }
         />
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Settings sections">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6" aria-label="Settings sections">
           {settingsLinks.map((item) => (
             <a
               key={item.href}
@@ -412,6 +474,46 @@ const Settings = () => {
                 />
               </div>
             </PreferenceRow>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
+          id="ai"
+          icon={<KeyRound className="h-5 w-5" />}
+          title="Gemini API key"
+          description="This key powers topic generation, writing help, document checks, and other AI tools."
+        >
+          <div className="space-y-4">
+            <WorkspaceStatusNote
+              tone={hasSavedGeminiApiKey ? "success" : "warning"}
+              title={hasSavedGeminiApiKey ? "Gemini key saved" : "Gemini key needed"}
+              description={
+                hasSavedGeminiApiKey
+                  ? "A Gemini key is saved on your profile. Paste a new key below only if you want to replace it."
+                  : "Paste your Google AI Studio key so the AI features can work under your own quota."
+              }
+            />
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+              <div className="grid gap-2">
+                <Label htmlFor="settingsGeminiApiKey">Gemini API key</Label>
+                <Input
+                  id="settingsGeminiApiKey"
+                  name="geminiApiKey"
+                  type="password"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder={hasSavedGeminiApiKey ? "Paste a new key to replace the saved one" : "Paste your Google AI Studio key"}
+                  value={geminiApiKeyDraft}
+                  onChange={(event) => setGeminiApiKeyDraft(event.target.value)}
+                />
+              </div>
+              <Button onClick={saveGeminiApiKey} disabled={isSavingGeminiApiKey} className="gap-2">
+                {isSavingGeminiApiKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                Save key
+              </Button>
+            </div>
           </div>
         </SettingsSection>
 

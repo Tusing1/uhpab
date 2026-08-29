@@ -123,6 +123,11 @@ const Register = () => {
       return;
     }
 
+    if (!geminiApiKey.trim()) {
+      setError('Please paste your Gemini API key. It powers topic generation, writing help, and document checks.');
+      return;
+    }
+
     try {
       await register(submittedEmail, submittedPassword, name, {
         schoolId,
@@ -265,7 +270,7 @@ const Register = () => {
                       <KeyRound className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <Label htmlFor="geminiApiKey">Gemini API key optional</Label>
+                      <Label htmlFor="geminiApiKey">Gemini API key</Label>
                       <Input
                         id="geminiApiKey"
                         name="geminiApiKey"
@@ -274,14 +279,14 @@ const Register = () => {
                         autoCapitalize="none"
                         autoCorrect="off"
                         spellCheck={false}
-                        placeholder="Paste your Google AI Studio key if you have one"
+                        placeholder="Paste your Google AI Studio key"
                     defaultValue={geminiApiKey}
                     onChange={(e) => setGeminiApiKey(e.target.value)}
                     onInput={updateFromInput(setGeminiApiKey)}
                         className="bg-white/90"
                       />
                       <p className="text-xs leading-5 text-emerald-800">
-                        This helps your AI tools work under your own quota. You can skip it now and add it later in Settings.
+                        Required for AI tools such as topic generation, writing help, and document checks. It is saved to your UHPAB profile.
                       </p>
                     </div>
                   </div>
