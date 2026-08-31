@@ -68,7 +68,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
   pageMeta
 }) => {
   const hasContent = currentValue?.trim().length > 0;
-  const showDraftAction = allowAI && !hasContent && !isAutoFilled && !isDeferredFinalPage;
+  const showDraftAction = allowAI && !isAutoFilled && !isDeferredFinalPage;
   const showPolishActions = allowAI && hasContent && !isAutoFilled && !isDeferredFinalPage;
   const polishActions = aiActions.filter((action) => action.id !== 'draft');
   const helperText = isAutoFilled
@@ -112,7 +112,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
               {showDraftAction && (
                 <Button onClick={() => improveWithAI('draft')} className="gap-2">
                   <Wand className="h-4 w-4" />
-                  Generate draft
+                  {hasContent ? "Regenerate draft" : "Generate draft"}
                 </Button>
               )}
               <Button onClick={startEditing} variant={hasContent ? "default" : "outline"} className="gap-2">
