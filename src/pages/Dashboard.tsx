@@ -71,24 +71,24 @@ type QuickAction = {
 
 const actionToneClasses: Record<QuickAction["tone"], { panel: string; icon: string; badge: string }> = {
   info: {
-    panel: "border-sky-200 bg-sky-50/70 hover:border-sky-300 hover:bg-sky-50",
-    icon: "bg-sky-100 text-sky-700",
-    badge: "border-sky-200 bg-white/70 text-sky-800",
+    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
+    icon: "bg-primary/10 text-primary",
+    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
   },
   success: {
-    panel: "border-emerald-200 bg-emerald-50/70 hover:border-emerald-300 hover:bg-emerald-50",
-    icon: "bg-emerald-100 text-emerald-700",
-    badge: "border-emerald-200 bg-white/70 text-emerald-800",
+    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
+    icon: "bg-primary/10 text-primary",
+    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
   },
   warning: {
-    panel: "border-amber-200 bg-amber-50/80 hover:border-amber-300 hover:bg-amber-50",
-    icon: "bg-amber-100 text-amber-700",
-    badge: "border-amber-200 bg-white/70 text-amber-800",
+    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
+    icon: "bg-primary/10 text-primary",
+    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
   },
   neutral: {
-    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-muted/35",
+    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
     icon: "bg-primary/10 text-primary",
-    badge: "border-slate-200 bg-muted text-muted-foreground",
+    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
   },
 };
 
@@ -167,15 +167,6 @@ const Dashboard = () => {
 
   const quickActions = useMemo<QuickAction[]>(
     () => [
-      {
-        title: "Check document",
-        description: "Upload a proposal or report and score it against the marking guide.",
-        buttonLabel: "Run marking check",
-        route: "/document-analysis",
-        icon: <FileSearch size={20} />,
-        tone: "info",
-        badge: "Marking guide",
-      },
       {
         title: "Improve writing",
         description: "Clean weak paragraphs while preserving the student's meaning and evidence.",
@@ -386,13 +377,13 @@ const Dashboard = () => {
           description="Choose the next useful action for your research work: write, correct, check marks, or verify originality."
           actions={
             <>
-              <Button className="gap-2" onClick={() => navigate("/document-analysis")}>
-                <FileSearch size={16} />
-                Check document
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={() => navigate("/projects/new")}>
+              <Button className="gap-2" onClick={() => navigate("/projects/new")}>
                 <Plus size={16} />
                 Create project
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => navigate("/document-analysis")}>
+                <FileSearch size={16} />
+                Check document
               </Button>
             </>
           }
@@ -409,24 +400,24 @@ const Dashboard = () => {
                 </span>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-lg border border-sky-200 bg-sky-50/70 p-3 text-sky-900">
-                  <p className="text-xs font-medium text-sky-700">Research projects</p>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Research projects</p>
                   <p className="mt-1 text-xl font-bold">{projects.length}</p>
-                  <p className="mt-1 text-xs text-sky-700">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {projects.length === 1 ? "1 active workspace" : `${projects.length} active workspaces`}
                   </p>
                 </div>
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-emerald-950">
-                  <p className="text-xs font-medium text-emerald-700">Saved reviews</p>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Saved reviews</p>
                   <p className="mt-1 text-xl font-bold">{reviewActivity.length}</p>
-                  <p className="mt-1 text-xs text-emerald-700">Recent checks in archive</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Recent checks in archive</p>
                 </div>
-                <div className="rounded-lg border border-amber-200 bg-amber-50/75 p-3 text-amber-950">
-                  <p className="text-xs font-medium text-amber-700">Sources / references</p>
+                <div className="rounded-lg border bg-card p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Sources / references</p>
                   <p className="mt-1 text-xl font-bold">{totalSources}/{totalReferences}</p>
-                  <p className="mt-1 text-xs text-amber-700">Saved / listed</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Saved / listed</p>
                 </div>
-                <div className="rounded-lg border bg-muted/35 p-3">
+                <div className="rounded-lg border bg-card p-3">
                   <p className="text-xs font-medium text-muted-foreground">Tables and charts</p>
                   <p className="mt-1 text-xl font-bold">{totalTablesFigures}</p>
                   <p className="mt-1 text-xs text-muted-foreground">Report result items</p>

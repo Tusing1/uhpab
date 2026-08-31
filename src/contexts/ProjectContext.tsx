@@ -26,6 +26,15 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 const localProjectsKey = (userId: string) => `projects_${userId}`;
 
 const canUseRemoteProjects = (userId?: string) => Boolean(supabase && userId && uuidPattern.test(userId));
+const getRemoteSchoolId = (schoolId?: string | null) => (schoolId && uuidPattern.test(schoolId) ? schoolId : null);
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return "Unknown error";
+};
 
 const defaultProgress = (type: "proposal" | "report"): Project["progress"] => ({
   chapter1: 0,
@@ -151,7 +160,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             title,
             type,
             user_id: user.id,
-            school_id: user.schoolId || null,
+            school_id: getRemoteSchoolId(user.schoolId),
             progress: defaultProgress(type),
             chapters: {},
             created_at: now,
@@ -189,9 +198,9 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       toast.success("Project created");
       return newProject;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      const message = getErrorMessage(error);
       toast.error(`Failed to create project: ${message}`);
-      throw error;
+      throw new Error(message);
     } finally {
       setIsLoading(false);
     }
@@ -229,9 +238,9 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (currentProject?.id === project.id) setCurrentProject(updatedProject);
       return updatedProject;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      const message = getErrorMessage(error);
       toast.error(`Failed to update project: ${message}`);
-      throw error;
+      throw new Error(message);
     } finally {
       setIsLoading(false);
     }
@@ -257,9 +266,9 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         window.localStorage.removeItem("currentProjectId");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      const message = getErrorMessage(error);
       toast.error(`Failed to delete project: ${message}`);
-      throw error;
+      throw new Error(message);
     } finally {
       setIsLoading(false);
     }
@@ -307,7 +316,10 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (canUseRemoteProjects(user.id)) {
         const { data, error } = await supabase!
           .from("projects")
-          .insert(convertToDbFormat(importedProject))
+          .insert({
+            ...convertToDbFormat(importedProject),
+            school_id: getRemoteSchoolId(user.schoolId),
+          })
           .select("*")
           .single();
 
@@ -328,9 +340,9 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       toast.success("Document imported as project");
       return importedProject;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      const message = getErrorMessage(error);
       toast.error(`Failed to import document: ${message}`);
-      throw error;
+      throw new Error(message);
     } finally {
       setIsLoading(false);
     }
