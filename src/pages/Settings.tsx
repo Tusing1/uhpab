@@ -267,16 +267,16 @@ const Settings = () => {
       icon: <User className="h-4 w-4" />,
     },
     {
-      href: "#display",
-      label: "Display",
-      detail: "Theme, text, motion",
-      icon: <Monitor className="h-4 w-4" />,
-    },
-    {
       href: "#ai",
       label: "AI key",
       detail: "Gemini setup",
       icon: <KeyRound className="h-4 w-4" />,
+    },
+    {
+      href: "#display",
+      label: "Display",
+      detail: "Theme, text, motion",
+      icon: <Monitor className="h-4 w-4" />,
     },
     {
       href: "#workspace",
@@ -335,6 +335,23 @@ const Settings = () => {
             </div>
           }
         />
+
+        {!hasSavedGeminiApiKey && (
+          <WorkspaceStatusNote
+            tone="warning"
+            icon={<KeyRound className="h-4 w-4" />}
+            title="Add your Gemini API key to unlock AI tools"
+            description="Older accounts may not have a key saved yet. Add it once here, then topic generation, writing help, and document checks can use it."
+            actions={
+              <Button asChild size="sm" className="gap-2">
+                <a href="#ai">
+                  Add Gemini key
+                  <KeyRound className="h-4 w-4" />
+                </a>
+              </Button>
+            }
+          />
+        )}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6" aria-label="Settings sections">
           {settingsLinks.map((item) => (

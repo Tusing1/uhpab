@@ -32,7 +32,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from "sonner";
 import { TopicAssessment, TopicAssessmentResult } from '@/components/projects/TopicAssessment';
 import { TopicAssessmentResults } from '@/components/projects/TopicAssessmentResult';
-import { useFeatureAccess } from '@/contexts/FeatureAccessContext';
 import { cn } from '@/lib/utils';
 import { getPreferredProjectType } from '@/lib/userPreferences';
 
@@ -77,8 +76,6 @@ const NewProject = () => {
   const [topicAssessmentResults, setTopicAssessmentResults] = useState<TopicAssessmentResult | null>(null);
   const [topicHandoff, setTopicHandoff] = useState<TopicHandoff | null>(null);
   const { createProject } = useProjects();
-  const { canAccess } = useFeatureAccess();
-  const canUseAI = canAccess('ai-content-generation');
 
   useEffect(() => {
     const nextRequestedType = getRequestedProjectType(location);
@@ -292,6 +289,30 @@ const NewProject = () => {
                     </Label>
                   </div>
                 </RadioGroup>
+
+                <div className="rounded-lg border border-primary/25 bg-gradient-to-r from-primary/10 via-info-muted to-emerald-50 p-4 shadow-sm">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-card text-primary shadow-sm">
+                        <Sparkles className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-semibold">Do you need a research topic first?</h3>
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                          Start with the topic generator if you are not yet sure about variables, respondents, age group, or study area.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleGoToTopicGenerator}
+                      className="w-full shrink-0 gap-2 sm:w-auto"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Generate topic first
+                    </Button>
+                  </div>
+                </div>
                 
                 <div className="border-t border-muted pt-4">
                   <div className="rounded-lg border border-primary/20 bg-info-muted/70 p-4 shadow-sm">
@@ -332,18 +353,16 @@ const NewProject = () => {
                             ? 'Long title accepted after warning.'
                             : 'A clear UHPAB title should mention the issue, respondents, and study area.'}
                         </p>
-                        {canUseAI && (
-                          <Button
-                            type="button"
-                            onClick={handleGoToTopicGenerator}
-                            variant="outline"
-                            size="sm"
-                            className="shrink-0 gap-2 bg-card"
-                          >
-                            <Sparkles className="h-4 w-4" />
-                            Need title help?
-                          </Button>
-                        )}
+                        <Button
+                          type="button"
+                          onClick={handleGoToTopicGenerator}
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 gap-2 bg-card"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Open topic generator
+                        </Button>
                       </div>
                     </div>
                   </div>
