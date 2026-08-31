@@ -26,12 +26,12 @@ const PricingSection = () => {
     premium: [
       'Guided section writing support',
       'Clear academic paragraph improvement',
-      'Responsible AI writing assistance',
+      'Responsible Advanced Researcher writing assistance',
       'Integrated APA 7th citation generation',
       'Detailed formatting checks',
       'Premium templates and examples',
-      'AI-powered feedback on content',
-      'AI suggestions for each section',
+      'Advanced feedback on content',
+      'Smart suggestions for each section',
     ],
     school: [
       'All premium features for each student',

@@ -395,7 +395,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
           <Lock className="h-4 w-4" />
           <AlertTitle>Premium Feature</AlertTitle>
           <AlertDescription>
-            AI content generation is available exclusively for premium users. 
+            Advanced Researcher drafting is available exclusively for premium users. 
             Upgrade your account to unlock this feature.
           </AlertDescription>
           <div className="mt-2">
@@ -412,7 +412,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
             <div>
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                AI Research Assistant
+                Advanced Researcher
               </h2>
               <p className="text-sm text-muted-foreground">
                 Generate content for your {project.type} following UHPAB guidelines
@@ -423,19 +423,19 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
           {!isApiKeySet ? (
             <Card className="mb-4">
               <CardHeader>
-                <CardTitle className="text-lg">Personal Gemini API key optional</CardTitle>
+                <CardTitle className="text-lg">Personal Advanced Researcher key optional</CardTitle>
                 <CardDescription>
                   Add your own key for your quota, or use the school/server key when it is configured.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="api-key">Gemini API Key</Label>
+                  <Label htmlFor="api-key">Advanced Researcher key</Label>
                   <div className="flex gap-2">
                     <Input
                       id="api-key"
                       type="password"
-                      placeholder="Enter your Gemini API key"
+                      placeholder="Enter your Google AI Studio key"
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                     />
@@ -445,7 +445,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    You can get a Gemini API key from the Google AI Studio. 
+                    You can get this key from Google AI Studio. 
                     Signup keys are saved to your UHPAB profile; keys added here stay on this browser.
                   </p>
                 </div>
@@ -643,7 +643,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
                       <InfoIcon className="h-5 w-5 mx-auto text-muted-foreground" />
                       <p className="text-muted-foreground">
                         {temporaryContent 
-                          ? "Click 'Generate Content' to improve your text with AI"
+                          ? "Click 'Generate Content' to improve your text with Advanced Researcher"
                           : "Select a component and click 'Generate Content' to get started"}
                       </p>
                     </div>
@@ -658,7 +658,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
       <div className="bg-muted/40 rounded-lg p-5 border">
         <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
           <FileText className="h-4 w-4" />
-          UHPAB AI Research Assistant Tips
+          UHPAB Advanced Researcher Tips
         </h3>
         <Separator className="mb-3" />
         <ul className="space-y-2 text-sm text-muted-foreground">
@@ -668,7 +668,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
           </li>
           <li className="flex gap-2">
             <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5 text-primary" />
-            <span>Review and edit AI-generated content before final submission</span>
+            <span>Review and edit generated content before final submission</span>
           </li>
           <li className="flex gap-2">
             <Sparkles className="h-4 w-4 flex-shrink-0 mt-0.5 text-primary" />

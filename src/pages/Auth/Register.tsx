@@ -124,7 +124,7 @@ const Register = () => {
     }
 
     if (!geminiApiKey.trim()) {
-      setError('Please paste your Gemini API key. It powers topic generation, writing help, and document checks.');
+      setError('Please paste your Advanced Researcher key. It powers topic generation, writing help, and document checks.');
       return;
     }
 
@@ -270,7 +270,7 @@ const Register = () => {
                       <KeyRound className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <Label htmlFor="geminiApiKey">Gemini API key</Label>
+                      <Label htmlFor="geminiApiKey">Advanced Researcher key</Label>
                       <Input
                         id="geminiApiKey"
                         name="geminiApiKey"
@@ -286,7 +286,7 @@ const Register = () => {
                         className="bg-white/90"
                       />
                       <p className="text-xs leading-5 text-emerald-800">
-                        Required for AI tools such as topic generation, writing help, and document checks. It is saved to your UHPAB profile.
+                        Required for topic generation, writing help, and document checks. It is saved to your UHPAB profile.
                       </p>
                     </div>
                   </div>

@@ -228,7 +228,7 @@ const Settings = () => {
   const saveGeminiApiKey = async () => {
     const cleanedKey = geminiApiKeyDraft.trim();
     if (!cleanedKey) {
-      toast.error("Paste your Gemini API key first");
+      toast.error("Paste your Advanced Researcher key first");
       return;
     }
 
@@ -249,10 +249,10 @@ const Settings = () => {
 
       setGeminiApiKeyDraft("");
       setHasSavedGeminiApiKey(true);
-      toast.success("Gemini API key saved");
+      toast.success("Advanced Researcher key saved");
     } catch (error) {
       console.error("Could not save Gemini key", error);
-      toast.error("Gemini API key could not be saved");
+      toast.error("Advanced Researcher key could not be saved");
     } finally {
       setIsSavingGeminiApiKey(false);
     }
@@ -268,8 +268,8 @@ const Settings = () => {
     },
     {
       href: "#ai",
-      label: "AI key",
-      detail: "Gemini setup",
+      label: "Advanced Researcher",
+      detail: "Research engine key",
       icon: <KeyRound className="h-4 w-4" />,
     },
     {
@@ -340,12 +340,12 @@ const Settings = () => {
           <WorkspaceStatusNote
             tone="warning"
             icon={<KeyRound className="h-4 w-4" />}
-            title="Add your Gemini API key to unlock AI tools"
+            title="Add your Advanced Researcher key"
             description="Older accounts may not have a key saved yet. Add it once here, then topic generation, writing help, and document checks can use it."
             actions={
               <Button asChild size="sm" className="gap-2">
                 <a href="#ai">
-                  Add Gemini key
+                  Add key
                   <KeyRound className="h-4 w-4" />
                 </a>
               </Button>
@@ -497,22 +497,22 @@ const Settings = () => {
         <SettingsSection
           id="ai"
           icon={<KeyRound className="h-5 w-5" />}
-          title="Gemini API key"
-          description="This key powers topic generation, writing help, document checks, and other AI tools."
+          title="Advanced Researcher key"
+          description="This key powers topic generation, writing help, document checks, and other research support tools."
         >
           <div className="space-y-4">
             <WorkspaceStatusNote
               tone={hasSavedGeminiApiKey ? "success" : "warning"}
-              title={hasSavedGeminiApiKey ? "Gemini key saved" : "Gemini key needed"}
+              title={hasSavedGeminiApiKey ? "Advanced Researcher key saved" : "Advanced Researcher key needed"}
               description={
                 hasSavedGeminiApiKey
-                  ? "A Gemini key is saved on your profile. Paste a new key below only if you want to replace it."
-                  : "Paste your Google AI Studio key so the AI features can work under your own quota."
+                  ? "A research engine key is saved on your profile. Paste a new key below only if you want to replace it."
+                  : "Paste your Google AI Studio key so the research support features can work under your own quota."
               }
             />
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
               <div className="grid gap-2">
-                <Label htmlFor="settingsGeminiApiKey">Gemini API key</Label>
+                <Label htmlFor="settingsGeminiApiKey">Advanced Researcher key</Label>
                 <Input
                   id="settingsGeminiApiKey"
                   name="geminiApiKey"

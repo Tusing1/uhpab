@@ -418,7 +418,7 @@ const GettingStarted = () => {
                   </div>
                   <h2 className="text-xl font-semibold">Need more powerful help?</h2>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Premium gives guided AI help for section writing, document checks, clearer wording, and downloadable review reports.
+                    Premium gives Advanced Researcher help for section writing, document checks, clearer wording, and downloadable review reports.
                   </p>
                   <Button className="mt-4 gap-2" onClick={() => navigate("/premium")}>
                     See premium tools

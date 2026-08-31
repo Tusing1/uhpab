@@ -313,7 +313,7 @@ const Humanizer = () => {
       setReviewStage(
         isDeepMode
           ? aiDeepReviewAvailable
-            ? "Running AI-assisted paragraph review with strict preservation rules"
+            ? "Running Advanced Researcher paragraph review with strict preservation rules"
             : "Running local deep cleanup for flow, specificity, and academic directness"
           : "Cleaning stiff wording, artifacts, dashes, filler, and vague phrasing"
       );
@@ -330,13 +330,13 @@ const Humanizer = () => {
             const revisedChunks: string[] = [];
 
             for (let index = 0; index < chunks.length; index += 1) {
-              setReviewStage(`AI-assisted paragraph review ${index + 1} of ${chunks.length}`);
+              setReviewStage(`Advanced Researcher paragraph review ${index + 1} of ${chunks.length}`);
               const chunkDraft = cleanAiReviewText(
                 await generateContent(createDeepReviewPrompt(chunks[index], handoff?.section))
               );
 
               if (!isAcceptableDeepRevision(chunks[index], chunkDraft)) {
-                throw new Error("AI-assisted revision changed a paragraph group too much.");
+                throw new Error("Advanced Researcher revision changed a paragraph group too much.");
               }
 
               revisedChunks.push(chunkDraft);
@@ -345,19 +345,19 @@ const Humanizer = () => {
             aiDraft = revisedChunks.join("\n\n");
             if (isAcceptableDeepRevision(originalText, aiDraft)) {
               method = "ai-assisted";
-              summary.push(`AI-assisted paragraph rewrite completed in ${chunks.length} group${chunks.length === 1 ? "" : "s"} with preservation rules.`);
+              summary.push(`Advanced Researcher paragraph rewrite completed in ${chunks.length} group${chunks.length === 1 ? "" : "s"} with preservation rules.`);
             } else {
               method = "ai-fallback";
               aiDraft = "";
-              summary.push("AI-assisted output was rejected because it changed length or format too much.");
+              summary.push("Advanced Researcher output was rejected because it changed length or format too much.");
             }
           } catch (error) {
             console.error("AI-assisted deep review unavailable:", error);
             method = "ai-fallback";
-            summary.push("AI-assisted review was unavailable, so local deep review was used.");
+            summary.push("Advanced Researcher review was unavailable, so local deep review was used.");
           }
         } else {
-          summary.push("No Gemini key was available, so local deep review was used.");
+          summary.push("No Advanced Researcher key was available, so local deep review was used.");
         }
 
         nextResult = humanizeResearchText(originalText, handoff, {
@@ -565,8 +565,8 @@ const Humanizer = () => {
               {isDeepMode && (
                 <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm leading-6 text-sky-950">
                   {aiDeepReviewAvailable
-                    ? "Deep mode will use the configured AI key, then rescan locally."
-                    : "Deep mode will use local paragraph review until an AI key is configured."}
+                    ? "Deep mode will use the configured Advanced Researcher key, then rescan locally."
+                    : "Deep mode will use local paragraph review until an Advanced Researcher key is configured."}
                 </div>
               )}
               {handoff && (
@@ -658,7 +658,7 @@ const Humanizer = () => {
                   setResult(null);
                   setRevisedText("");
                 }}
-                placeholder="Paste AI-assisted or over-polished research wording here for review..."
+                placeholder="Paste over-polished research wording here for review..."
                 className="min-h-[520px] resize-y bg-white/85 text-sm leading-7"
               />
             </div>

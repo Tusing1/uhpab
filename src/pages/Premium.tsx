@@ -132,7 +132,7 @@ const PremiumPage = () => {
         <WorkspaceStatusNote
           tone="info"
           icon={<Shield className="h-4 w-4" />}
-          title="Use AI responsibly"
+          title="Use Advanced Researcher responsibly"
           description="Premium tools help you plan, review, and improve your work. You remain responsible for your research content and should follow your tutor's guidance and UHPAB requirements."
           className="mt-8"
         />

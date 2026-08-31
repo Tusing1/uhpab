@@ -1197,11 +1197,11 @@ const ProjectEdit = () => {
         setIsEditing(true);
         toast.warning(action === 'draft' ? "Local starter used" : "Starter draft added", {
           description: action === 'draft'
-            ? "AI drafting did not finish, so a local UHPAB starter was inserted to keep you moving."
+            ? "Advanced Researcher drafting did not finish, so a local UHPAB starter was inserted to keep you moving."
             : "A local UHPAB starter was inserted. Edit it with your real details before saving.",
         });
       } else {
-        toast.error("AI writing could not finish", {
+        toast.error("Advanced Researcher writing could not finish", {
           description: "Your work is safe. Continue manually or try the action again later.",
         });
       }
