@@ -214,7 +214,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
                 <div className="min-h-[520px] border-t border-dashed border-slate-200 pt-5 text-sm text-slate-500">
                   <div>
                     <p className="font-medium text-slate-700">Space reserved in the template.</p>
-                    <p>Use Edit to write under this heading, or use Draft starter to insert a safe outline you can correct.</p>
+                    <p>Use Edit to write under this heading, or Generate draft to insert a safe outline you can correct.</p>
                   </div>
                 </div>
               )}
