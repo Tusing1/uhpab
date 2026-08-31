@@ -68,6 +68,9 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
   pageMeta
 }) => {
   const hasContent = currentValue?.trim().length > 0;
+  const showDraftAction = allowAI && !hasContent && !isAutoFilled && !isDeferredFinalPage;
+  const showPolishActions = allowAI && hasContent && !isAutoFilled && !isDeferredFinalPage;
+  const polishActions = aiActions.filter((action) => action.id !== 'draft');
   const helperText = isAutoFilled
     ? "I have filled most of this page from the student's profile. Review it, then continue."
     : isDeferredFinalPage
@@ -103,25 +106,17 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
           <h3 className="text-lg font-semibold">{label}</h3>
           <p className="max-w-3xl text-sm text-muted-foreground">{description}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           {!isEditing ? (
             <>
-              <Button onClick={onPrevious} variant="outline" className="gap-2" disabled={!canPrevious}>
-                <ArrowLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <Button onClick={startEditing} variant="outline" className="gap-2">
-                Edit
-              </Button>
-              {allowAI && aiActions.map((action) => (
-                <Button key={action.id} onClick={() => improveWithAI(action.id)} variant="outline" className="gap-2">
+              {showDraftAction && (
+                <Button onClick={() => improveWithAI('draft')} className="gap-2">
                   <Wand className="h-4 w-4" />
-                  {action.label}
+                  Generate draft
                 </Button>
-              ))}
-              <Button onClick={onNext} className="gap-2" disabled={!canNext}>
-                Next
-                <ArrowRight className="h-4 w-4" />
+              )}
+              <Button onClick={startEditing} variant={hasContent ? "default" : "outline"} className="gap-2">
+                Edit section
               </Button>
             </>
           ) : (
@@ -150,6 +145,27 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
           )}
         </div>
       </div>
+
+      {!isEditing && showPolishActions && (
+        <div className="rounded-lg border bg-muted/25 p-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Polish and check after drafting</p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Use these only after the section has content. They improve wording, shorten, or check UHPAB alignment.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {polishActions.map((action) => (
+                <Button key={action.id} onClick={() => improveWithAI(action.id)} variant="outline" size="sm" className="gap-2 bg-card">
+                  <Wand className="h-3.5 w-3.5" />
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-lg bg-slate-100/80 p-3 ring-1 ring-border/70 sm:p-5 dark:bg-slate-950/30">
         <div
@@ -212,6 +228,19 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
           )}
         </div>
       </div>
+
+      {!isEditing && (
+        <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <Button onClick={onPrevious} variant="ghost" className="gap-2" disabled={!canPrevious}>
+            <ArrowLeft className="h-4 w-4" />
+            Previous section
+          </Button>
+          <Button onClick={onNext} className="gap-2" disabled={!canNext}>
+            Next section
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
