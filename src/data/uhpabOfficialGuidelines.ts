@@ -359,13 +359,15 @@ const uhpabOfficialGuidelines = [
     "section_name": "1.0 Introduction",
     "parent_section_id": "uhpab_report_chapter_1_main",
     "rules_and_guidelines": [
-      "Introduce the summary of Chapter One in one paragraph.",
+      "Introduce the summary of Chapter One in one short paragraph of about 25-45 words.",
+      "Mention the main sections covered in Chapter One without adding statistics, citations, definitions, or detailed background.",
+      "Let 1.1 Background to the Study begin immediately after this preview where page space allows.",
       "Use past tense in the report because the study has already been conducted."
     ],
     "formatting_notes": [
       "Subheading format: 1.0 Introduction (left-aligned, sentence case, bolded)."
     ],
-    "page_count_limits": "One paragraph.",
+    "page_count_limits": "One short paragraph, about 25-45 words.",
     "examples": [],
     "prompt_keywords": [
       "chapter one",
@@ -379,6 +381,7 @@ const uhpabOfficialGuidelines = [
     "section_name": "1.1 Background to the Study",
     "parent_section_id": "uhpab_report_chapter_1_main",
     "rules_and_guidelines": [
+      "Use 4-6 focused paragraphs for a first draft, then expand only where evidence or supervisor feedback requires it.",
       "Be concise and precise with a maximum of two pages.",
       "Use a few references to support statements, but do not make it an extensive literature review.",
       "Provide an in-depth understanding of the research problem.",

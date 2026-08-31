@@ -70,7 +70,8 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
   const hasContent = currentValue?.trim().length > 0;
   const showDraftAction = allowAI && !isAutoFilled && !isDeferredFinalPage;
   const showPolishActions = allowAI && hasContent && !isAutoFilled && !isDeferredFinalPage;
-  const polishActions = aiActions.filter((action) => action.id !== 'draft');
+  const combinedDraftAction = aiActions.find((action) => action.id === 'draftWithBackground');
+  const polishActions = aiActions.filter((action) => !['draft', 'draftWithBackground'].includes(action.id));
   const helperText = isAutoFilled
     ? "I have filled most of this page from the student's profile. Review it, then continue."
     : isDeferredFinalPage
@@ -113,6 +114,12 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
                 <Button onClick={() => improveWithAI('draft')} className="gap-2">
                   <Wand className="h-4 w-4" />
                   {hasContent ? "Regenerate draft" : "Generate draft"}
+                </Button>
+              )}
+              {showDraftAction && combinedDraftAction && (
+                <Button onClick={() => improveWithAI(combinedDraftAction.id)} variant="outline" className="gap-2">
+                  <Wand className="h-4 w-4" />
+                  {combinedDraftAction.label}
                 </Button>
               )}
               <Button onClick={startEditing} variant={hasContent ? "default" : "outline"} className="gap-2">

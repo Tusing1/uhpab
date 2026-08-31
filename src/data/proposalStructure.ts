@@ -86,20 +86,23 @@ const proposalStructure = {
     sections: {
       introduction: {
         title: '1.0 Introduction',
-        description: 'Introduces the summary of Chapter One.',
+        description: 'A short preview paragraph for Chapter One. Keep it brief so 1.1 Background can begin on the same page.',
         requirements: [
-          'Write one paragraph',
-          'Mention the main sections covered in the chapter'
+          'Write one paragraph only, about 25-45 words',
+          'Mention the main sections covered in Chapter One',
+          'Do not add statistics, citations, definitions, or detailed background here',
+          'Move the real context and evidence to 1.1 Background'
         ]
       },
       background: {
         title: '1.1 Background to the Study',
-        description: 'Builds an in-depth understanding of the research problem.',
+        description: 'Builds an in-depth understanding of the research problem, starting from the wider issue and narrowing to the local study gap.',
         requirements: [
+          'Use 4-6 focused paragraphs for a proposal starter, then expand only where your supervisor requires it',
           'Maximum two pages',
           'Use a few references without turning it into a literature review',
           'Move from global, continental, regional, national, to local context',
-          'State why the issue is significant enough to warrant research'
+          'End by showing why the issue is significant enough to warrant research in the study area'
         ]
       },
       statementOfProblem: {
