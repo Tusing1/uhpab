@@ -330,7 +330,7 @@ const getLocalStarterDraft = (
     implicationsToNursingPractice: `<p>This section should explain how the findings can improve nursing or health profession practice. State practical actions, service improvements, health education needs, or supervision changes that follow from the findings.</p>`,
   };
   const localTemplates: Record<string, string> = {
-    introduction: `<p>This chapter introduces ${topicReference}. It presents the background to the study, statement of the problem, purpose of the study, specific objectives, research questions, justification, significance, and scope of the study.</p>`,
+    introduction: `<p>This chapter presents the background to the study, statement of the problem, purpose of the study, specific objectives, research questions, justification, significance, and scope of the study.</p>`,
     background: `<p>Globally, ${title.toLowerCase()} should be introduced by showing why the issue matters to health outcomes, service delivery, patients, families, or communities. Add one recent source to support the wider importance of the problem [citation needed].</p><p>In Africa or the East African region, explain how the problem appears in settings similar to Uganda. Focus on common patterns, affected groups, and health-service challenges without turning this section into a full literature review [citation needed].</p><p>In Uganda, describe what is known about the problem and how it affects the target population, health workers, training institutions, or service use. Use national guidance, a recent study, or an official report where available [citation needed].</p><p>At the selected study area, explain the local situation using clinic records, school experience, supervisor guidance, or observed service gaps where available [verify local statistic].</p><p>Therefore, this study focuses on ${topicReference} in order to provide evidence that can guide health education, service improvement, and future research in the study area.</p>`,
     statementOfProblem: `<p>Although health services and education are available, the problem addressed by this study remains a concern among the selected respondents at the study area. The exact size, causes, and effects of this problem need to be described using local evidence and recent literature.</p><p>This study therefore seeks to examine ${topicReference} in order to provide information that can guide nursing practice, health education, and service improvement.</p>`,
     researchObjectives: `<p>The objectives of the study are organized into one general objective and specific objectives that guide data collection and analysis.</p>`,
@@ -355,12 +355,16 @@ const getLocalStarterDraft = (
     undefined;
 
   const template = reportTemplate || localTemplates[componentId] || `<p>This section should explain ${sectionName.toLowerCase()} for ${topicReference}. Write directly, keep the wording academic, and only add facts that you can support with evidence.</p>`;
+  const shouldHideChecklist = sectionKey === 'chapter1' && ['introduction', 'background'].includes(componentId);
 
   return [
     template,
-    requirementHtml ? `<p><strong>Before submission, make sure this section covers:</strong></p>${requirementHtml}` : '',
+    requirementHtml && !shouldHideChecklist ? `<p><strong>Before submission, make sure this section covers:</strong></p>${requirementHtml}` : '',
   ].filter(Boolean).join('');
 };
+
+const getChapterOneIntroductionHtml = () =>
+  '<p>This chapter presents the background to the study, statement of the problem, purpose of the study, specific objectives, research questions, justification, significance, and scope of the study.</p>';
 
 const toRoman = (value: number) => {
   const numerals: Array<[number, string]> = [
@@ -1190,6 +1194,15 @@ const ProjectEdit = () => {
         interpret: 'Write a concise Chapter Four interpretation of the presented result in academic style.'
       };
 
+      if (action === 'draft' && isChapterOneIntroduction) {
+        setTemporaryContent(getChapterOneIntroductionHtml());
+        setIsEditing(true);
+        toast.success("Short introduction ready", {
+          description: "This section is fixed to the UHPAB-style Chapter One preview. Write the real context under 1.1 Background.",
+        });
+        return;
+      }
+
       if (action === 'draftWithBackground' && isChapterOneIntroduction) {
         const combinedDraft = await generateContent(
           `You are helping a student start Chapter One for a ${projectData?.type || 'proposal'} titled: "${projectData?.title}".
@@ -1210,10 +1223,10 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
           throw new Error("The combined Chapter One draft could not be separated cleanly.");
         }
 
-        const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', parts.introduction);
+        const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', getChapterOneIntroductionHtml());
         const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', parts.background);
         setFormData(nextWithBackground);
-        setTemporaryContent(parts.introduction);
+        setTemporaryContent(getChapterOneIntroductionHtml());
         setIsEditing(true);
         await persistProjectFormData(nextWithBackground, "Introduction and background drafted.");
         toast.success("Start point ready", {
@@ -1251,7 +1264,9 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
       if (generatedDraft) {
         let generatedText = generatedDraft;
         generatedText = generatedText.split(/Note:|Explanation:|Summary:|Generated by/)[0].trim();
-        const humanReview = humanizeResearchText(generatedText);
+        const humanReview = isChapterOneIntroduction
+          ? { revisedText: getChapterOneIntroductionHtml(), signals: [], changes: [] }
+          : humanizeResearchText(generatedText);
         generatedText = humanReview.revisedText;
         
         setTemporaryContent(generatedText);
@@ -1268,15 +1283,8 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
       console.error("AI generation failed:", error);
       const message = error instanceof Error ? error.message : "";
       if (action === 'draftWithBackground' && selectedSection === 'chapter1' && selectedComponent === 'introduction') {
-        const introGuidelines = getGuidelineForComponent('introduction');
         const backgroundGuidelines = getGuidelineForComponent('background');
-        const introDraft = getLocalStarterDraft(
-          'introduction',
-          introGuidelines?.title || '1.0 Introduction',
-          projectData?.title || formData.title,
-          introGuidelines?.requirements || [],
-          'chapter1'
-        );
+        const introDraft = getChapterOneIntroductionHtml();
         const backgroundDraft = getLocalStarterDraft(
           'background',
           backgroundGuidelines?.title || '1.1 Background to the Study',
