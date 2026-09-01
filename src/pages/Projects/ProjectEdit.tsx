@@ -78,6 +78,18 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { generateContent } from '@/integrations/gemini';
+import {
+  buildChapterOneCombinedPrompt,
+  buildUhpabGenerationPrompt,
+  getChapterOneIntroductionHtml,
+  getUhpabSectionContract,
+  getUhpabLocalStarterDraft,
+  hasUsableGeneratedContent,
+  normalizeUhpabGeneratedDraft,
+  splitChapterOneDraft,
+  type UhpabWritingAction,
+  type UhpabWritingContext
+} from '@/lib/uhpabWritingEngine';
 
 const projectDownloadSteps = [
   'Collect sections',
@@ -302,70 +314,6 @@ const getAutoFilledPreview = (component: string, projectTitle: string, user: any
   return '<p>[[This page is supplied as a structured placeholder in the DOCX template. Edit only if your school requires extra wording.]]</p>';
 };
 
-const getLocalStarterDraft = (
-  componentId: string,
-  componentLabel: string,
-  projectTitle: string,
-  requirements: string[] = [],
-  sectionKey = ''
-) => {
-  const title = (projectTitle || 'the proposed study').trim().replace(/\s+/g, ' ');
-  const topicReference = title === 'the proposed study'
-    ? title
-    : `the study titled "${title}"`;
-  const requirementList = requirements.slice(0, 4);
-  const requirementHtml = requirementList.length
-    ? `<ul>${requirementList.map((item) => `<li>${item}</li>`).join('')}</ul>`
-    : '';
-
-  const sectionName = componentLabel || 'this section';
-  const reportTemplates: Record<string, string> = {
-    chapter4Introduction: `<p>This chapter presents the findings of ${topicReference}. The results should be arranged according to the study objectives and supported by clear tables, figures, percentages, and brief explanatory text.</p>`,
-    demographicCharacteristics: `<p>This section presents the demographic characteristics of the respondents. Include relevant variables such as age, sex, education level, marital status, occupation, or other characteristics approved for the study. Present the results in a table or figure, then briefly describe the main pattern without discussing the meaning.</p>`,
-    objectiveFindings: `<p>This section presents findings according to the specific study objectives. For each objective, include a clear heading, a table or figure where appropriate, and a short narrative explaining the key percentages or responses. Do not discuss the findings here; reserve interpretation for Chapter Five.</p>`,
-    chapter5Introduction: `<p>This chapter presents the discussion, recommendations, conclusions, and implications to health profession practice for ${topicReference}. The discussion should follow the study objectives and compare the findings with studies reviewed in Chapter Two.</p>`,
-    discussionOfFindings: `<p>The discussion should interpret the major findings according to each study objective. Compare the findings with previous studies reviewed in the literature, explain similarities or differences, and show what the findings mean for nursing or health practice.</p>`,
-    recommendations: `<p>The recommendations should be based directly on the study findings. Organize them for relevant groups such as the health facility, health workers, training institution, community, policy makers, or future researchers where applicable.</p>`,
-    conclusions: `<p>The conclusion should briefly summarize the main findings of the study in relation to the objectives. Avoid introducing new data, and keep the conclusion focused on what the study found.</p>`,
-    implicationsToNursingPractice: `<p>This section should explain how the findings can improve nursing or health profession practice. State practical actions, service improvements, health education needs, or supervision changes that follow from the findings.</p>`,
-  };
-  const localTemplates: Record<string, string> = {
-    introduction: `<p>This chapter presents the background to the study, statement of the problem, purpose of the study, specific objectives, research questions, justification, significance, and scope of the study.</p>`,
-    background: `<p>Globally, ${title.toLowerCase()} should be introduced by showing why the issue matters to health outcomes, service delivery, patients, families, or communities. Add one recent source to support the wider importance of the problem [citation needed].</p><p>In Africa or the East African region, explain how the problem appears in settings similar to Uganda. Focus on common patterns, affected groups, and health-service challenges without turning this section into a full literature review [citation needed].</p><p>In Uganda, describe what is known about the problem and how it affects the target population, health workers, training institutions, or service use. Use national guidance, a recent study, or an official report where available [citation needed].</p><p>At the selected study area, explain the local situation using clinic records, school experience, supervisor guidance, or observed service gaps where available [verify local statistic].</p><p>Therefore, this study focuses on ${topicReference} in order to provide evidence that can guide health education, service improvement, and future research in the study area.</p>`,
-    statementOfProblem: `<p>Although health services and education are available, the problem addressed by this study remains a concern among the selected respondents at the study area. The exact size, causes, and effects of this problem need to be described using local evidence and recent literature.</p><p>This study therefore seeks to examine ${topicReference} in order to provide information that can guide nursing practice, health education, and service improvement.</p>`,
-    researchObjectives: `<p>The objectives of the study are organized into one general objective and specific objectives that guide data collection and analysis.</p>`,
-    generalObjective: `<p>The general objective of this study is to assess ${topicReference}.</p>`,
-    specificObjectives: `<ol><li>To determine the level of the main outcome among the selected respondents.</li><li>To identify factors associated with the main outcome among the selected respondents.</li><li>To establish possible ways of improving the main outcome in the study area.</li></ol>`,
-    researchQuestions: `<ol><li>What is the level of the main outcome among the selected respondents?</li><li>What factors are associated with the main outcome among the selected respondents?</li><li>What can be done to improve the main outcome in the study area?</li></ol>`,
-    justification: `<p>This study is justified because it will generate information that can help students, supervisors, health workers, and the study institution understand the problem more clearly. The findings may support better health education, service planning, and nursing interventions.</p>`,
-    significance: `<p>The study may benefit the respondents by identifying gaps that affect health service use and health outcomes. It may also support health workers, school supervisors, and future researchers by providing organized evidence on the selected topic.</p>`,
-    scope: `<p>The study will focus on ${topicReference}. It will be conducted among the selected respondents in the stated study area during the approved study period. The content scope will follow the objectives and variables approved for this research.</p>`,
-    studyDesign: `<p>This study will use a descriptive cross-sectional design because data will be collected from respondents at one point in time. The design is suitable for describing the study variables and identifying patterns related to the research objectives.</p>`,
-    studySetting: `<p>The study will be conducted at the selected study area. This setting is appropriate because it provides access to the target respondents and relates directly to the research problem.</p>`,
-    studyPopulation: `<p>The study population will include respondents who meet the inclusion criteria and are available during the data collection period. The population should be clearly described according to age, service area, role, or other relevant characteristics.</p>`,
-    sampleSize: `<p>The sample size will be determined using an appropriate method approved by the supervisor. The calculation or justification should match the study design, population size, and available data collection period.</p>`,
-    samplingMethod: `<p>The sampling method will be selected based on the available population and study objectives. The method should explain how respondents will be identified, approached, and included in the study.</p>`,
-    ethicalConsiderations: `<p>Ethical approval and permission will be obtained before data collection. Respondents will be informed about the purpose of the study, voluntary participation, confidentiality, and their right to withdraw at any time.</p>`,
-  };
-
-  const reportTemplate =
-    sectionKey === 'chapter4' && componentId === 'introduction' ? reportTemplates.chapter4Introduction :
-    sectionKey === 'chapter5' && componentId === 'introduction' ? reportTemplates.chapter5Introduction :
-    sectionKey === 'chapter4' || sectionKey === 'chapter5' ? reportTemplates[componentId] :
-    undefined;
-
-  const template = reportTemplate || localTemplates[componentId] || `<p>This section should explain ${sectionName.toLowerCase()} for ${topicReference}. Write directly, keep the wording academic, and only add facts that you can support with evidence.</p>`;
-  const shouldHideChecklist = sectionKey === 'chapter1' && ['introduction', 'background'].includes(componentId);
-
-  return [
-    template,
-    requirementHtml && !shouldHideChecklist ? `<p><strong>Before submission, make sure this section covers:</strong></p>${requirementHtml}` : '',
-  ].filter(Boolean).join('');
-};
-
-const getChapterOneIntroductionHtml = () =>
-  '<p>This chapter presents the background to the study, statement of the problem, purpose of the study, specific objectives, research questions, justification, significance, and scope of the study.</p>';
-
 const toRoman = (value: number) => {
   const numerals: Array<[number, string]> = [
     [10, 'x'],
@@ -426,113 +374,6 @@ const escapeHtml = (value = '') =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-
-const generatedTextToParagraphHtml = (value = '') => {
-  const text = stripHtmlWithBreaks(value)
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/\*\*/g, '')
-    .replace(/\r/g, '')
-    .trim();
-
-  return text
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-    .join('');
-};
-
-const cleanGeneratedChapterOneSection = (value = '', headingPattern: RegExp) =>
-  stripHtmlWithBreaks(value)
-    .replace(/```/g, '')
-    .replace(/\*\*/g, '')
-    .replace(headingPattern, '')
-    .trim();
-
-const splitChapterOneDraft = (value = '') => {
-  const text = stripHtmlWithBreaks(value)
-    .replace(/```/g, '')
-    .replace(/\*\*/g, '')
-    .trim();
-  const backgroundMatch = text.match(/(?:^|\n)\s*(?:1\.1\s+)?Background(?:\s+to\s+the\s+Study)?\s*:?\s*\n([\s\S]*)/i);
-  const introMatch = text.match(/(?:^|\n)\s*(?:1\.0\s+)?Introduction\s*:?\s*\n([\s\S]*?)(?=\n\s*(?:1\.1\s+)?Background(?:\s+to\s+the\s+Study)?\b|$)/i);
-  const introText = cleanGeneratedChapterOneSection(
-    introMatch?.[1] || text.split(/\n\s*(?:1\.1\s+)?Background(?:\s+to\s+the\s+Study)?\b/i)[0] || '',
-    /^\s*(?:1\.0\s+)?Introduction\s*:?\s*/i
-  );
-  const backgroundText = cleanGeneratedChapterOneSection(
-    backgroundMatch?.[1] || '',
-    /^\s*(?:1\.1\s+)?Background(?:\s+to\s+the\s+Study)?\s*:?\s*/i
-  );
-
-  return {
-    introduction: generatedTextToParagraphHtml(introText),
-    background: generatedTextToParagraphHtml(backgroundText)
-  };
-};
-
-const removeGeneratedSectionChrome = (value = '', componentLabel = '') => {
-  const labelPattern = componentLabel
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\s+/g, '\\s+');
-
-  return stripHtmlWithBreaks(value)
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/\*\*/g, '')
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter((line) => {
-      if (!line) return true;
-      if (/^(chapter\s+(one|two|three|four|five)|chapter\s+\d+)/i.test(line)) return false;
-      if (/^(section|draft|answer|output|note|explanation|summary)\s*:/i.test(line)) return false;
-      if (/^#{1,6}\s+/.test(line)) return false;
-      if (/^\d+\.\d+(\.\d+)?\s+[a-z]/i.test(line)) return false;
-      if (labelPattern && new RegExp(`^${labelPattern}\\s*:?$`, 'i').test(line)) return false;
-      return true;
-    })
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-};
-
-const limitWords = (value = '', maxWords: number) => {
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= maxWords) return value.trim();
-  return `${words.slice(0, maxWords).join(' ').replace(/[,:;]$/, '')}.`;
-};
-
-const constrainBackgroundDraft = (value = '') => {
-  const paragraphs = stripHtmlWithBreaks(value)
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .slice(0, 6);
-
-  return generatedTextToParagraphHtml(limitWords(paragraphs.join('\n\n'), 550));
-};
-
-const normalizeGeneratedSectionDraft = (
-  value = '',
-  sectionKey = '',
-  componentId = '',
-  componentLabel = ''
-) => {
-  if (sectionKey === 'chapter1' && componentId === 'introduction') {
-    return getChapterOneIntroductionHtml();
-  }
-
-  const bodyOnly = removeGeneratedSectionChrome(value, componentLabel);
-
-  if (sectionKey === 'chapter1' && componentId === 'background') {
-    return constrainBackgroundDraft(bodyOnly);
-  }
-
-  if (/<[a-z][\s\S]*>/i.test(bodyOnly)) {
-    return bodyOnly;
-  }
-
-  return generatedTextToParagraphHtml(bodyOnly);
-};
 
 const hasDocumentArtifacts = (content = '') => {
   const text = stripHtmlWithBreaks(content);
@@ -1239,58 +1080,44 @@ const ProjectEdit = () => {
     try {
       const componentGuidelines = getGuidelineForComponent(selectedComponent);
       const componentLabel = componentGuidelines?.title || sectionComponents.find(c => c.id === selectedComponent)?.label || '';
-      const requirements = componentGuidelines?.requirements || [];
-      const formatting = componentGuidelines?.formatting || '';
       const isChapterOneIntroduction = selectedSection === 'chapter1' && selectedComponent === 'introduction';
-      const actionInstructions: Record<string, string> = {
-        draft: isChapterOneIntroduction
-          ? 'Write only 1.0 Introduction as one short preview paragraph of 25-45 words. Mention the Chapter One sections only. Do not include statistics, citations, definitions, or detailed background.'
-          : selectedSection === 'chapter1' && selectedComponent === 'background'
-            ? 'Write 1.1 Background to the Study in 4-6 concise paragraphs, 350-550 words maximum. Use a funnel flow from global context, Africa or regional context, Uganda context, local study area, then the study gap.'
-            : 'Draft this section from scratch using the project title and UHPAB requirements.',
-        draftWithBackground: 'Draft both 1.0 Introduction and 1.1 Background to the Study as connected sections.',
-        improve: 'Improve clarity, flow, and academic quality while preserving the student meaning.',
-        academic: 'Rewrite in formal academic language suitable for a UHPAB research submission.',
-        shorten: 'Shorten the content while keeping the required points and citations.',
-        uhpab: 'Check against UHPAB requirements and return a corrected version, not a commentary.',
-        humanize: 'Remove generic generated-writing patterns while preserving meaning.',
-        interpret: 'Write a concise Chapter Four interpretation of the presented result in academic style.'
+      const writingContext: UhpabWritingContext = {
+        projectTitle: projectData?.title || formData.title,
+        projectType: projectData?.type || 'proposal',
+        sectionKey: selectedSection,
+        componentId: selectedComponent,
+        componentLabel,
+        guidelines: componentGuidelines,
+        currentDraft: temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent)
       };
+      const sectionContract = getUhpabSectionContract(writingContext);
 
-      if (action === 'draft' && isChapterOneIntroduction) {
-        setTemporaryContent(getChapterOneIntroductionHtml());
+      if (action === 'draft' && sectionContract.mode === 'deterministic') {
+        setTemporaryContent(sectionContract.fallback(writingContext));
         setIsEditing(true);
-        toast.success("Short introduction ready", {
-          description: "This section is fixed to the UHPAB-style Chapter One preview. Write the real context under 1.1 Background.",
+        toast.success(isChapterOneIntroduction ? "Short introduction ready" : "Chapter preview ready", {
+          description: isChapterOneIntroduction
+            ? "This section is fixed to the UHPAB-style Chapter One preview. Write the real context under 1.1 Background."
+            : "This chapter introduction uses a fixed UHPAB-style preview so it stays short and clean.",
         });
         return;
       }
 
       if (action === 'draftWithBackground' && isChapterOneIntroduction) {
-        const combinedDraft = await generateContent(
-          `You are helping a student start Chapter One for a ${projectData?.type || 'proposal'} titled: "${projectData?.title}".
-
-Return exactly these two sections, with these headings:
-
-1.0 Introduction
-Write ONE paragraph only, 25-45 words. It should only preview Chapter One by mentioning background, statement of the problem, purpose or general objective, specific objectives, research questions, justification, significance, and scope. Do not add citations, statistics, definitions, or detailed explanation.
-
-1.1 Background to the Study
-Write 4-6 concise paragraphs, 350-550 words maximum. Use this flow: global context, Africa or regional context, Uganda context, local study area, then the study gap/rationale. Use [citation needed] where evidence is required. Use [verify local statistic] for local numbers or institutional facts. Do not invent citation authors, years, statistics, sample sizes, approvals, or institutional facts.
-
-Keep the language simple, academic, and suitable for Ugandan health profession students.`
-        );
+        const combinedDraft = await generateContent(buildChapterOneCombinedPrompt(writingContext));
         const parts = splitChapterOneDraft(combinedDraft);
 
-        if (!stripHtml(parts.introduction).trim() || !stripHtml(parts.background).trim()) {
+        if (!hasUsableGeneratedContent(parts.introduction) || !hasUsableGeneratedContent(parts.background)) {
           throw new Error("The combined Chapter One draft could not be separated cleanly.");
         }
 
-        const cleanBackground = normalizeGeneratedSectionDraft(
+        const cleanBackground = normalizeUhpabGeneratedDraft(
           parts.background,
-          'chapter1',
-          'background',
-          '1.1 Background to the Study'
+          {
+            ...writingContext,
+            componentId: 'background',
+            componentLabel: '1.1 Background to the Study'
+          }
         );
         const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', getChapterOneIntroductionHtml());
         const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', cleanBackground);
@@ -1304,33 +1131,7 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
         return;
       }
 
-      const generatedDraft = await generateContent(
-        `You are helping write a ${projectData?.type || 'proposal'} for the research titled: "${projectData?.title}".
-                
-                Task: ${actionInstructions[action] || actionInstructions.improve}
-                Section: "${componentLabel}".
-                
-                Project Context:
-                - Type: ${projectData?.type || 'Research Proposal'}
-                - Title: ${projectData?.title}
-                
-                Section Requirements:
-                ${requirements.map(req => `- ${req}`).join('\n')}
-                ${formatting ? `\nFormatting: ${formatting}` : ''}
-                
-                Guidelines:
-                - Use formal academic writing style
-                - Be concise and precise
-                - Return the section body only. Do not include the chapter title, section number, section heading, notes, explanations, or summaries.
-                - Use simple HTML only: <p>, <ol>, <ul>, and <li>. Do not use markdown.
-                - Length control: 1.0 Introduction must be one paragraph only, 25-45 words. 1.1 Background should be 4-6 paragraphs, 350-550 words maximum for a first draft.
-                - Content must be specifically about ${projectData?.title?.split(' ').slice(0, 8).join(' ')}
-                - Follow UHPAB research standards
-                - Do not invent citation authors, publication years, statistics, sample sizes, study results, locations, approvals, or institutional facts.
-                - If a claim needs evidence and no verified source is provided, write [citation needed] or [verify local statistic] instead of naming a source.
-                - If a student-specific detail is unknown, use a clear placeholder such as [insert sample size] or [insert supervisor name].
-                ${temporaryContent ? '\n\nCurrent draft/result to use:\n' + temporaryContent : ''}`
-      );
+      const generatedDraft = await generateContent(buildUhpabGenerationPrompt(writingContext, action as UhpabWritingAction));
 
       if (generatedDraft) {
         let generatedText = generatedDraft;
@@ -1338,11 +1139,9 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
         const humanReview = isChapterOneIntroduction
           ? { revisedText: getChapterOneIntroductionHtml(), signals: [], changes: [] }
           : humanizeResearchText(generatedText);
-        generatedText = normalizeGeneratedSectionDraft(
+        generatedText = normalizeUhpabGeneratedDraft(
           humanReview.revisedText,
-          selectedSection,
-          selectedComponent,
-          componentLabel
+          writingContext
         );
         
         setTemporaryContent(generatedText);
@@ -1361,13 +1160,14 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
       if (action === 'draftWithBackground' && selectedSection === 'chapter1' && selectedComponent === 'introduction') {
         const backgroundGuidelines = getGuidelineForComponent('background');
         const introDraft = getChapterOneIntroductionHtml();
-        const backgroundDraft = getLocalStarterDraft(
-          'background',
-          backgroundGuidelines?.title || '1.1 Background to the Study',
-          projectData?.title || formData.title,
-          backgroundGuidelines?.requirements || [],
-          'chapter1'
-        );
+        const backgroundDraft = getUhpabLocalStarterDraft({
+          projectTitle: projectData?.title || formData.title,
+          projectType: projectData?.type || 'proposal',
+          sectionKey: 'chapter1',
+          componentId: 'background',
+          componentLabel: backgroundGuidelines?.title || '1.1 Background to the Study',
+          guidelines: backgroundGuidelines
+        });
         const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', introDraft);
         const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', backgroundDraft);
         setFormData(nextWithBackground);
@@ -1391,7 +1191,14 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
       if (shouldUseStarterFallback) {
         const componentGuidelines = getGuidelineForComponent(selectedComponent);
         const componentLabel = componentGuidelines?.title || sectionComponents.find(c => c.id === selectedComponent)?.label || '';
-        const starterDraft = getLocalStarterDraft(selectedComponent, componentLabel, projectData?.title || formData.title, componentGuidelines?.requirements || [], selectedSection);
+        const starterDraft = getUhpabLocalStarterDraft({
+          projectTitle: projectData?.title || formData.title,
+          projectType: projectData?.type || 'proposal',
+          sectionKey: selectedSection,
+          componentId: selectedComponent,
+          componentLabel,
+          guidelines: componentGuidelines
+        });
         setTemporaryContent(starterDraft);
         setIsEditing(true);
         toast.warning(action === 'draft' ? "Local starter used" : "Starter draft added", {
