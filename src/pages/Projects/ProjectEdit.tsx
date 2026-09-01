@@ -1081,6 +1081,9 @@ const ProjectEdit = () => {
       const componentGuidelines = getGuidelineForComponent(selectedComponent);
       const componentLabel = componentGuidelines?.title || sectionComponents.find(c => c.id === selectedComponent)?.label || '';
       const isChapterOneIntroduction = selectedSection === 'chapter1' && selectedComponent === 'introduction';
+      const knownSources = Array.isArray(formData.chapters?._sourcesLibrary)
+        ? formData.chapters._sourcesLibrary
+        : [];
       const writingContext: UhpabWritingContext = {
         projectTitle: projectData?.title || formData.title,
         projectType: projectData?.type || 'proposal',
@@ -1088,7 +1091,8 @@ const ProjectEdit = () => {
         componentId: selectedComponent,
         componentLabel,
         guidelines: componentGuidelines,
-        currentDraft: temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent)
+        currentDraft: temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent),
+        knownSources
       };
       const sectionContract = getUhpabSectionContract(writingContext);
 
@@ -1121,12 +1125,15 @@ const ProjectEdit = () => {
         );
         const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', getChapterOneIntroductionHtml());
         const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', cleanBackground);
-        setFormData(nextWithBackground);
+        const { nextFormData, addedKeys } = addCitationPlaceholdersToFormData(nextWithBackground, cleanBackground);
+        setFormData(nextFormData);
         setTemporaryContent(getChapterOneIntroductionHtml());
         setIsEditing(true);
-        await persistProjectFormData(nextWithBackground, "Introduction and background drafted.");
+        await persistProjectFormData(nextFormData, "Introduction and background drafted.");
         toast.success("Start point ready", {
-          description: "1.0 Introduction is open now. 1.1 Background has also been added for the next step.",
+          description: addedKeys.length
+            ? `1.1 Background was added and ${addedKeys.length} citation placeholder${addedKeys.length === 1 ? '' : 's'} were sent to References.`
+            : "1.0 Introduction is open now. 1.1 Background has also been added for the next step.",
         });
         return;
       }
@@ -1143,6 +1150,13 @@ const ProjectEdit = () => {
           humanReview.revisedText,
           writingContext
         );
+        const { nextFormData, addedKeys } = addCitationPlaceholdersToFormData(formData, generatedText);
+        if (addedKeys.length) {
+          setFormData(nextFormData);
+          toast.info(`${addedKeys.length} citation placeholder${addedKeys.length === 1 ? '' : 's'} added to References.`, {
+            description: "Open References later to replace placeholders with full APA details.",
+          });
+        }
         
         setTemporaryContent(generatedText);
         setIsEditing(true);
@@ -1702,6 +1716,51 @@ const ProjectEdit = () => {
       [...currentItems, buildReferenceItem(cleanReference, sourceType, acceptedOld)]
     );
     toast.info('Remember to click Save Changes when you are done.');
+  };
+
+  const addCitationPlaceholdersToFormData = (baseData: any, content: string) => {
+    const generatedCitationKeys = extractCitationKeysWide(content);
+    if (!generatedCitationKeys.length) {
+      return { nextFormData: baseData, addedKeys: [] as string[] };
+    }
+
+    const existingItems = Array.isArray(baseData.chapters?.references?.items)
+      ? baseData.chapters.references.items
+      : [];
+    const existingText = stripHtml(baseData.chapters?.references?.content || '');
+    const addedKeys: string[] = [];
+    const placeholderItems = generatedCitationKeys
+      .filter((key) => {
+        const { author, year } = splitCitationKey(key);
+        const exists = existingText.toLowerCase().includes(author.toLowerCase()) && existingText.includes(year);
+        if (!exists) addedKeys.push(key);
+        return !exists;
+      })
+      .map((key) => buildReferenceItem(buildReferencePlaceholderFromKey(key), 'generated-placeholder'));
+
+    if (!placeholderItems.length) {
+      return { nextFormData: baseData, addedKeys: [] as string[] };
+    }
+
+    const nextItems = [...existingItems, ...placeholderItems];
+    return {
+      nextFormData: {
+        ...baseData,
+        chapters: {
+          ...baseData.chapters,
+          references: {
+            ...(baseData.chapters?.references || {}),
+            content: nextItems.map((item: any) => makeReferenceParagraph(item.reference)).join(''),
+            items: nextItems,
+          },
+        },
+        progress: {
+          ...baseData.progress,
+          references: 100,
+        },
+      },
+      addedKeys,
+    };
   };
 
   const handleInsertCitation = () => {
