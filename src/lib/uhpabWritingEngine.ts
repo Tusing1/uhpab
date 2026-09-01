@@ -28,8 +28,11 @@ export interface UhpabSectionContract {
   mode: 'deterministic' | 'generative';
   purpose: string;
   outputShape: string[];
+  evidenceUse?: string;
   maxWords?: number;
   maxParagraphs?: number;
+  listItems?: { min: number; max: number };
+  preferredFormat?: 'paragraphs' | 'orderedList' | 'singleParagraph';
   allowedHtml: string[];
   forbidden: string[];
   fallback: (context: UhpabWritingContext) => string;
@@ -80,6 +83,27 @@ const generatedTextToParagraphHtml = (value = '') => {
     .join('');
 };
 
+const generatedTextToOrderedListHtml = (value = '', maxItems = 3) => {
+  const items = stripHtmlWithBreaks(value)
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/\*\*/g, '')
+    .split(/\n+/)
+    .map((line) =>
+      line
+        .replace(/^[-*]\s+/, '')
+        .replace(/^\d+[.)]\s+/, '')
+        .replace(/^<li>|<\/li>$/gi, '')
+        .trim()
+    )
+    .filter(Boolean)
+    .filter((line) => !/^<?ol>?|<\/?ol>?$/i.test(line))
+    .slice(0, maxItems);
+
+  return items.length
+    ? `<ol>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>`
+    : '';
+};
+
 const limitWords = (value = '', maxWords: number) => {
   const words = value.trim().split(/\s+/).filter(Boolean);
   if (words.length <= maxWords) return value.trim();
@@ -110,6 +134,36 @@ const getBackgroundStarterHtml = (context: UhpabWritingContext) => {
   ].join('');
 };
 
+const getProblemStatementStarterHtml = (context: UhpabWritingContext) => {
+  const topicReference = getTopicReference(context.projectTitle);
+  return [
+    '<p>Ideally, the target population should receive appropriate health information, services, and support needed to prevent or reduce the problem under study.</p>',
+    '<p>However, the current situation in the selected study area suggests that the problem is still affecting the target population [verify local statistic]. Evidence from recent literature should be used to show the nature and magnitude of the problem [citation needed].</p>',
+    `<p>If this problem is not addressed, it may continue to affect health outcomes, service use, and quality of care. Therefore, this study will examine ${topicReference} to generate information that can guide practical interventions.</p>`
+  ].join('');
+};
+
+const getResearchObjectivesIntroHtml = () =>
+  '<p>The objectives of the study are organized into one general objective and specific objectives that guide data collection and analysis.</p>';
+
+const getGeneralObjectiveStarterHtml = (context: UhpabWritingContext) =>
+  `<p>The general objective of this study is to determine ${getTopicReference(context.projectTitle)}.</p>`;
+
+const getSpecificObjectivesStarterHtml = () =>
+  '<ol><li>To determine the level of the main outcome among the selected respondents.</li><li>To identify factors associated with the main outcome among the selected respondents.</li><li>To establish possible ways of improving the main outcome in the study area.</li></ol>';
+
+const getResearchQuestionsStarterHtml = () =>
+  '<ol><li>What is the level of the main outcome among the selected respondents?</li><li>What factors are associated with the main outcome among the selected respondents?</li><li>What can be done to improve the main outcome in the study area?</li></ol>';
+
+const getJustificationStarterHtml = (context: UhpabWritingContext) =>
+  `<p>This study is justified because ${getTopicReference(context.projectTitle)} addresses a health problem that requires clearer local evidence. The findings may help explain the gap, support better health education, and guide service improvement in the study area.</p>`;
+
+const getSignificanceStarterHtml = () =>
+  '<p>The findings may benefit respondents by identifying gaps that affect their health outcomes and service use. They may also benefit health workers by guiding health education and care practices. The study may support the training institution, supervisors, and future researchers by providing organized local evidence for further work.</p>';
+
+const getScopeStarterHtml = (context: UhpabWritingContext) =>
+  `<p>The content scope of this study will focus on ${getTopicReference(context.projectTitle)}. The geographical scope will be the selected study area [insert study area]. The time scope will cover the approved study period [insert month and year].</p>`;
+
 const getChapterIntroductionHtml = (context: UhpabWritingContext) => {
   const isReport = context.projectType === 'report';
   const chapterIntroFallbacks: Record<string, string> = {
@@ -133,14 +187,14 @@ const getGenericStarterHtml = (context: UhpabWritingContext) => {
     : '';
 
   const templates: Record<string, string> = {
-    statementOfProblem: `<p>Although health services and education are available, the problem addressed by this study remains a concern among the selected respondents at the study area. The exact size, causes, and effects of this problem need to be described using local evidence and recent literature.</p><p>This study therefore seeks to examine ${topicReference} in order to provide information that can guide health practice, health education, and service improvement.</p>`,
-    researchObjectives: '<p>The objectives of the study are organized into one general objective and specific objectives that guide data collection and analysis.</p>',
-    generalObjective: `<p>The general objective of this study is to assess ${topicReference}.</p>`,
-    specificObjectives: '<ol><li>To determine the level of the main outcome among the selected respondents.</li><li>To identify factors associated with the main outcome among the selected respondents.</li><li>To establish possible ways of improving the main outcome in the study area.</li></ol>',
-    researchQuestions: '<ol><li>What is the level of the main outcome among the selected respondents?</li><li>What factors are associated with the main outcome among the selected respondents?</li><li>What can be done to improve the main outcome in the study area?</li></ol>',
-    justification: '<p>This study is justified because it will generate information that can help students, supervisors, health workers, and the study institution understand the problem more clearly. The findings may support better health education, service planning, and health interventions.</p>',
-    significance: '<p>The study may benefit the respondents by identifying gaps that affect health service use and health outcomes. It may also support health workers, school supervisors, and future researchers by providing organized evidence on the selected topic.</p>',
-    scope: `<p>The study will focus on ${topicReference}. It will be conducted among the selected respondents in the stated study area during the approved study period. The content scope will follow the objectives and variables approved for this research.</p>`,
+    statementOfProblem: getProblemStatementStarterHtml(context),
+    researchObjectives: getResearchObjectivesIntroHtml(),
+    generalObjective: getGeneralObjectiveStarterHtml(context),
+    specificObjectives: getSpecificObjectivesStarterHtml(),
+    researchQuestions: getResearchQuestionsStarterHtml(),
+    justification: getJustificationStarterHtml(context),
+    significance: getSignificanceStarterHtml(),
+    scope: getScopeStarterHtml(context),
     studyDesign: '<p>This study will use a descriptive cross-sectional design because data will be collected from respondents at one point in time. The design is suitable for describing the study variables and identifying patterns related to the research objectives.</p>',
     studySetting: '<p>The study will be conducted at the selected study area. This setting is appropriate because it provides access to the target respondents and relates directly to the research problem.</p>',
     studyPopulation: '<p>The study population will include respondents who meet the inclusion criteria and are available during the data collection period. The population should be clearly described according to age, service area, role, or other relevant characteristics.</p>',
@@ -227,11 +281,101 @@ const sectionContracts: Record<string, UhpabSectionContract> = {
     mode: 'generative',
     purpose: 'Build the study context from the wider problem to the local study gap.',
     outputShape: ['4-6 paragraphs', 'global to local flow', 'end with the local gap/rationale'],
+    evidenceUse: 'Use recent evidence where needed, but write [citation needed] or [verify local statistic] unless a real source is already known.',
     maxWords: 550,
     maxParagraphs: 6,
+    preferredFormat: 'paragraphs',
     allowedHtml: ['p'],
     forbidden: ['literature review depth', 'invented sources', 'invented statistics', 'extra section headings'],
     fallback: getBackgroundStarterHtml,
+  },
+  'chapter1.statementOfProblem': {
+    mode: 'generative',
+    purpose: 'State the ideal situation, current situation, gap, and consequences of the problem.',
+    outputShape: ['3 concise paragraphs', 'ideal situation', 'current situation and magnitude', 'gap/consequences and study need'],
+    evidenceUse: 'Use brief citations/statistics only where real sources are known; otherwise use [citation needed] and [verify local statistic].',
+    maxWords: 260,
+    maxParagraphs: 3,
+    preferredFormat: 'paragraphs',
+    allowedHtml: ['p'],
+    forbidden: ['literature review', 'recommendations', 'objectives list', 'invented statistics', 'extra headings'],
+    fallback: getProblemStatementStarterHtml,
+  },
+  'chapter1.researchObjectives': {
+    mode: 'deterministic',
+    purpose: 'Introduce the objectives subsection only.',
+    outputShape: ['one short paragraph', 'transition to general and specific objectives'],
+    maxWords: 35,
+    maxParagraphs: 1,
+    preferredFormat: 'singleParagraph',
+    allowedHtml: ['p'],
+    forbidden: ['actual objective list', 'research questions', 'citations'],
+    fallback: () => getResearchObjectivesIntroHtml(),
+  },
+  'chapter1.generalObjective': {
+    mode: 'generative',
+    purpose: 'Write one broad objective that matches the topic.',
+    outputShape: ['one sentence only', 'starts with an action verb', 'includes variables, population, and study area when known'],
+    maxWords: 40,
+    maxParagraphs: 1,
+    preferredFormat: 'singleParagraph',
+    allowedHtml: ['p'],
+    forbidden: ['more than one objective', 'citations', 'background explanation', 'numbered list'],
+    fallback: getGeneralObjectiveStarterHtml,
+  },
+  'chapter1.specificObjectives': {
+    mode: 'generative',
+    purpose: 'Break the general objective into measurable SMART objectives.',
+    outputShape: ['ordered list', '2-3 items', 'each item starts with To determine, To assess, To identify, To establish, or similar'],
+    listItems: { min: 2, max: 3 },
+    preferredFormat: 'orderedList',
+    allowedHtml: ['ol', 'li'],
+    forbidden: ['paragraph essay', 'research questions', 'citations', 'more than three objectives'],
+    fallback: () => getSpecificObjectivesStarterHtml(),
+  },
+  'chapter1.researchQuestions': {
+    mode: 'generative',
+    purpose: 'Convert the specific objectives into matching answerable research questions.',
+    outputShape: ['ordered list', '2-3 question items', 'each question mirrors one specific objective'],
+    listItems: { min: 2, max: 3 },
+    preferredFormat: 'orderedList',
+    allowedHtml: ['ol', 'li'],
+    forbidden: ['paragraph essay', 'objectives wording starting with To', 'citations', 'more than three questions'],
+    fallback: () => getResearchQuestionsStarterHtml(),
+  },
+  'chapter1.justification': {
+    mode: 'generative',
+    purpose: 'Explain why the study is necessary now and why the topic was chosen.',
+    outputShape: ['1-2 concise paragraphs', 'rationale', 'link to the local problem or knowledge gap'],
+    evidenceUse: 'Use [citation needed] only for factual claims that require evidence.',
+    maxWords: 160,
+    maxParagraphs: 2,
+    preferredFormat: 'paragraphs',
+    allowedHtml: ['p'],
+    forbidden: ['beneficiary list', 'recommendations', 'broad literature review', 'invented statistics'],
+    fallback: getJustificationStarterHtml,
+  },
+  'chapter1.significance': {
+    mode: 'generative',
+    purpose: 'Explain who may benefit from the study and how.',
+    outputShape: ['one concise paragraph or short bullets', 'name beneficiaries', 'explain practical or academic contribution'],
+    maxWords: 180,
+    maxParagraphs: 2,
+    preferredFormat: 'paragraphs',
+    allowedHtml: ['p', 'ul', 'li'],
+    forbidden: ['justification only', 'new objectives', 'invented promises', 'long essay'],
+    fallback: () => getSignificanceStarterHtml(),
+  },
+  'chapter1.scope': {
+    mode: 'generative',
+    purpose: 'Define the boundaries of the study.',
+    outputShape: ['one paragraph', 'content scope', 'geographical scope', 'time scope'],
+    maxWords: 110,
+    maxParagraphs: 1,
+    preferredFormat: 'singleParagraph',
+    allowedHtml: ['p'],
+    forbidden: ['background explanation', 'objectives list', 'citations', 'methodology details'],
+    fallback: getScopeStarterHtml,
   },
 };
 
@@ -283,8 +427,11 @@ Section contract:
 - Purpose: ${contract.purpose}
 - Output shape: ${contract.outputShape.join('; ')}
 - Allowed HTML: ${contract.allowedHtml.map((tag) => `<${tag}>`).join(', ')}
+${contract.preferredFormat ? `- Preferred format: ${contract.preferredFormat}` : ''}
 ${contract.maxWords ? `- Maximum words: ${contract.maxWords}` : ''}
 ${contract.maxParagraphs ? `- Maximum paragraphs: ${contract.maxParagraphs}` : ''}
+${contract.listItems ? `- List length: ${contract.listItems.min}-${contract.listItems.max} items` : ''}
+${contract.evidenceUse ? `- Evidence rule: ${contract.evidenceUse}` : ''}
 - Must not include: ${contract.forbidden.join(', ')}
 
 UHPAB requirements:
@@ -383,6 +530,17 @@ const constrainBackgroundDraft = (value = '') => {
   return generatedTextToParagraphHtml(limitWords(paragraphs.join('\n\n'), 550));
 };
 
+const constrainParagraphDraft = (value = '', maxWords?: number, maxParagraphs?: number) => {
+  const paragraphs = stripHtmlWithBreaks(value)
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .slice(0, maxParagraphs || 8);
+
+  const joined = paragraphs.join('\n\n');
+  return generatedTextToParagraphHtml(maxWords ? limitWords(joined, maxWords) : joined);
+};
+
 export const normalizeUhpabGeneratedDraft = (value = '', context: UhpabWritingContext) => {
   const contract = getUhpabSectionContract(context);
 
@@ -397,6 +555,20 @@ export const normalizeUhpabGeneratedDraft = (value = '', context: UhpabWritingCo
   }
 
   const maxLimited = contract.maxWords ? limitWords(bodyOnly, contract.maxWords) : bodyOnly;
+
+  if (contract.preferredFormat === 'orderedList') {
+    const orderedList = generatedTextToOrderedListHtml(maxLimited, contract.listItems?.max || 3);
+    return orderedList || contract.fallback(context);
+  }
+
+  if (contract.preferredFormat === 'singleParagraph') {
+    return generatedTextToParagraphHtml(limitWords(stripHtmlWithBreaks(maxLimited).replace(/\n+/g, ' '), contract.maxWords || 80));
+  }
+
+  if (contract.preferredFormat === 'paragraphs') {
+    return constrainParagraphDraft(bodyOnly, contract.maxWords, contract.maxParagraphs);
+  }
+
   if (/<[a-z][\s\S]*>/i.test(maxLimited)) {
     return maxLimited;
   }
