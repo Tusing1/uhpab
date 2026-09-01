@@ -471,6 +471,69 @@ const splitChapterOneDraft = (value = '') => {
   };
 };
 
+const removeGeneratedSectionChrome = (value = '', componentLabel = '') => {
+  const labelPattern = componentLabel
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+');
+
+  return stripHtmlWithBreaks(value)
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/\*\*/g, '')
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return true;
+      if (/^(chapter\s+(one|two|three|four|five)|chapter\s+\d+)/i.test(line)) return false;
+      if (/^(section|draft|answer|output|note|explanation|summary)\s*:/i.test(line)) return false;
+      if (/^#{1,6}\s+/.test(line)) return false;
+      if (/^\d+\.\d+(\.\d+)?\s+[a-z]/i.test(line)) return false;
+      if (labelPattern && new RegExp(`^${labelPattern}\\s*:?$`, 'i').test(line)) return false;
+      return true;
+    })
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const limitWords = (value = '', maxWords: number) => {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return value.trim();
+  return `${words.slice(0, maxWords).join(' ').replace(/[,:;]$/, '')}.`;
+};
+
+const constrainBackgroundDraft = (value = '') => {
+  const paragraphs = stripHtmlWithBreaks(value)
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  return generatedTextToParagraphHtml(limitWords(paragraphs.join('\n\n'), 550));
+};
+
+const normalizeGeneratedSectionDraft = (
+  value = '',
+  sectionKey = '',
+  componentId = '',
+  componentLabel = ''
+) => {
+  if (sectionKey === 'chapter1' && componentId === 'introduction') {
+    return getChapterOneIntroductionHtml();
+  }
+
+  const bodyOnly = removeGeneratedSectionChrome(value, componentLabel);
+
+  if (sectionKey === 'chapter1' && componentId === 'background') {
+    return constrainBackgroundDraft(bodyOnly);
+  }
+
+  if (/<[a-z][\s\S]*>/i.test(bodyOnly)) {
+    return bodyOnly;
+  }
+
+  return generatedTextToParagraphHtml(bodyOnly);
+};
+
 const hasDocumentArtifacts = (content = '') => {
   const text = stripHtmlWithBreaks(content);
   if (!text) return false;
@@ -1223,8 +1286,14 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
           throw new Error("The combined Chapter One draft could not be separated cleanly.");
         }
 
+        const cleanBackground = normalizeGeneratedSectionDraft(
+          parts.background,
+          'chapter1',
+          'background',
+          '1.1 Background to the Study'
+        );
         const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', getChapterOneIntroductionHtml());
-        const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', parts.background);
+        const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', cleanBackground);
         setFormData(nextWithBackground);
         setTemporaryContent(getChapterOneIntroductionHtml());
         setIsEditing(true);
@@ -1252,6 +1321,8 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
                 Guidelines:
                 - Use formal academic writing style
                 - Be concise and precise
+                - Return the section body only. Do not include the chapter title, section number, section heading, notes, explanations, or summaries.
+                - Use simple HTML only: <p>, <ol>, <ul>, and <li>. Do not use markdown.
                 - Length control: 1.0 Introduction must be one paragraph only, 25-45 words. 1.1 Background should be 4-6 paragraphs, 350-550 words maximum for a first draft.
                 - Content must be specifically about ${projectData?.title?.split(' ').slice(0, 8).join(' ')}
                 - Follow UHPAB research standards
@@ -1267,7 +1338,12 @@ Keep the language simple, academic, and suitable for Ugandan health profession s
         const humanReview = isChapterOneIntroduction
           ? { revisedText: getChapterOneIntroductionHtml(), signals: [], changes: [] }
           : humanizeResearchText(generatedText);
-        generatedText = humanReview.revisedText;
+        generatedText = normalizeGeneratedSectionDraft(
+          humanReview.revisedText,
+          selectedSection,
+          selectedComponent,
+          componentLabel
+        );
         
         setTemporaryContent(generatedText);
         setIsEditing(true);
