@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
-import { AlertCircle, KeyRound, Sparkles, UserPlus } from 'lucide-react';
+import { AlertCircle, CheckCircle2, KeyRound, Loader2, Sparkles, UserPlus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import SchoolPicker from '@/components/forms/SchoolPicker';
 import { findSchoolById } from '@/data/schools';
 import { courseOptions, otherCourseOption } from '@/data/courses';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LEGACY_GEMINI_API_KEY_LENGTH, getGeminiApiKeyIssue, verifyGeminiApiKey } from '@/lib/geminiApiKey';
 
 const isCustomSchool = (schoolValue: string) => schoolValue.startsWith('custom-school:') && schoolValue.replace('custom-school:', '').trim().length > 0;
 const registrationDraftKey = 'uhpab:registration-draft';
@@ -30,6 +31,7 @@ const Register = () => {
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isCheckingGeminiKey, setIsCheckingGeminiKey] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [error, setError] = useState('');
   const { register, isLoading } = useAuth();
@@ -123,23 +125,28 @@ const Register = () => {
       return;
     }
 
-    if (!geminiApiKey.trim()) {
-      setError('Please paste your Advanced Researcher key. It powers topic generation, writing help, and document checks.');
+    const geminiKeyIssue = getGeminiApiKeyIssue(geminiApiKey);
+    if (geminiKeyIssue) {
+      setError(geminiKeyIssue);
       return;
     }
 
     try {
+      setIsCheckingGeminiKey(true);
+      const verifiedGeminiApiKey = await verifyGeminiApiKey(geminiApiKey);
       await register(submittedEmail, submittedPassword, name, {
         schoolId,
         className,
         htin,
         researchTopic: topicMode === 'have-topic' ? researchTopic.trim() || undefined : undefined,
-        geminiApiKey: geminiApiKey.trim() || undefined,
+        geminiApiKey: verifiedGeminiApiKey,
       });
       window.sessionStorage.removeItem(registrationDraftKey);
       navigate(topicMode === 'generate-topic' ? '/research-topic-generator?from=signup&type=proposal' : '/getting-started');
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setIsCheckingGeminiKey(false);
     }
   };
 
@@ -280,14 +287,25 @@ const Register = () => {
                         autoCorrect="off"
                         spellCheck={false}
                         placeholder="Paste your Google AI Studio key"
-                    defaultValue={geminiApiKey}
+                    value={geminiApiKey}
                     onChange={(e) => setGeminiApiKey(e.target.value)}
                     onInput={updateFromInput(setGeminiApiKey)}
+                        aria-invalid={Boolean(geminiApiKey && getGeminiApiKeyIssue(geminiApiKey))}
                         className="bg-white/90"
                       />
-                      <p className="text-xs leading-5 text-emerald-800">
-                        Required for topic generation, writing help, and document checks. It is saved to your UHPAB profile.
-                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs leading-5 text-emerald-800">
+                        <p>Required for topic generation, writing help, and document checks.</p>
+                        <span className="font-medium" aria-live="polite">
+                          {geminiApiKey.trim().length} characters
+                          {geminiApiKey.trim().startsWith('AIza') ? ` / ${LEGACY_GEMINI_API_KEY_LENGTH}` : ''}
+                        </span>
+                      </div>
+                      {geminiApiKey && !getGeminiApiKeyIssue(geminiApiKey) && (
+                        <p className="flex items-center gap-1 text-xs font-medium text-emerald-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Correct format. We will verify it with Google before creating your account.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -357,8 +375,10 @@ const Register = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                <Button type="submit" className="w-full" disabled={isLoading || isCheckingGeminiKey}>
+                  {isCheckingGeminiKey ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Checking key...</>
+                  ) : isLoading ? 'Creating Account...' : 'Create Account'}
                 </Button>
               </form>}
       </div>

@@ -44,6 +44,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { setBrowserGeminiApiKey } from "@/lib/aiKeys";
+import { getGeminiApiKeyIssue, verifyGeminiApiKey } from "@/lib/geminiApiKey";
 import {
   downloadWorkspaceBackup,
   getStoredReviewCount,
@@ -227,24 +228,26 @@ const Settings = () => {
 
   const saveGeminiApiKey = async () => {
     const cleanedKey = geminiApiKeyDraft.trim();
-    if (!cleanedKey) {
-      toast.error("Paste your Advanced Researcher key first");
+    const keyIssue = getGeminiApiKeyIssue(cleanedKey);
+    if (keyIssue) {
+      toast.error(keyIssue);
       return;
     }
 
     setIsSavingGeminiApiKey(true);
     try {
-      setBrowserGeminiApiKey(cleanedKey);
+      const verifiedKey = await verifyGeminiApiKey(cleanedKey);
+      setBrowserGeminiApiKey(verifiedKey);
 
       if (supabase && user?.id) {
         const { error } = await supabase
           .from("profiles")
-          .update({ gemini_api_key: cleanedKey })
+          .update({ gemini_api_key: verifiedKey })
           .eq("id", user.id);
 
         if (error) throw error;
       } else {
-        setBrowserGeminiApiKey(cleanedKey, { persist: true });
+        setBrowserGeminiApiKey(verifiedKey, { persist: true });
       }
 
       setGeminiApiKeyDraft("");

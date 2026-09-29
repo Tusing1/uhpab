@@ -377,6 +377,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!data.user) throw new Error("Account could not be created. Please try again.");
 
         const cleanedGeminiApiKey = profile.geminiApiKey?.trim();
+        if (cleanedGeminiApiKey) {
+          setBrowserGeminiApiKey(cleanedGeminiApiKey);
+        }
         if (cleanedGeminiApiKey && data.session) {
           const { error: profileError } = await supabase
             .from("profiles")
@@ -386,7 +389,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (profileError) {
             console.warn("Gemini key profile update will rely on the signup trigger:", profileError.message);
           }
-          setBrowserGeminiApiKey(cleanedGeminiApiKey);
         }
 
         applyUser(await toAppUserWithProfile(data.user));
