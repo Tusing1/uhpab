@@ -2,6 +2,7 @@
 import { proposalStructure, reportStructure } from '@/data/uhpabGuidelines';
 import { setBrowserGeminiApiKey } from '@/lib/aiKeys';
 import { generateContent } from '@/integrations/gemini';
+import { buildUhpabGenerationPrompt, getUhpabSectionContract, normalizeUhpabGeneratedDraft, type UhpabWritingContext } from '@/lib/uhpabWritingEngine';
 
 export interface GeminiResponse {
   text: string;
@@ -73,8 +74,19 @@ export const callGeminiApi = async (
 export const generateResearchComponent = async (
   component: string,
   documentContent: string,
-  projectType: 'proposal' | 'report' = 'proposal'
+  projectType: 'proposal' | 'report' = 'proposal',
+  writingContext?: UhpabWritingContext
 ): Promise<GeminiResponse> => {
+  if (writingContext && ['generalObjective', 'specificObjectives', 'researchQuestions', 'researchObjectives'].includes(writingContext.componentId)) {
+    try {
+      const contract = getUhpabSectionContract(writingContext);
+      if (contract.mode === 'deterministic') return { text: contract.fallback(writingContext) };
+      const response = await callGeminiApi(buildUhpabGenerationPrompt(writingContext, 'draft'));
+      return response.error ? response : { text: normalizeUhpabGeneratedDraft(response.text, writingContext) };
+    } catch (error) {
+      return { text: '', error: error instanceof Error ? error.message : 'Research formulation could not be validated.' };
+    }
+  }
   // Get detailed guideline requirements for the component
   const guidelines = findGuidelineForComponent(component, projectType);
   
@@ -105,14 +117,13 @@ export const generateResearchComponent = async (
     ${formattingGuide}
     ${pageCountGuide}
     
-    Based on the uploaded document content about "KNOWLEDGE AND ATTITUDE OF PREGNANT MOTHERS TOWARDS MALARIA PREVENTION IN ALIBA PARISH", please create a well-structured, academic-quality
+    Based only on the research title and details supplied in the document content, please create a well-structured, academic-quality
     ${guidelines.sectionTitle || component} section that follows all UHPAB guidelines above.
 
     Use appropriate academic language and incorporate relevant literature where needed.
     Ensure your content is substantive, properly structured, and follows all formatting requirements.
     
-    If any information is missing from the document that is needed for this component,
-    provide appropriate academic content that would logically fit within the student's research.
+    If information is missing, use a clearly labelled placeholder. Do not invent a study population, location, statistics or citations.
 
     Format the response in a clean, properly structured manner suitable for direct inclusion
     in an academic document. Include appropriate headings and subheadings as needed.

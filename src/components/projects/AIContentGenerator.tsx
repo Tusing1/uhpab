@@ -267,7 +267,19 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
         ? `\n\nAdditional context provided by the user: ${contextPrompt}` 
         : '') + (profileContext ? `\n\nUse these saved student details when the section requires identity, school, class, HTIN, signatures, title page details, declaration, approval, commitment, consent, or submission wording:\n${profileContext}` : '');
       
-      const response = await generateResearchComponent(selectedObj.label, fullPrompt, project.type);
+      const chapterOne = project.chapters.chapter1 as Record<string, unknown> | undefined;
+      const componentId = selectedObj.id === 'purpose' ? 'generalObjective' : selectedObj.id === 'objectives' ? 'specificObjectives' : selectedObj.id;
+      const isFormulation = selectedObj.section === 'chapter1' && ['generalObjective', 'specificObjectives', 'researchQuestions', 'researchObjectives'].includes(componentId);
+      const response = await generateResearchComponent(selectedObj.label, fullPrompt, project.type, isFormulation ? {
+        projectTitle: project.title,
+        projectType: project.type,
+        sectionKey: 'chapter1',
+        componentId,
+        componentLabel: selectedObj.label,
+        currentDraft: existingContent,
+        specificObjectives: String(chapterOne?.specificObjectives || chapterOne?.objectives || ''),
+        objectiveCount: project.chapters._objectiveCount === 2 ? 2 : 3,
+      } : undefined);
       
       if (response.error) {
         throw new Error(response.error);
@@ -300,7 +312,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
         }
       }
       
-      const humanReview = humanizeResearchText(cleanedResponse);
+      const humanReview = isFormulation ? { revisedText: cleanedResponse, signals: [], changes: [] } : humanizeResearchText(cleanedResponse);
       setGeneratedContent(humanReview.revisedText);
       if (humanReview.signals.length > 0 || humanReview.changes.length > 0) {
         toast.success("Generated draft cleaned by Human Review", {

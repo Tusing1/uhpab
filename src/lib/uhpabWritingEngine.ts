@@ -1,3 +1,15 @@
+import {
+  buildFormulationRules,
+  buildGeneralObjective,
+  buildResearchQuestions,
+  formulationListHtml,
+  normalizeSpecificObjectives,
+  parseResearchTopic,
+  readResearchList,
+  ResearchFormulationError,
+  type ObjectiveCount,
+} from './researchFormulation';
+
 export type UhpabWritingAction =
   | 'draft'
   | 'draftWithBackground'
@@ -22,6 +34,8 @@ export interface UhpabWritingContext {
   componentLabel: string;
   guidelines?: UhpabSectionGuidelines | null;
   currentDraft?: string;
+  specificObjectives?: string;
+  objectiveCount?: ObjectiveCount;
   knownSources?: Array<{
     citationText?: string;
     apaReference?: string;
@@ -112,40 +126,6 @@ const generatedTextToOrderedListHtml = (value = '', maxItems = 3) => {
     : '';
 };
 
-const normalizeObjectiveItems = (value = '', context: UhpabWritingContext) => {
-  const continuation = getObjectiveContinuation(context.projectTitle);
-  const items = stripHtmlWithBreaks(value)
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/\*\*/g, '')
-    .split(/\n+/)
-    .map((line) =>
-      line
-        .replace(/^[-*]\s+/, '')
-        .replace(/^\d+[.)]\s+/, '')
-        .replace(/^<li>|<\/li>$/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-    )
-    .filter(Boolean)
-    .filter((line) => !/^<?ol>?|<\/?ol>?$/i.test(line))
-    .filter((line) => !/^specific objectives?$/i.test(line))
-    .slice(0, 3)
-    .map((line) => {
-      const withoutEndPunctuation = line.replace(/[.?!]+$/, '');
-      const startsWithTo = /^to\s+/i.test(withoutEndPunctuation);
-      const objective = startsWithTo ? withoutEndPunctuation : `To ${withoutEndPunctuation.charAt(0).toLowerCase()}${withoutEndPunctuation.slice(1)}`;
-      if (objective.toLowerCase().includes(continuation.toLowerCase())) {
-        return `${objective}.`;
-      }
-      const beforePopulation = objective.replace(/\b(among|in|at)\b[\s\S]*$/i, '').trim();
-      return `${beforePopulation} ${continuation}.`.replace(/\s+/g, ' ');
-    });
-
-  return items.length
-    ? `<ol>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>`
-    : '';
-};
-
 const limitWords = (value = '', maxWords: number) => {
   const words = value.trim().split(/\s+/).filter(Boolean);
   if (words.length <= maxWords) return value.trim();
@@ -160,11 +140,21 @@ const getTopicReference = (projectTitle?: string) => {
   return title === 'the proposed study' ? title : `the study titled "${title}"`;
 };
 
-const getObjectiveContinuation = (projectTitle?: string) => {
-  const title = getCleanProjectTitle(projectTitle).toLowerCase();
-  const amongIndex = title.search(/\b(among|in|at)\b/i);
-  if (amongIndex >= 0) return title.slice(amongIndex).trim().replace(/[.]+$/, '');
-  return 'among the selected respondents in the study area';
+const isFormulationSection = (context: UhpabWritingContext) => context.sectionKey === 'chapter1'
+  && ['generalObjective', 'specificObjectives', 'researchQuestions'].includes(context.componentId);
+
+const getAlignedQuestionsHtml = (context: UhpabWritingContext) => {
+  const topic = parseResearchTopic(context.projectTitle);
+  const objectives = readResearchList(context.specificObjectives);
+  const count = context.objectiveCount ?? 3;
+  if (objectives.length !== count) throw new ResearchFormulationError(`Save your ${count} specific objectives before generating their research questions.`);
+  // Validate saved objectives without silently replacing the student's wording.
+  const validated = normalizeSpecificObjectives(context.specificObjectives || '', topic, count);
+  const comparable = (item: string) => item.toLowerCase().replace(/^to\s+\w+\s+(?:the\s+)?/, '').replace(/\s+/g, ' ').replace(/[.]+$/, '').trim();
+  if (validated.some((item, index) => comparable(item) !== comparable(objectives[index]))) {
+    throw new ResearchFormulationError('Align the specific objectives with the topic first, then generate matching research questions.');
+  }
+  return formulationListHtml(buildResearchQuestions(objectives, topic));
 };
 
 export const getChapterOneIntroductionHtml = () =>
@@ -196,13 +186,15 @@ const getResearchObjectivesIntroHtml = () =>
   '<p>The objectives of the study are organized into one general objective and specific objectives that guide data collection and analysis.</p>';
 
 const getGeneralObjectiveStarterHtml = (context: UhpabWritingContext) =>
-  `<p>The general objective of this study is to determine ${getTopicReference(context.projectTitle)}.</p>`;
+  `<p>${escapeHtml(buildGeneralObjective(parseResearchTopic(context.projectTitle)))}</p>`;
 
-const getSpecificObjectivesStarterHtml = () =>
-  '<ol><li>To determine the level of the main outcome among the selected respondents in the study area.</li><li>To identify the socio-economic factors associated with the main outcome among the selected respondents in the study area.</li><li>To establish possible ways of improving the main outcome among the selected respondents in the study area.</li></ol>';
-
-const getResearchQuestionsStarterHtml = () =>
-  '<ol><li>What is the level of the main outcome among the selected respondents?</li><li>What factors are associated with the main outcome among the selected respondents?</li><li>What can be done to improve the main outcome in the study area?</li></ol>';
+const getSpecificObjectivesStarterHtml = (context: UhpabWritingContext) => {
+  const topic = parseResearchTopic(context.projectTitle);
+  if (topic.approach === 'kap' || topic.approach === 'knowledge') {
+    return formulationListHtml(normalizeSpecificObjectives('', topic, context.objectiveCount ?? 3));
+  }
+  return '<p>[Add distinct measurable objectives for this topic, using the same health issue, population and setting in every item.]</p>';
+};
 
 const getJustificationStarterHtml = (context: UhpabWritingContext) =>
   `<p>This study is justified because ${getTopicReference(context.projectTitle)} addresses a health problem that requires clearer local evidence. The findings may help explain the gap, support better health education, and guide service improvement in the study area.</p>`;
@@ -238,9 +230,6 @@ const getGenericStarterHtml = (context: UhpabWritingContext) => {
   const templates: Record<string, string> = {
     statementOfProblem: getProblemStatementStarterHtml(context),
     researchObjectives: getResearchObjectivesIntroHtml(),
-    generalObjective: getGeneralObjectiveStarterHtml(context),
-    specificObjectives: getSpecificObjectivesStarterHtml(),
-    researchQuestions: getResearchQuestionsStarterHtml(),
     justification: getJustificationStarterHtml(context),
     significance: getSignificanceStarterHtml(),
     scope: getScopeStarterHtml(context),
@@ -362,10 +351,9 @@ const sectionContracts: Record<string, UhpabSectionContract> = {
     fallback: () => getResearchObjectivesIntroHtml(),
   },
   'chapter1.generalObjective': {
-    mode: 'generative',
+    mode: 'deterministic',
     purpose: 'Write one broad objective that matches the topic.',
-    outputShape: ['one sentence only', 'starts with an action verb', 'includes variables, population, and study area when known'],
-    maxWords: 40,
+    outputShape: ['one sentence', 'To + measurable verb + the exact topic in sentence form', 'retain the health issue, population, age range and named setting'],
     maxParagraphs: 1,
     preferredFormat: 'singleParagraph',
     allowedHtml: ['p'],
@@ -375,22 +363,22 @@ const sectionContracts: Record<string, UhpabSectionContract> = {
   'chapter1.specificObjectives': {
     mode: 'generative',
     purpose: 'Break the general objective into measurable SMART objectives.',
-    outputShape: ['ordered list', '2-3 items', 'each item follows: To [action verb] [specific variable/factor/focus] [same topic continuation]'],
-    listItems: { min: 2, max: 3 },
+    outputShape: ['ordered list', 'exactly 3 items by default; 2 only when selected', 'To [measurable verb] + [distinct category] + [exact health issue relationship] + [identical population and setting]'],
+    listItems: { min: 3, max: 3 },
     preferredFormat: 'orderedList',
     allowedHtml: ['ol', 'li'],
     forbidden: ['paragraph essay', 'research questions', 'citations', 'more than three objectives', 'different population/place endings between items'],
-    fallback: () => getSpecificObjectivesStarterHtml(),
+    fallback: getSpecificObjectivesStarterHtml,
   },
   'chapter1.researchQuestions': {
-    mode: 'generative',
+    mode: 'deterministic',
     purpose: 'Convert the specific objectives into matching answerable research questions.',
     outputShape: ['ordered list', '2-3 question items', 'each question mirrors one specific objective'],
-    listItems: { min: 2, max: 3 },
+    listItems: { min: 3, max: 3 },
     preferredFormat: 'orderedList',
     allowedHtml: ['ol', 'li'],
     forbidden: ['paragraph essay', 'objectives wording starting with To', 'citations', 'more than three questions'],
-    fallback: () => getResearchQuestionsStarterHtml(),
+    fallback: getAlignedQuestionsHtml,
   },
   'chapter1.justification': {
     mode: 'generative',
@@ -437,8 +425,18 @@ const defaultContract: UhpabSectionContract = {
   fallback: getGenericStarterHtml,
 };
 
-export const getUhpabSectionContract = (context: UhpabWritingContext) =>
-  sectionContracts[`${context.sectionKey}.${context.componentId}`] || defaultContract;
+export const getUhpabSectionContract = (context: UhpabWritingContext) => {
+  const contract = sectionContracts[`${context.sectionKey}.${context.componentId}`] || defaultContract;
+  if (context.sectionKey === 'chapter1' && context.componentId === 'specificObjectives') {
+    const approach = parseResearchTopic(context.projectTitle).approach;
+    if (approach === 'kap' || approach === 'knowledge') return { ...contract, mode: 'deterministic' as const };
+  }
+  if (isFormulationSection(context) && context.componentId !== 'generalObjective') {
+    const count = context.objectiveCount ?? 3;
+    return { ...contract, listItems: { min: count, max: count } };
+  }
+  return contract;
+};
 
 export const getUhpabLocalStarterDraft = (context: UhpabWritingContext) =>
   getUhpabSectionContract(context).fallback(context);
@@ -459,7 +457,9 @@ export const buildUhpabGenerationPrompt = (context: UhpabWritingContext, action:
   const requirements = context.guidelines?.requirements || [];
   const formatting = context.guidelines?.formatting || '';
   const title = getCleanProjectTitle(context.projectTitle);
-  const objectiveContinuation = getObjectiveContinuation(context.projectTitle);
+  const formulationRules = isFormulationSection(context)
+    ? buildFormulationRules(parseResearchTopic(context.projectTitle), context.objectiveCount ?? 3)
+    : '';
   const knownCitationList = (context.knownSources || [])
     .map((source) => {
       const citation = source.citationText || [source.authors || source.organization, source.year].filter(Boolean).join(', ');
@@ -491,8 +491,8 @@ ${contract.maxParagraphs ? `- Maximum paragraphs: ${contract.maxParagraphs}` : '
 ${contract.listItems ? `- List length: ${contract.listItems.min}-${contract.listItems.max} items` : ''}
 ${contract.evidenceUse ? `- Evidence rule: ${contract.evidenceUse}` : ''}
 - Must not include: ${contract.forbidden.join(', ')}
-${context.componentId === 'specificObjectives' ? `- Specific objective rule: after the action verb, write the exact variable, factor, or focus first, such as socio-economic factors, knowledge-related factors, practice-related factors, health facility factors, or level of the main outcome. Then end every item with the same continuation: "${objectiveContinuation}". Example shape: To determine socio-economic factors ${objectiveContinuation}.` : ''}
-${context.componentId === 'researchQuestions' ? `- Research question rule: each question must mirror one specific objective and use the same population/place continuation: "${objectiveContinuation}".` : ''}
+${formulationRules ? `\nFormulation rules:\n${formulationRules}` : ''}
+${context.specificObjectives ? `\nSaved specific objectives (question source of truth):\n${stripHtmlWithBreaks(context.specificObjectives)}` : ''}
 
 UHPAB requirements:
 ${requirements.map((req) => `- ${req}`).join('\n') || '- Follow the selected section title and UHPAB structure.'}
@@ -612,6 +612,10 @@ export const normalizeUhpabGeneratedDraft = (value = '', context: UhpabWritingCo
 
   const bodyOnly = removeGeneratedSectionChrome(value, context.componentLabel);
 
+  if (context.sectionKey === 'chapter1' && context.componentId === 'specificObjectives') {
+    return formulationListHtml(normalizeSpecificObjectives(value, parseResearchTopic(context.projectTitle), context.objectiveCount ?? 3));
+  }
+
   if (context.sectionKey === 'chapter1' && context.componentId === 'background') {
     return constrainBackgroundDraft(bodyOnly);
   }
@@ -619,9 +623,7 @@ export const normalizeUhpabGeneratedDraft = (value = '', context: UhpabWritingCo
   const maxLimited = contract.maxWords ? limitWords(bodyOnly, contract.maxWords) : bodyOnly;
 
   if (contract.preferredFormat === 'orderedList') {
-    const orderedList = context.componentId === 'specificObjectives'
-      ? normalizeObjectiveItems(maxLimited, context)
-      : generatedTextToOrderedListHtml(maxLimited, contract.listItems?.max || 3);
+    const orderedList = generatedTextToOrderedListHtml(maxLimited, contract.listItems?.max || 3);
     return orderedList || contract.fallback(context);
   }
 

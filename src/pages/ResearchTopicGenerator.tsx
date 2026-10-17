@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { AlertCircle, ArrowRight, CheckCircle2, FileText, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { hasSpecificStudySetting } from "@/lib/researchFormulation";
 
 type TopicSuggestion = {
   topic: string;
@@ -70,7 +71,7 @@ const topicPatterns: TopicPattern[] = [
   {
     id: "practices",
     label: "Knowledge, attitudes, and practices",
-    prefix: "Knowledge, Attitudes and Practices Towards",
+    prefix: "Knowledge, Attitude and Practices Towards",
     iv: "Knowledge, attitudes, and practices",
     dv: (subject) => subject,
     fits: "Best when you need a KAP-style topic."
@@ -82,6 +83,30 @@ const topicPatterns: TopicPattern[] = [
     iv: "Participant characteristics",
     dv: (subject) => subject,
     fits: "Best when you want to find how common a condition or problem is."
+  },
+  {
+    id: "predictors",
+    label: "Predictors of an outcome",
+    prefix: "Predictors of",
+    iv: "Predictors of the outcome",
+    dv: (subject) => subject,
+    fits: "For an outcome with measurable potential predictors. Confirm the analysis plan with your supervisor."
+  },
+  {
+    id: "determinants",
+    label: "Determinants of an outcome",
+    prefix: "Determinants of",
+    iv: "Determinants of the outcome",
+    dv: (subject) => subject,
+    fits: "For investigating distinct individual, social, or service-related determinants."
+  },
+  {
+    id: "prevalenceFactors",
+    label: "Prevalence and associated factors",
+    prefix: "Prevalence and Factors Associated with",
+    iv: "Factors associated with the condition",
+    dv: (subject) => subject,
+    fits: "For measuring how common a condition is and examining associated factors."
   },
   {
     id: "utilization",
@@ -112,6 +137,7 @@ const outcomeWords = [
   "care seeking",
   "compliance",
   "delay",
+  "treatment default",
   "burnout",
   "stress",
   "malnutrition",
@@ -142,8 +168,9 @@ const cleanPhrase = (value: string) =>
 const stripLeadPhrases = (value: string) =>
   cleanPhrase(value)
     .replace(/^(i want to study|i want to research|i am interested in|i need a topic on|topic on|research on)\s+/i, "")
-    .replace(/^(factors affecting|factors associated with|barriers to|prevalence of|knowledge and attitudes towards|knowledge attitudes and practices towards)\s+/i, "")
-    .replace(/\s+(among|at|in)\s+.+$/i, "")
+    .replace(/^(prevalence and factors associated with|factors affecting|factors associated with|factors influencing|predictors of|determinants of|barriers to|prevalence of|knowledge and attitudes? towards|knowledge attitudes? and practices towards)\s+/i, "")
+    .replace(/^(?:high|low) rates? of\s+/i, "")
+    .replace(/\s+(among|at)\s+.+$/i, "")
     .replace(/\s+(among|at|in)$/i, "")
     .trim();
 
@@ -157,7 +184,7 @@ const inferSubject = (problem: string, focus: string) => {
 
   if (anchor) {
     const anchorIndex = lower.indexOf(anchor);
-    const phrase = cleanedProblem.slice(anchorIndex).split(" ").slice(0, 8).join(" ");
+    const phrase = cleanedProblem.slice(anchorIndex);
     return titleCase(stripLeadPhrases(phrase));
   }
 
@@ -192,7 +219,7 @@ const buildTopic = (pattern: TopicPattern, subject: string, population: string, 
     .replace(/\s+/g, " ")
     .trim();
 
-  return topic;
+  return topic.toUpperCase();
 };
 
 const formatRespondents = (population: string, ageRange: string) => {
@@ -232,7 +259,7 @@ const pickSupportPatterns = (selectedPattern: TopicPattern, subject: string) => 
 
   const prioritized = topicPatterns.filter((pattern) => preferredIds.has(pattern.id));
   const fallback = topicPatterns.filter((pattern) => !preferredIds.has(pattern.id));
-  return [...prioritized, ...fallback].slice(0, 3);
+  return [selectedPattern, ...prioritized.filter(pattern => pattern.id !== selectedPattern.id), ...fallback].slice(0, 3);
 };
 
 const assessTopic = (
@@ -255,8 +282,8 @@ const assessTopic = (
   if (ageRange.trim()) score += 1;
   else notes.push("If your respondents have a clear age range, add it. A real target like 'aged 16-27' is stronger than a broad group.");
 
-  if (place.trim().split(/\s+/).length >= 2) score += 2;
-  else notes.push("Use a real study area such as a hospital, ward, school, or district.");
+  if (hasSpecificStudySetting(place)) score += 2;
+  else notes.push("Name the actual village, health centre, hospital, or other specific setting, rather than Uganda or a district alone.");
 
   if (access === "yes") score += 2;
   if (access === "unsure") notes.push("Confirm that you can reach the respondents before committing to this topic.");
@@ -311,6 +338,11 @@ export default function ResearchTopicGenerator() {
 
     if (missing.length > 0) {
       toast.error(`Please add: ${missing.join(", ")}`);
+      return;
+    }
+
+    if (!hasSpecificStudySetting(studyArea)) {
+      toast.error("Add a named study setting, such as Kiyumba Health Centre IV or a specific village. Uganda or a district alone is too broad.");
       return;
     }
 
