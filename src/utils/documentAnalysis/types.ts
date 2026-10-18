@@ -27,6 +27,10 @@ export interface RubricCriterionScore {
   guidance: string;
   evidenceSnippet?: string;
   pageNumber?: number | null;
+  found?: string[];
+  missing?: string[];
+  improvements?: string[];
+  assessmentState?: 'assessed' | 'unassessable';
 }
 
 export interface RubricSectionScore {
@@ -41,6 +45,9 @@ export interface RubricScore {
   awarded: number;
   total: number;
   sections: RubricSectionScore[];
+  rubricVersion?: string;
+  assessmentMode?: 'strict' | 'structural';
+  provisional?: boolean;
 }
 
 export type DocumentType = 'proposal' | 'report';

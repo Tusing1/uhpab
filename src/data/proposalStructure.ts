@@ -1,6 +1,7 @@
 // Proposal structure aligned to the scanned UHPAB Research Guidelines PDF.
+import { getAppendixSections, subheadingTitle, type ResearchStructure } from './researchGuidelineRules';
 
-const proposalStructure = {
+const proposalStructure: ResearchStructure = {
   preliminaryPages: {
     title: 'Preliminary Pages',
     description: 'Pages before Chapter One, numbered with Roman numerals.',
@@ -37,17 +38,6 @@ const proposalStructure = {
         ],
         formatting: 'Use clear signature lines.'
       },
-      supervisorCommitment: {
-        title: 'Commitment by Research Supervisor',
-        description: 'Confirms that the research supervisor agrees to guide the candidate throughout the study.',
-        requirements: [
-          'Supervisor states willingness to supervise the named candidate and research title',
-          'Supervisor commits time, guidance, and professional support',
-          'Supervisor signs and writes their name and date',
-          'Principal witnesses the commitment where required, with name, date, and official stamp'
-        ],
-        formatting: 'Use a formal commitment format with clear signature and witness lines.'
-      },
       tableOfContents: {
         title: 'Table of Contents',
         description: 'Lists preliminary pages, chapters, references, and appendices.',
@@ -57,6 +47,12 @@ const proposalStructure = {
           'References and appendices'
         ],
         formatting: 'Use dot leaders or a clean table layout.'
+      },
+      listOfTables: {
+        title: 'List of tables, figures and pictures',
+        description: 'Combined list of all registered tables, figures and pictures in this proposal.',
+        requirements: ['Use actual numbered captions', 'Supply accurate page references after final pagination'],
+        formatting: 'A separate page with a centred bold heading.'
       },
       acronyms: {
         title: 'Abbreviations/Acronyms',
@@ -229,7 +225,7 @@ const proposalStructure = {
       studyDesign: {
         title: '3.1 Study Design',
         description: 'States the research design.',
-        requirements: ['Describe the study design', 'Explain why the design fits the study objectives']
+        requirements: ['Name an actual study design and explain why it fits the objectives', 'Quantitative and qualitative are approaches, not study designs']
       },
       studySetting: {
         title: '3.2 Study Setting',
@@ -316,34 +312,11 @@ const proposalStructure = {
   appendices: {
     title: 'APPENDICES',
     description: 'Supplementary materials relevant to the proposal.',
-    sections: {
-      workPlan: {
-        title: 'Appendix 1: Work plan',
-        description: 'Timeline for completing the study.',
-        requirements: ['Include research activities', 'Show realistic timeframes']
-      },
-      budget: {
-        title: 'Appendix 2: Budget',
-        description: 'Estimated cost of conducting the study.',
-        requirements: ['List budget items', 'Show quantities and costs']
-      },
-      consentForm: {
-        title: 'Appendix 3: Consent form',
-        description: 'Participant consent document.',
-        requirements: ['Explain the study', 'Mention voluntary participation', 'Include signature lines']
-      },
-      tools: {
-        title: 'Appendix 4: Data collection tools',
-        description: 'Questionnaire, interview guide, checklist, or other tools.',
-        requirements: ['Attach complete tools', 'Align tools with study objectives']
-      },
-      maps: {
-        title: 'Appendix 5: Maps',
-        description: 'Map of the study area where relevant.',
-        requirements: ['Use a clear map', 'Cite the source where applicable']
-      }
-    }
+    sections: getAppendixSections('proposal')
   }
 };
 
+for (const chapter of Object.values(proposalStructure)) {
+  if ('sections' in chapter) for (const section of Object.values(chapter.sections)) section.title = subheadingTitle(section.title);
+}
 export default proposalStructure;

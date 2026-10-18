@@ -24,13 +24,15 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  singleSpaced?: boolean;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   placeholder,
-  disabled = false
+  disabled = false,
+  singleSpaced = false
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -123,11 +125,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onBlur={updateValue}
         className={cn(
           "prose prose-sm min-h-[620px] max-w-none px-1 py-2 text-[12pt] leading-[2] outline-none",
-          "font-['Times_New_Roman',Times,serif] text-justify",
+          "font-['Times_New_Roman',Times,serif] text-justify [&_h1]:text-[12pt] [&_h2]:text-[12pt] [&_h3]:text-[12pt] [&_h1]:text-left [&_h2]:text-left [&_h3]:text-left",
           "empty:before:pointer-events-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]",
           disabled && "cursor-not-allowed opacity-60"
         )}
-        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+        style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: singleSpaced ? 1 : 2 }}
       />
     </div>
   );

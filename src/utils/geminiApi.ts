@@ -1,5 +1,6 @@
 
 import { proposalStructure, reportStructure } from '@/data/uhpabGuidelines';
+import { strictGuidelineRules } from '@/data/researchGuidelineRules';
 import { setBrowserGeminiApiKey } from '@/lib/aiKeys';
 import { generateContent } from '@/integrations/gemini';
 import { buildUhpabGenerationPrompt, getUhpabSectionContract, normalizeUhpabGeneratedDraft, type UhpabWritingContext } from '@/lib/uhpabWritingEngine';
@@ -77,7 +78,7 @@ export const generateResearchComponent = async (
   projectType: 'proposal' | 'report' = 'proposal',
   writingContext?: UhpabWritingContext
 ): Promise<GeminiResponse> => {
-  if (writingContext && ['generalObjective', 'specificObjectives', 'researchQuestions', 'researchObjectives'].includes(writingContext.componentId)) {
+  if (writingContext) {
     try {
       const contract = getUhpabSectionContract(writingContext);
       if (contract.mode === 'deterministic') return { text: contract.fallback(writingContext) };
@@ -108,6 +109,7 @@ export const generateResearchComponent = async (
     : '';
 
   const prompt = `
+    ${strictGuidelineRules(projectType)}
     You are an AI assistant specializing in academic research for nursing and midwifery students.
     You're helping a student create a high-quality component for their research according to UHPAB guidelines.
     

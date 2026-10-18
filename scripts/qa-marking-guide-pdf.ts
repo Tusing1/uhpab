@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { reportMarkingGuide } from "@/data/markingGuide";
+import { reportMarkingGuide, MARKING_RUBRIC_VERSION } from "@/data/markingGuide";
 import { createMarkingGuidePdfDocument } from "@/lib/markingGuidePdf";
 import type { AnalysisResult } from "@/utils/documentAnalysis";
 
@@ -25,6 +25,10 @@ const sections = reportMarkingGuide.map((section) => {
       awarded,
       status,
       guidance: criterion.guidance,
+      found: status === 'missing' ? [] : [`Illustrative layout sample only. A verified quotation and the examiner's assessment of its substance appear here in a real marking report.`],
+      missing: status === 'met' ? [] : [status === 'missing' ? `No adequate evidence for ${criterion.label.toLowerCase()} was identified in this illustrative example.` : 'The criterion is partly addressed, but study-specific supporting detail is incomplete.'],
+      improvements: status === 'met' ? [] : (criterion.standards || [criterion.guidance]),
+      assessmentState: criterion.id === 'apa-format' ? 'unassessable' : 'assessed',
       evidenceSnippet:
         status === "missing"
           ? undefined
@@ -49,27 +53,26 @@ const result: AnalysisResult = {
   issues: sections.flatMap((section) =>
     section.criteria.filter((criterion) => criterion.status !== "met").map((criterion) => `${section.title}: ${criterion.label}`)
   ),
-  rubricScore: { awarded, total, sections },
+  rubricScore: { awarded, total, sections, assessmentMode: 'strict', rubricVersion: MARKING_RUBRIC_VERSION, provisional: true },
 };
 
 const doc = createMarkingGuidePdfDocument(
   result,
   "report",
   "full",
-  "ANITAH-original.docx",
-  "ANITAH"
+  "ILLUSTRATIVE SAMPLE - NOT A STUDENT ASSESSMENT.docx",
+  "Sample student"
 );
 const bytes = Buffer.from(doc.output("arraybuffer"));
 const temporaryDirectory = resolve("tmp", "pdfs");
 const outputDirectory = resolve("output", "pdf");
 mkdirSync(temporaryDirectory, { recursive: true });
 mkdirSync(outputDirectory, { recursive: true });
-writeFileSync(resolve(temporaryDirectory, "uhpab-marking-report-design-sample.pdf"), bytes);
-writeFileSync(resolve(outputDirectory, "uhpab-marking-report-design-sample.pdf"), bytes);
+writeFileSync(resolve(outputDirectory, "uhpab-strict-marking-report-sample.pdf"), bytes);
 
 console.log(
   JSON.stringify({
-    file: resolve(outputDirectory, "uhpab-marking-report-design-sample.pdf"),
+    file: resolve(outputDirectory, "uhpab-strict-marking-report-sample.pdf"),
     pages: doc.getNumberOfPages(),
     awarded,
     total,

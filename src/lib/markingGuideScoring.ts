@@ -213,11 +213,11 @@ const scoreTitlePage: CriterionRule = (chunks, criterion) => {
 
   const firstChunks = chunks.slice(0, 3);
   const text = chunksText(firstChunks);
-  const evidence = firstEvidence(firstChunks, ["research report", "research proposal", "candidate", "student", "supervisor", "school"]);
+  const evidence = firstEvidence(firstChunks, ["research report", "research proposal", "candidate", "student", "HTIN"]);
   const hasTitleSignal = /factors|prevalence|knowledge|attitude|practice|assessment|uptake|utili[sz]ation|effect|influence|determinants/i.test(text);
   const supportCount = [
     /\b(candidate|student|name|registration|index|number)\b/i.test(text),
-    /\b(supervisor|supervised by|department|school|college|institute|university|training)\b/i.test(text),
+    /\bHTIN\b|\b(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\d{2}\//i.test(text),
     /\b(submitted|partial fulfilment|award|diploma|certificate|degree)\b/i.test(text),
     /\b(?:19|20)\d{2}\b/.test(text) || /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(text),
   ].filter(Boolean).length;

@@ -68,6 +68,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
   pageMeta
 }) => {
   const hasContent = currentValue?.trim().length > 0;
+  const isAbstract = /\babstract\b/i.test(label);
   const showDraftAction = allowAI && !isAutoFilled && !isDeferredFinalPage;
   const showPolishActions = allowAI && hasContent && !isAutoFilled && !isDeferredFinalPage;
   const combinedDraftAction = aiActions.find((action) => action.id === 'draftWithBackground');
@@ -181,12 +182,12 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         >
           <div className="min-h-[64px]">
             {pageMeta?.chapterTitle && !pageMeta.isTitlePage && (
-              <p className="mb-3 text-center text-sm font-bold uppercase tracking-normal">
+              <p className="mb-3 text-center text-[12pt] font-bold uppercase tracking-normal">
                 {pageMeta.chapterTitle}
               </p>
             )}
             {pageMeta?.sectionTitle && !pageMeta.isTitlePage && (
-              <p className={pageMeta.isPreliminary ? "mb-6 text-center text-sm font-bold uppercase" : "mb-4 text-sm font-bold"}>
+              <p className={pageMeta.isPreliminary ? "mb-6 text-center text-[12pt] font-bold uppercase" : "mb-4 text-[12pt] font-bold"}>
                 {pageMeta.sectionTitle}
               </p>
             )}
@@ -205,6 +206,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
                 <p>Write only this section, then use Save or Save and Next.</p>
               </div>
               <RichTextEditor
+                singleSpaced={isAbstract}
                 value={temporaryContent}
                 onChange={setTemporaryContent}
                 placeholder={`Start writing ${label} here...`}
@@ -213,7 +215,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
           ) : (
             <div
               className="prose prose-sm max-w-none text-justify text-[12pt] leading-[2]"
-              style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: 2 }}
+              style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: isAbstract ? 1 : 2 }}
             >
               {hasContent ? (
                 parse(currentValue)

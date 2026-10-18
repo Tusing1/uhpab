@@ -8,7 +8,13 @@ import {
   PageBreak,
   Paragraph,
   TextRun,
+  Footer,
+  PageNumber,
+  NumberFormat,
+  SectionType,
 } from 'docx';
+import { proposalStructure, reportStructure } from '@/data/uhpabGuidelines';
+import { getAppendixSections, preliminaryKeys, legacySectionAliases } from '@/data/researchGuidelineRules';
 
 const getNestedValue = (source: any, path: string[]) => {
   let current = source;
@@ -25,14 +31,13 @@ const contentAliases: Record<string, string[]> = {
   body: ['content', 'literatureReview'],
   dataManagement: ['dataAnalysis'],
   qualityControl: ['qualityAssurance'],
-  supervisorCommitment: ['commitmentForm', 'commitment'],
-  approval: ['approvalSheet'],
   definitions: ['operationalDefinitions', 'definitionOfTerms'],
   acronyms: ['listOfAcronyms'],
   demographicCharacteristics: ['demographics'],
   discussionOfFindings: ['discussion'],
   limitationsOfTheStudy: ['limitations'],
-  implicationsToNursingPractice: ['implications']
+  implicationsToNursingPractice: ['implications'],
+  ...legacySectionAliases,
 };
 
 const getTemplateContent = (projectData: any, path: string[]) => {
@@ -67,6 +72,7 @@ const paragraph = (
     alignment?: typeof AlignmentType[keyof typeof AlignmentType];
     spacingAfter?: number;
     hanging?: boolean;
+    singleSpaced?: boolean;
   } = {}
 ) =>
   new Paragraph({
@@ -74,7 +80,7 @@ const paragraph = (
     indent: options.hanging ? { left: 720, hanging: 720 } : undefined,
     spacing: {
       after: options.spacingAfter ?? 0,
-      line: 480,
+      line: options.singleSpaced ? 240 : 480,
       lineRule: LineRuleType.AUTO,
     },
     children: [textRun(text, { bold: options.bold, italics: options.italics })],
@@ -89,7 +95,7 @@ const heading = (
     heading: level,
     alignment,
     spacing: { before: 240, after: 0, line: 480, lineRule: LineRuleType.AUTO },
-    children: [textRun(text, { bold: true, size: level === HeadingLevel.HEADING_1 ? 28 : 24 })],
+    children: [textRun(text, { bold: true, size: 24 })],
   });
 
 const pageBreak = () => new Paragraph({ children: [new PageBreak()] });
@@ -290,49 +296,6 @@ const addRegisteredChapter4Assets = (children: Paragraph[], projectData: any) =>
 
 const cleanTitle = (title?: string) => (title || 'RESEARCH TITLE').trim().toUpperCase();
 
-const proposalSections = [
-  { title: '1.0 Introduction', path: ['chapter1', 'introduction'], placeholder: 'Introduce Chapter One and mention background, problem statement, objectives, questions, justification, significance, and scope.' },
-  { title: '1.1 Background to the Study', path: ['chapter1', 'background'], placeholder: 'Write the background from global to local context. Include brief current citations and show why the problem needs research.' },
-  { title: '1.2 Statement of the Problem', path: ['chapter1', 'statementOfProblem'], placeholder: 'State the ideal situation, current situation, gap, magnitude, consequences, and why the problem requires investigation.' },
-  { title: '1.3 Research Objectives', path: ['chapter1', 'researchObjectives'], placeholder: 'Introduce the general and specific objectives.' },
-  { title: '1.3.1 Purpose of the Study or General Objective', path: ['chapter1', 'generalObjective'], placeholder: 'State one broad objective including variables, population, and study area.' },
-  { title: '1.3.2 Specific Objectives', path: ['chapter1', 'specificObjectives'], placeholder: 'List 2-3 SMART specific objectives aligned to the general objective.' },
-  { title: '1.3.3 Research Questions', path: ['chapter1', 'researchQuestions'], placeholder: 'List research questions that match the specific objectives.' },
-  { title: '1.4 Justification of the Study', path: ['chapter1', 'justification'], placeholder: 'Explain why this topic was chosen and why the study is necessary now.' },
-  { title: '1.5 Significance of the Study', path: ['chapter1', 'significance'], placeholder: 'Explain who will benefit and how each group may benefit.' },
-  { title: '1.6 Scope of the Study', path: ['chapter1', 'scope'], placeholder: 'State content scope, geographical scope, and time scope.' },
-  { title: '2.0 Introduction', path: ['chapter2', 'introduction'], placeholder: 'Introduce the literature review and explain that it is arranged according to objectives.' },
-  { title: '2.1 Body', path: ['chapter2', 'body'], placeholder: 'Review literature according to the specific objectives. Use APA 7th edition citations and identify gaps.' },
-  { title: '3.0 Introduction', path: ['chapter3', 'introduction'], placeholder: 'Introduce the methodology chapter.' },
-  { title: '3.1 Study Design', path: ['chapter3', 'studyDesign'], placeholder: 'State and justify the study design.' },
-  { title: '3.2 Study Setting', path: ['chapter3', 'studySetting'], placeholder: 'Describe the study area or facility and relevant local context.' },
-  { title: '3.3 Study Population', path: ['chapter3', 'studyPopulation'], placeholder: 'State the target and accessible population.' },
-  { title: '3.4 Sample Size', path: ['chapter3', 'sampleSize'], placeholder: 'State and justify the sample size. Add formula where required.' },
-  { title: '3.5 Sampling Method', path: ['chapter3', 'samplingMethod'], placeholder: 'State the sampling method and explain selection procedures.' },
-  { title: '3.6 Inclusion and Exclusion Criteria', path: ['chapter3', 'inclusionExclusion'], placeholder: 'List inclusion and exclusion criteria.' },
-  { title: '3.7 Study Variables', path: ['chapter3', 'studyVariables'], placeholder: 'State dependent and independent variables.' },
-  { title: '3.8 Research Instruments', path: ['chapter3', 'researchInstruments'], placeholder: 'Describe questionnaire, interview guide, checklist, or other tools.' },
-  { title: '3.9 Data Collection Procedure', path: ['chapter3', 'dataCollection'], placeholder: 'Describe permissions, participant approach, consent, and data collection steps.' },
-  { title: '3.10 Data Management and Analysis', path: ['chapter3', 'dataManagement'], placeholder: 'Describe data checking, coding, entry, cleaning, storage, and analysis.' },
-  { title: '3.11 Data Presentation', path: ['chapter3', 'dataPresentation'], placeholder: 'State how findings will be presented.' },
-  { title: '3.12 Quality Control', path: ['chapter3', 'qualityControl'], placeholder: 'Explain pretesting, supervision, training, validity, and reliability measures.' },
-  { title: '3.13 Ethical Considerations', path: ['chapter3', 'ethicalConsiderations'], placeholder: 'Mention approvals, informed consent, confidentiality, and voluntary participation.' },
-  { title: '3.14 Limitations of the Study', path: ['chapter3', 'limitations'], placeholder: 'State anticipated limitations and mitigation measures.' },
-  { title: '3.15 Dissemination of Results', path: ['chapter3', 'dissemination'], placeholder: 'Explain how results will be shared with UHPAB, school, facility, and other audiences.' },
-];
-
-const reportExtraSections = [
-  { title: '4.0 Introduction', path: ['chapter4', 'introduction'], placeholder: 'Introduce the findings chapter, sample size, and presentation style.' },
-  { title: '4.1 Demographic Characteristics', path: ['chapter4', 'demographicCharacteristics'], placeholder: 'Present respondents demographic characteristics in tables and narrative.' },
-  { title: '4.2 Findings Related to Objective One', path: ['chapter4', 'objective1Findings'], placeholder: 'Present findings for objective one using tables, figures, and brief interpretation.' },
-  { title: '4.3 Findings Related to Objective Two', path: ['chapter4', 'objective2Findings'], placeholder: 'Present findings for objective two using tables, figures, and brief interpretation.' },
-  { title: '4.4 Findings Related to Objective Three', path: ['chapter4', 'objective3Findings'], placeholder: 'Present findings for objective three using tables, figures, and brief interpretation.' },
-  { title: '5.1 Discussion of Findings', path: ['chapter5', 'discussionOfFindings'], placeholder: 'Discuss findings objective by objective and compare with existing literature.' },
-  { title: '5.2 Limitations of the Study', path: ['chapter5', 'limitationsOfTheStudy'], placeholder: 'State limitations encountered during the completed study.' },
-  { title: '5.3 Conclusions', path: ['chapter5', 'conclusions'], placeholder: 'Give conclusions based on the major findings.' },
-  { title: '5.4 Recommendations', path: ['chapter5', 'recommendations'], placeholder: 'Give clear recommendations based on findings. Keep them practical and limited.' },
-  { title: '5.5 Implications to Nursing Practice', path: ['chapter5', 'implicationsToNursingPractice'], placeholder: 'Explain relevance of findings to nursing or midwifery practice.' },
-];
 
 const addSection = (children: Paragraph[], projectData: any, title: string, path: string[], placeholderText: string) => {
   children.push(heading(title, HeadingLevel.HEADING_2));
@@ -341,133 +304,64 @@ const addSection = (children: Paragraph[], projectData: any, title: string, path
   children.push(...contentOrPlaceholder(frameworkPlaceholder || rawContent, placeholderText));
 };
 
-const buildTemplateDocx = async (projectType: 'proposal' | 'report', projectData: any) => {
+export const buildTemplateDocx = async (projectType: 'proposal' | 'report', projectData: any) => {
+  const structure = projectType === 'report' ? reportStructure : proposalStructure;
   const student = projectData?.student || {};
   const title = cleanTitle(projectData?.title || student.researchTopic);
-  const studentName = (student.name || '[[Candidate name]]').toUpperCase();
+  const name = student.name || '[[Candidate name]]';
   const htin = student.htin || student.studentId || '[[HTIN]]';
-  const schoolName = student.schoolName || projectData?.schoolName || '[[Health training institution]]';
   const course = student.className || '[[Course or programme]]';
-  const monthYear = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
-  const documentName = projectType === 'proposal' ? 'RESEARCH PROPOSAL' : 'RESEARCH REPORT';
-
-  const children: Paragraph[] = [
-    paragraph(title, { bold: true, alignment: AlignmentType.CENTER, spacingAfter: 360 }),
-    paragraph('BY', { bold: true, alignment: AlignmentType.CENTER }),
-    paragraph(studentName, { bold: true, alignment: AlignmentType.CENTER }),
-    paragraph(`HTIN: ${htin}`, { alignment: AlignmentType.CENTER }),
-    paragraph('SUPERVISOR: [[Supervisor name]]', { alignment: AlignmentType.CENTER, spacingAfter: 360 }),
-    paragraph(`A ${documentName} SUBMITTED TO UGANDA HEALTH PROFESSIONS ASSESSMENT BOARD`, { alignment: AlignmentType.CENTER }),
-    paragraph(`IN PARTIAL FULFILMENT OF THE REQUIREMENTS FOR THE AWARD OF`, { alignment: AlignmentType.CENTER }),
-    paragraph(course.toUpperCase(), { alignment: AlignmentType.CENTER }),
-    paragraph(schoolName.toUpperCase(), { alignment: AlignmentType.CENTER, spacingAfter: 360 }),
-    paragraph(monthYear.toUpperCase(), { alignment: AlignmentType.CENTER }),
-    pageBreak(),
-    heading('DECLARATION'),
-    paragraph(`I, ${studentName}, declare that this ${projectType} is my original work and has not been submitted to any institution for any academic award.`),
-    paragraph('Signature: ____________________________    Date: ____________________________'),
-    pageBreak(),
-    heading('APPROVAL'),
-    paragraph(`This ${projectType} titled "${title}" has been submitted with the approval of the research supervisor and institution.`),
-    paragraph('Supervisor name: _______________________ Signature: __________________ Date: __________'),
-    paragraph('Principal name: ________________________ Signature: __________________ Date: __________'),
-    pageBreak(),
-    heading('COMMITMENT BY RESEARCH SUPERVISOR'),
-    paragraph(`I, ____________________________, agree to supervise ${studentName} while conducting the study titled "${title}".`),
-    paragraph('Supervisor signature: __________________ Date: __________________'),
-    paragraph('Principal witness/stamp: __________________________________________'),
-    pageBreak(),
+  const date = new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Africa/Kampala' });
+  // Rebuild the title page to prevent old saved supervisor fields reappearing.
+  const cover = [
+    paragraph(title.toUpperCase(), { bold: true, alignment: AlignmentType.CENTER, spacingAfter: 360 }),
+    paragraph('BY', { alignment: AlignmentType.CENTER }),
+    paragraph(name.toUpperCase(), { alignment: AlignmentType.CENTER }),
+    paragraph(htin, { alignment: AlignmentType.CENTER, spacingAfter: 360 }),
+    paragraph(`A RESEARCH ${projectType.toUpperCase()} SUBMITTED IN PARTIAL FULFILMENT OF THE REQUIREMENTS FOR THE AWARD OF ${course.toUpperCase()} OF UGANDA HEALTH PROFESSIONS ASSESSMENT BOARD (UHPAB)`, { alignment: AlignmentType.CENTER, spacingAfter: 360 }),
+    paragraph(date.toUpperCase(), { alignment: AlignmentType.CENTER }),
   ];
-
-  if (projectType === 'report') {
-    children.push(
-      heading('AUTHORIZATION AND COPYRIGHT'),
-      paragraph('[[Write the authorization statement for use and access to this report according to institutional requirements.]]', { italics: true }),
-      pageBreak(),
-      heading('DEDICATION'),
-      paragraph('[[Optional dedication.]]', { italics: true }),
-      pageBreak(),
-      heading('ACKNOWLEDGEMENT'),
-      paragraph('[[Acknowledge people and institutions that supported the research.]]', { italics: true }),
-      pageBreak()
-    );
+  const prelim: Paragraph[] = [];
+  for (const key of preliminaryKeys(projectType).filter(key => key !== 'titlePage')) {
+    if (prelim.length) prelim.push(pageBreak());
+    const section = structure.preliminaryPages.sections[key];
+    prelim.push(heading(section.title.replace(/^[ivx]+\.\s*/i, '').toUpperCase()));
+    const saved = getTemplateContent(projectData, ['preliminaryPages', key]);
+    if (key === 'tableOfContents') prelim.push(paragraph('[[Generate or update the table of contents in Word after completing this document. Use the current headings and final page numbers.]]', { italics: true }));
+    else if (key === 'listOfTables') prelim.push(...listOfTablesPicturesFigures(projectData));
+    else if (key === 'abstract') {
+      const body = cleanExportText(saved) || '[[Complete the report, then summarise background/purpose, methodology, objective-based findings, conclusions, recommendations and health profession implications in no more than 300 words. No citations.]]';
+      prelim.push(paragraph(body, { singleSpaced: true, italics: !saved }));
+    } else if (saved) prelim.push(...contentOrPlaceholder(saved, section.description));
+    else if (key === 'declaration') prelim.push(paragraph(`I, ${name}, declare that this research ${projectType} entitled "${title}" is my original work and has not been submitted elsewhere for an academic award.`), paragraph('Signature: __________________ Date: __________________'));
+    else if (key === 'approval') prelim.push(paragraph(`This research ${projectType} has been read and approved by the supervisor and principal.`), paragraph('Supervisor name: __________________ Signature: __________________ Date: __________'), paragraph('Principal name: __________________ Signature: __________________ Date: __________'));
+    else prelim.push(...contentOrPlaceholder('', section.description));
   }
-
-  children.push(
-    heading('TABLE OF CONTENTS'),
-    paragraph('[[Update this table of contents after completing the document. Include accurate page numbers.]]', { italics: true }),
-    pageBreak(),
-    heading(projectType === 'report' ? 'LIST OF TABLES, PICTURES AND FIGURES' : 'ABBREVIATIONS/ACRONYMS'),
-    ...(projectType === 'report'
-      ? listOfTablesPicturesFigures(projectData)
-      : [paragraph('[[List all abbreviations and acronyms alphabetically.]]', { italics: true })]),
-    pageBreak()
-  );
-
-  if (projectType === 'report') {
-    children.push(
-      heading('ABBREVIATIONS/ACRONYMS'),
-      paragraph('[[List all abbreviations and acronyms alphabetically.]]', { italics: true }),
-      pageBreak(),
-      heading('OPERATIONAL DEFINITIONS'),
-      paragraph('[[Define key terms and variables as used in this study.]]', { italics: true }),
-      pageBreak(),
-      heading('ABSTRACT'),
-      paragraph('[[Write a concise abstract of not more than 300 words after completing the report.]]', { italics: true }),
-      pageBreak()
-    );
-  } else {
-    children.push(
-      heading('OPERATIONAL DEFINITIONS'),
-      paragraph('[[Define key terms and variables as used in this study.]]', { italics: true }),
-      pageBreak()
-    );
+  const main: Paragraph[] = [];
+  for (const [key, chapter] of Object.entries(structure).filter(([key]) => /^chapter[1-5]$/.test(key))) {
+    if (main.length) main.push(pageBreak());
+    main.push(heading(chapter.title));
+    for (const [field, section] of Object.entries(chapter.sections || {})) {
+      addSection(main, projectData, section.title, [key, field], section.description);
+    }
+    if (key === 'chapter4') addRegisteredChapter4Assets(main, projectData);
   }
-
-  children.push(heading('CHAPTER ONE: INTRODUCTION'));
-  proposalSections.slice(0, 10).forEach((section) => addSection(children, projectData, section.title, section.path, section.placeholder));
-  children.push(pageBreak(), heading('CHAPTER TWO: LITERATURE REVIEW'));
-  proposalSections.slice(10, 12).forEach((section) => addSection(children, projectData, section.title, section.path, section.placeholder));
-  children.push(pageBreak(), heading('CHAPTER THREE: METHODOLOGY'));
-  proposalSections.slice(12).forEach((section) => addSection(children, projectData, section.title, section.path, section.placeholder));
-
-  if (projectType === 'report') {
-    children.push(pageBreak(), heading('CHAPTER FOUR: FINDINGS OF THE STUDY'));
-    reportExtraSections.slice(0, 5).forEach((section) => addSection(children, projectData, section.title, section.path, section.placeholder));
-    addRegisteredChapter4Assets(children, projectData);
-    children.push(pageBreak(), heading('CHAPTER FIVE: DISCUSSION, CONCLUSIONS AND RECOMMENDATIONS'));
-    reportExtraSections.slice(5).forEach((section) => addSection(children, projectData, section.title, section.path, section.placeholder));
+  main.push(pageBreak(), heading('REFERENCES'), ...referenceContentOrPlaceholder(getNestedValue(projectData?.chapters, ['references', 'content']), projectData), pageBreak(), heading('APPENDICES'));
+  for (const [key, section] of Object.entries(getAppendixSections(projectType))) {
+    let saved = getTemplateContent(projectData, ['appendices', key]);
+    if (key === 'ethicalRequirements' && !saved) saved = ['consentForm', 'approvalLetters', 'introductionLetter', 'schoolApprovals'].map(field => getNestedValue(projectData?.chapters, ['appendices', field])).filter(Boolean).join('\n\n');
+    main.push(heading(section.title, HeadingLevel.HEADING_2), ...contentOrPlaceholder(saved, section.description));
   }
-
-  children.push(
-    pageBreak(),
-    heading('REFERENCES'),
-    ...referenceContentOrPlaceholder(getNestedValue(projectData?.chapters, ['references', 'content']), projectData),
-    pageBreak(),
-    heading('APPENDICES'),
-    heading('Appendix 1: Work Plan', HeadingLevel.HEADING_2),
-    paragraph('[[Insert work plan table.]]', { italics: true }),
-    heading('Appendix 2: Budget', HeadingLevel.HEADING_2),
-    paragraph('[[Insert budget table.]]', { italics: true }),
-    heading('Appendix 3: Consent Form', HeadingLevel.HEADING_2),
-    paragraph('[[Insert participant consent form.]]', { italics: true }),
-    heading('Appendix 4: Data Collection Tools', HeadingLevel.HEADING_2),
-    paragraph('[[Insert questionnaire, interview guide, checklist, or other tools.]]', { italics: true }),
-    heading('Appendix 5: Map of Study Area', HeadingLevel.HEADING_2),
-    paragraph('[[Insert map where applicable.]]', { italics: true })
-  );
-
+  const footer = () => new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: [PageNumber.CURRENT], font: 'Times New Roman', size: 24 })] })] });
+  const page = { size: { width: 11906, height: 16838 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } };
   const doc = new Document({
-    sections: [{
-      properties: {
-        page: {
-          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-        },
-      },
-      children,
-    }],
+    styles: { default: { document: { run: { font: 'Times New Roman', size: 24 }, paragraph: { spacing: { line: 480, after: 0 } } } } },
+    sections: [
+      { properties: { page }, children: cover },
+      { properties: { type: SectionType.NEXT_PAGE, page: { ...page, pageNumbers: { start: 1, formatType: NumberFormat.LOWER_ROMAN } } }, footers: { default: footer() }, children: prelim },
+      { properties: { type: SectionType.NEXT_PAGE, page: { ...page, pageNumbers: { start: 1, formatType: NumberFormat.DECIMAL } } }, footers: { default: footer() }, children: main },
+    ],
   });
-
   return Packer.toBlob(doc);
 };
 
@@ -475,287 +369,13 @@ const buildTemplateDocx = async (projectType: 'proposal' | 'report', projectData
  * Generate a downloadable report for a project
  */
 export async function generateReport(
-  projectId: string, 
-  userId: string, 
+  projectId: string,
+  userId: string,
   projectType: 'proposal' | 'report',
-  format: 'pdf' | 'docx' | 'doc' = 'pdf',
+  format: 'pdf' | 'docx' | 'doc' = 'docx',
   projectData?: any
 ): Promise<{ url: string; format: string }> {
-  console.log(`Generating ${projectType} in ${format} format for project ${projectId} by user ${userId}`);
-  console.log("Project data:", projectData);
-  
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const projectTitle = projectData?.title || `Research ${projectType === 'proposal' ? 'Proposal' : 'Report'}`;
-  const documentTitle = `${projectTitle}_${timestamp}`;
-  
-  // Process project content if available
-  let chapterContent = '';
-  if (projectData && projectData.chapters) {
-    const chapters = projectData.chapters;
-    
-    // Add chapter 1 content
-    if (chapters.chapter1) {
-      chapterContent += `CHAPTER ONE: INTRODUCTION\n\n`;
-      
-      if (chapters.chapter1.introduction) {
-        chapterContent += `1.0 Introduction\n${chapters.chapter1.introduction}\n\n`;
-      }
-      
-      if (chapters.chapter1.background) {
-        chapterContent += `1.1 Background\n${chapters.chapter1.background}\n\n`;
-      }
-      
-      if (chapters.chapter1.problemStatement) {
-        chapterContent += `1.2 Problem Statement\n${chapters.chapter1.problemStatement}\n\n`;
-      }
-      
-      if (chapters.chapter1.purpose) {
-        chapterContent += `1.3 Purpose of the study\n${chapters.chapter1.purpose}\n\n`;
-      }
-      
-      if (chapters.chapter1.objectives) {
-        chapterContent += `1.4 Specific objectives\n${chapters.chapter1.objectives}\n\n`;
-      }
-      
-      if (chapters.chapter1.researchQuestions) {
-        chapterContent += `1.5 Research questions\n${chapters.chapter1.researchQuestions}\n\n`;
-      }
-      
-      if (chapters.chapter1.justification) {
-        chapterContent += `1.6 Justification\n${chapters.chapter1.justification}\n\n`;
-      }
-      
-      if (chapters.chapter1.significance) {
-        chapterContent += `1.7 Significance\n${chapters.chapter1.significance}\n\n`;
-      }
-    }
-    
-    // Add chapter 2 content
-    if (chapters.chapter2) {
-      chapterContent += `\nCHAPTER TWO: LITERATURE REVIEW\n\n`;
-      
-      if (chapters.chapter2.introduction) {
-        chapterContent += `2.0 Introduction\n${chapters.chapter2.introduction}\n\n`;
-      }
-      
-      if (chapters.chapter2.content) {
-        chapterContent += `2.1 Body\n${chapters.chapter2.content}\n\n`;
-      }
-    }
-    
-    // Add chapter 3 content
-    if (chapters.chapter3) {
-      chapterContent += `\nCHAPTER THREE: METHODOLOGY\n\n`;
-      
-      if (chapters.chapter3.introduction) {
-        chapterContent += `3.0 Introduction\n${chapters.chapter3.introduction}\n\n`;
-      }
-      
-      if (chapters.chapter3.studyDesign) {
-        chapterContent += `3.1 Study design\n${chapters.chapter3.studyDesign}\n\n`;
-      }
-      
-      // Add other methodology sections as needed
-      const methodSections = [
-        { key: 'studySetting', label: '3.2 Study setting' },
-        { key: 'studyPopulation', label: '3.3 Study population' },
-        { key: 'sampleSize', label: '3.4 Sample size determination' },
-        { key: 'samplingMethod', label: '3.5 Sampling method' },
-        { key: 'inclusionExclusion', label: '3.6 Inclusion and exclusion criteria' },
-        { key: 'studyVariables', label: '3.7 Study variables' },
-        { key: 'researchInstruments', label: '3.8 Research instruments' },
-        { key: 'dataCollection', label: '3.9 Data collection method' },
-        { key: 'dataAnalysis', label: '3.10 Data management and analysis' },
-        { key: 'qualityAssurance', label: '3.11 Quality Assurance' },
-        { key: 'ethicalConsiderations', label: '3.12 Ethical considerations' }
-      ];
-      
-      methodSections.forEach(section => {
-        if (chapters.chapter3[section.key]) {
-          chapterContent += `${section.label}\n${chapters.chapter3[section.key]}\n\n`;
-        }
-      });
-    }
-    
-    // For reports, add chapters 4 and 5
-    if (projectType === 'report') {
-      if (chapters.chapter4) {
-        chapterContent += `\nCHAPTER FOUR: FINDINGS OF THE STUDY\n\n`;
-        
-        if (chapters.chapter4.introduction) {
-          chapterContent += `4.0 Introduction\n${chapters.chapter4.introduction}\n\n`;
-        }
-        
-        if (chapters.chapter4.demographics) {
-          chapterContent += `4.1 Demographic characteristics\n${chapters.chapter4.demographics}\n\n`;
-        }
-        
-        // Add other findings sections
-        const findingsSections = [
-          { key: 'objective1Findings', label: '4.2 Research Objective 1 Findings' },
-          { key: 'objective2Findings', label: '4.3 Research Objective 2 Findings' },
-          { key: 'objective3Findings', label: '4.4 Research Objective 3 Findings' }
-        ];
-        
-        findingsSections.forEach(section => {
-          if (chapters.chapter4[section.key]) {
-            chapterContent += `${section.label}\n${chapters.chapter4[section.key]}\n\n`;
-          }
-        });
-      }
-      
-      if (chapters.chapter5) {
-        chapterContent += `\nCHAPTER FIVE: DISCUSSION, CONCLUSIONS AND RECOMMENDATIONS\n\n`;
-        
-        const discussionSections = [
-          { key: 'discussion', label: '5.1 Discussion' },
-          { key: 'limitations', label: '5.2 Limitations' },
-          { key: 'conclusions', label: '5.3 Conclusions' },
-          { key: 'recommendations', label: '5.4 Recommendations' },
-          { key: 'implications', label: '5.5 Implications to Nursing Practice' }
-        ];
-        
-        discussionSections.forEach(section => {
-          if (chapters.chapter5[section.key]) {
-            chapterContent += `${section.label}\n${chapters.chapter5[section.key]}\n\n`;
-          }
-        });
-      }
-    }
-    
-    // Add references if available
-    if (chapters.references && chapters.references.content) {
-      chapterContent += `\nREFERENCES\n\n${chapters.references.content}\n\n`;
-    }
-    
-    // Add appendices if available
-    if (chapters.appendices && chapters.appendices.content) {
-      chapterContent += `\nAPPENDICES\n\n${chapters.appendices.content}\n\n`;
-    }
-  }
-  
-  // Process the content to convert markdown-like syntax to plain text for PDF
-  chapterContent = chapterContent
-    .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
-    .replace(/\*(.*?)\*/g, '$1')     // Italic
-    .replace(/__(.*?)__/g, '$1');    // Underline
-  
-  let content = '';
-  let contentType = '';
-  
-  if (format === 'pdf') {
-    contentType = 'application/pdf';
-    content = `%PDF-1.5
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 612 792] /Contents 6 0 R >>
-endobj
-4 0 obj
-<< /Font << /F1 5 0 R /F2 7 0 R >> >>
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
-endobj
-6 0 obj
-<< /Length 4000 >>
-stream
-BT
-/F1 12 Tf
-50 750 Td
-0 -100 Td
-(${projectData?.title?.toUpperCase() || 'KNOWLEDGE AND ATTITUDE OF PREGNANT MOTHERS TOWARDS'}) Tj
-
-0 -20 Td
-(MALARIA PREVENTION IN ALIBA PARISH RIGBO SUB-COUNTY) Tj
-
-0 -20 Td
-(MADI OKOLLO DISTRICT) Tj
-
-0 -60 Td
-(BY) Tj
-
-0 -20 Td
-(DRICIRU JOY) Tj
-
-0 -20 Td
-(JUL 24/U001/DNE/001) Tj
-
-0 -20 Td
-(SUPERVISOR: ACIO GRACE) Tj
-
-0 -60 Td
-(A RESEARCH ${projectType.toUpperCase()} SUBMITTED TO ARUA SCHOOL OF) Tj
-
-0 -20 Td
-(COMPREHENSIVE NURSING IN PARTIAL FULFILLMENT) Tj
-
-0 -20 Td
-(OF THE REQUIREMENTS FOR THE AWARD) Tj
-
-0 -20 Td
-(OF DIPLOMA IN NURSING) Tj
-
-0 -20 Td
-(EXTENSION) Tj
-
-0 -60 Td
-(APRIL, 2025) Tj
-
-/F1 24 Tf
-0 -60 Td
-(${projectType === 'proposal' ? 'CHAPTER 1: INTRODUCTION' : 'TABLE OF CONTENTS'}) Tj
-
-/F2 12 Tf
-0 -30 Td
-(${chapterContent.replace(/\\n/g, '\n').slice(0, 4000)}) Tj
-
-/F2 10 Tf
-0 -60 Td
-(Generated by UHPAB Research Assistant on ${new Date().toLocaleString()}) Tj
-ET
-endstream
-endobj
-7 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-xref
-0 8
-0000000000 65535 f
-0000000009 00000 n
-0000000058 00000 n
-0000000115 00000 n
-0000000210 00000 n
-0000000254 00000 n
-0000000321 00000 n
-0000004374 00000 n
-trailer
-<< /Size 8 /Root 1 0 R >>
-startxref
-4438
-%%EOF`;
-  } else if (format === 'docx' || format === 'doc') {
-    contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    const blob = await buildTemplateDocx(projectType, projectData);
-    const url = URL.createObjectURL(blob);
-    return {
-      url,
-      format
-    };
-  }
-
-  const blob = new Blob([content], { type: contentType });
-  const url = URL.createObjectURL(blob);
-  
-  return {
-    url: url,
-    format: format
-  };
+  if (format !== 'docx') throw new Error('Research downloads are editable DOCX only. Choose DOCX.');
+  const blob = await buildTemplateDocx(projectType, projectData);
+  return { url: URL.createObjectURL(blob), format: 'docx' };
 }

@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { readPrivateResearchFile, usesPrivateCloud, isPrivateResearchEnabled } from "@/lib/privateResearchStorage";
+import { getBrowserGeminiApiKey } from "@/lib/aiKeys";
+import { markingGuideAdaptation } from "@/data/markingGuide";
 import { Progress } from "@/components/ui/progress";
 import { OperationProgress } from "@/components/ui/operation-progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -29,6 +33,8 @@ import {
   getAnalysisRecord,
   listAnalysisRecords,
   saveAnalysisRecord,
+  setAnalysisDocumentRetention,
+  deleteAnalysisRecord,
   type StoredAnalysisRecord,
 } from "@/lib/documentAnalysisStore";
 import { downloadMarkedAnalysisPdf, sampleAnalysisEvidence } from "@/lib/researchTextMarkers";
@@ -140,14 +146,20 @@ const inferSectionFromHandoff = (handoff: ReviewToolHandoff) => {
 
 const DocumentAnalysis = () => {
   const { user } = useAuth();
+  const privateMarkingDisabled = !isPrivateResearchEnabled(user?.id || 'guest');
   const navigate = useNavigate();
   const location = useLocation();
   const [file, setFile] = useState<File | null>(null);
   const [manualText, setManualText] = useState("");
   const [manualFileName, setManualFileName] = useState("pasted-marking-guide-text.txt");
   const [handoff, setHandoff] = useState<ReviewToolHandoff | null>(null);
-  const [documentType, setDocumentType] = useState<"proposal" | "report">("report");
-  const [component, setComponent] = useState("full");
+  const [documentType, setDocumentType] = useState<"proposal" | "report">(() => new URLSearchParams(location.search).get('type') === 'proposal' ? 'proposal' : 'report');
+  const [component, setComponent] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    const options = params.get('type') === 'proposal' ? proposalSections : reportSections;
+    const part = params.get('part');
+    return options.some(option => option.value === part) ? part! : 'full';
+  });
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [activeRecord, setActiveRecord] = useState<StoredAnalysisRecord | null>(null);
@@ -155,10 +167,13 @@ const DocumentAnalysis = () => {
   const [cacheNotes, setCacheNotes] = useState<string[]>([]);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStage, setAnalysisStage] = useState("Preparing document");
+  const [processingConfirmed, setProcessingConfirmed] = useState(false);
+  const [keepDocument, setKeepDocument] = useState(false);
+  const [retentionBusy, setRetentionBusy] = useState(false);
 
   const sectionOptions = documentType === "report" ? reportSections : proposalSections;
   const scorePercent = useMemo(() => {
-    if (!result) return 0;
+    if (!result || !result.totalGuidelines) return 0;
     return Math.round((result.matchedGuidelines / result.totalGuidelines) * 100);
   }, [result]);
   const markedEvidence = useMemo(() => (result ? sampleAnalysisEvidence(result).slice(0, 5) : []), [result]);
@@ -203,8 +218,10 @@ const DocumentAnalysis = () => {
     sendCriterionToImprovement(sectionTitle, criterion);
   };
 
-  const restoreStoredAnalysisRecord = (record: StoredAnalysisRecord) => {
-    const restoredFile = new File([record.file], record.fileName, {
+  const restoreStoredAnalysisRecord = async (record: StoredAnalysisRecord) => {
+    try {
+    const blob = await readPrivateResearchFile(record);
+    const restoredFile = new File([blob], record.fileName, {
       type: record.fileType,
       lastModified: record.fileLastModified,
     });
@@ -214,9 +231,34 @@ const DocumentAnalysis = () => {
     setComponent(record.component);
     setResult(record.result);
     setActiveRecord(record);
+    setKeepDocument(Boolean(record.keepDocument));
     setCacheNotes(record.cacheNotes?.length ? record.cacheNotes : ["Saved marking-guide result restored."]);
     setAnalysisStatus("complete");
     toast.success("Saved marking-guide report opened");
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to open this document.'); }
+  };
+
+  const updateRetention = async (record: StoredAnalysisRecord) => {
+    setRetentionBusy(true);
+    try {
+      const updated = await setAnalysisDocumentRetention(record.id, user?.id || 'guest', !record.keepDocument);
+      setRecentRecords(current => current.map(item => item.id === updated.id ? updated : item));
+      if (activeRecord?.id === updated.id) { setActiveRecord(updated); setKeepDocument(Boolean(updated.keepDocument)); }
+      toast.success(updated.keepDocument ? 'Document kept until you delete it' : 'Automatic deletion set for seven days from now');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to change retention.'); }
+    finally { setRetentionBusy(false); }
+  };
+
+  const deleteStoredDocument = async (record: StoredAnalysisRecord) => {
+    if (!window.confirm('Delete this uploaded document and its marking result now?')) return;
+    setRetentionBusy(true);
+    try {
+      if (!await deleteAnalysisRecord(record.id, user?.id || 'guest')) throw new Error('Document unavailable.');
+      setRecentRecords(current => current.filter(item => item.id !== record.id));
+      if (activeRecord?.id === record.id) { setActiveRecord(null); setFile(null); setResult(null); setAnalysisStatus('idle'); }
+      toast.success('Document and result deleted');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to delete document.'); }
+    finally { setRetentionBusy(false); }
   };
 
   const exportStoredAnalysisRecord = (record: StoredAnalysisRecord) => {
@@ -256,11 +298,12 @@ const DocumentAnalysis = () => {
     let cancelled = false;
     const userId = user?.id || "guest";
 
-    getAnalysisRecord(routeAnalysisRecordId)
-      .then((record) => {
+    getAnalysisRecord(routeAnalysisRecordId, userId)
+      .then(async (record) => {
         if (cancelled || !record || record.userId !== userId) return;
-
-        const restoredFile = new File([record.file], record.fileName, {
+        const blob = await readPrivateResearchFile(record);
+        if (cancelled) return;
+        const restoredFile = new File([blob], record.fileName, {
           type: record.fileType,
           lastModified: record.fileLastModified,
         });
@@ -270,6 +313,7 @@ const DocumentAnalysis = () => {
         setComponent(record.component);
         setResult(record.result);
         setActiveRecord(record);
+        setKeepDocument(Boolean(record.keepDocument));
         setCacheNotes(record.cacheNotes?.length ? record.cacheNotes : ["Saved marking-guide result restored from dashboard."]);
         setAnalysisStatus("complete");
       })
@@ -343,6 +387,9 @@ const DocumentAnalysis = () => {
   const handleAnalyze = async () => {
     const sourceFile = file ?? (hasManualText ? buildManualTextFile() : null);
     if (!sourceFile) return;
+    if (privateMarkingDisabled) { toast.error('Private marking is not available until secure storage is activated.'); return; }
+    if (!processingConfirmed) { toast.error('Confirm the document is non-confidential and eligible for Gemini processing.'); return; }
+    if (!getBrowserGeminiApiKey()) { toast.error('Add your Gemini key in Settings before marking.'); return; }
     const userId = user?.id || "guest";
     setAnalysisStatus("analyzing");
     setResult(null);
@@ -375,6 +422,7 @@ const DocumentAnalysis = () => {
           documentType,
           component,
           file: sourceFile,
+          fileName: sourceFile.name,
           fingerprint,
           result: reusable.record.result,
           reusedFromId: reusable.record.id,
@@ -397,7 +445,11 @@ const DocumentAnalysis = () => {
 
       setAnalysisProgress(54);
       setAnalysisStage("Detecting sections and applying the relevant marking criteria");
-      const analysis = await analyzeDocument(sourceFile, documentType, component);
+      const analysis = await analyzeDocument(sourceFile, documentType, component, {
+        mode: 'strict', externalProcessingConfirmed: processingConfirmed,
+        identities: [user?.name || '', user?.email || ''],
+        onProgress: (done, total, section) => { setAnalysisProgress(54 + Math.round(done / total * 30)); setAnalysisStage(`Examining ${section}: ${done}/${total} criteria`); },
+      });
       setAnalysisProgress(88);
       setAnalysisStage("Saving the marked document and exact score");
       const record = await saveAnalysisRecord({
@@ -405,6 +457,8 @@ const DocumentAnalysis = () => {
         documentType,
         component,
         file: sourceFile,
+        fileName: sourceFile.name,
+        keepDocument,
         fingerprint,
         result: analysis,
         cacheNotes: reusable.notes,
@@ -466,7 +520,7 @@ const DocumentAnalysis = () => {
                 </div>
               </div>
               <div className="mt-4 grid gap-2 text-sm text-foreground/80">
-                <div className="rounded-lg border bg-muted/45 p-3">Methodology carries the largest section weight: 23 marks.</div>
+                <div className="rounded-lg border bg-muted/45 p-3">Methodology carries the largest report section weight: 22 marks.</div>
                 <div className="rounded-lg border bg-muted/45 p-3">Discussion, conclusion, recommendations, and practice implications carry 19 marks.</div>
                 <div className="rounded-lg border bg-muted/45 p-3">References and appendices are small but easy to lose marks on.</div>
               </div>
@@ -474,6 +528,7 @@ const DocumentAnalysis = () => {
           }
         />
 
+        {privateMarkingDisabled && <Alert className="mt-6"><AlertTitle>Private marking is coming soon</AlertTitle><AlertDescription>Document submission and marking are disabled while secure storage and automatic deletion are being set up. No document will be uploaded or sent for marking. You can still read the marking guide and continue writing your project.</AlertDescription></Alert>}
         <section className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
           <Card className="study-card animate-fade-up rounded-lg p-6 [animation-delay:120ms]">
             <WorkspaceSectionHeader
@@ -487,9 +542,9 @@ const DocumentAnalysis = () => {
               label="Research document"
               prompt="Choose your document"
               description="Select the proposal or report you want to check against the marking guide."
-              accept=".pdf,.doc,.docx"
+              accept=".pdf,.docx,.txt"
               fileName={file?.name}
-              disabled={analysisStatus === "analyzing"}
+              disabled={privateMarkingDisabled || analysisStatus === "analyzing"}
               onChange={handleFileChange}
             />
 
@@ -507,7 +562,7 @@ const DocumentAnalysis = () => {
                 value={manualText}
                 onChange={(event) => handleManualTextChange(event.target.value)}
                 placeholder="Paste a proposal section, full report text, or text sent from Human Review, Originality Check, or Improve Writing..."
-                disabled={analysisStatus === "analyzing"}
+                disabled={privateMarkingDisabled || analysisStatus === "analyzing"}
                 className="min-h-52 resize-y bg-white/80 leading-6"
               />
               <p className="text-xs leading-5 text-muted-foreground">
@@ -542,6 +597,7 @@ const DocumentAnalysis = () => {
               <div className="space-y-3">
                 <Label>Document type</Label>
                 <RadioGroup
+                  disabled={analysisStatus === 'analyzing'}
                   value={documentType}
                   onValueChange={(value) => {
                     setDocumentType(value as "proposal" | "report");
@@ -567,6 +623,7 @@ const DocumentAnalysis = () => {
               <div className="space-y-3">
                 <Label>Part to check</Label>
                 <Select
+                  disabled={analysisStatus === 'analyzing'}
                   value={component}
                   onValueChange={(value) => {
                     setComponent(value);
@@ -589,10 +646,24 @@ const DocumentAnalysis = () => {
                 </Select>
               </div>
 
+              <p className="text-xs leading-5 text-muted-foreground">{markingGuideAdaptation}</p>
+              <div className="space-y-3 border-t pt-4 text-sm">
+                <p>Uploads are private, not public links. Files and marking results expire after seven days unless you keep them. Expired files are removed by scheduled cleanup.</p>
+                <label className="flex items-start gap-3">
+                  <Checkbox checked={keepDocument} onCheckedChange={value => setKeepDocument(value === true)} disabled={analysisStatus === 'analyzing'} />
+                  <span>Keep this document until I delete it</span>
+                </label>
+                <p className="text-xs text-muted-foreground">Gemini receives extracted text using your key. Basic identity redaction is not anonymisation. Free-tier processing may be used by Google to improve its services. Remove patient details, confidential information and identifying data before proceeding.</p>
+                <label className="flex items-start gap-3">
+                  <Checkbox checked={processingConfirmed} onCheckedChange={value => setProcessingConfirmed(value === true)} disabled={analysisStatus === 'analyzing'} />
+                  <span>I have removed confidential/personal information and agree to send this research text to Gemini.</span>
+                </label>
+                <Link to="/settings" className="text-primary underline">Manage my Gemini key</Link>
+              </div>
               <Button
                 size="lg"
                 onClick={handleAnalyze}
-                disabled={(!file && !hasManualText) || analysisStatus === "analyzing"}
+                disabled={privateMarkingDisabled || (!file && !hasManualText) || !processingConfirmed || analysisStatus === "analyzing"}
                 className="w-full gap-2"
               >
                 {analysisStatus === "analyzing" ? (
@@ -645,6 +716,10 @@ const DocumentAnalysis = () => {
 
             {result && (
               <div className="space-y-5">
+                <Alert>
+                  <AlertTitle>{result.rubricScore?.provisional ? 'Provisional practice assessment' : 'Practice assessment, not an official UHPAB grade'}</AlertTitle>
+                  <AlertDescription>Marks require substantive evidence, not headings alone. Unassessable requirements receive no confirmed credit and need human review. Layout, source authenticity and scanned content cannot be certified from extracted text.</AlertDescription>
+                </Alert>
                 <WorkspaceStatusNote
                   tone={resultReused ? "success" : "info"}
                   icon={resultReused ? <RotateCcw size={18} /> : <CheckCircle2 size={18} />}
@@ -701,17 +776,20 @@ const DocumentAnalysis = () => {
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                   <div className="min-w-0">
                                     <p className="text-sm font-medium">{criterion.label}</p>
-                                    {criterion.evidenceSnippet && (
+                                    {criterion.evidenceSnippet && !criterion.found?.length && (
                                       <p className="mt-1 break-words text-xs leading-5 text-slate-600">
                                         {criterion.pageNumber ? `Page ${criterion.pageNumber}: ` : ""}
                                         {criterion.evidenceSnippet}
                                       </p>
                                     )}
-                                    {criterion.status !== "met" && (
+                                    {criterion.status !== "met" && !criterion.missing?.length && (
                                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
                                         {formatCriterionFinding(criterion.guidance, criterion.status)}
                                       </p>
                                     )}
+                                    {!!criterion.found?.length && <div className="mt-2 text-xs leading-5"><strong>Found</strong><ul className="list-disc pl-4">{criterion.found.map((finding, i) => <li key={i}>{finding}</li>)}</ul></div>}
+                                    {!!criterion.missing?.length && <div className="mt-2 text-xs leading-5"><strong>Missing / weak{criterion.assessmentState === 'unassessable' ? ' / needs human assessment' : ''}</strong><ul className="list-disc pl-4">{criterion.missing.map((finding, i) => <li key={i}>{finding}</li>)}</ul></div>}
+                                    {!!criterion.improvements?.length && <div className="mt-2 text-xs leading-5"><strong>Required improvement</strong><ul className="list-disc pl-4">{criterion.improvements.map((finding, i) => <li key={i}>{finding}</li>)}</ul></div>}
                                   </div>
                                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                                     <Badge variant="outline" className={statusStyles[criterion.status]}>
@@ -739,7 +817,7 @@ const DocumentAnalysis = () => {
                   </div>
                 )}
 
-                {markedEvidence.length > 0 && (
+                {markedEvidence.length > 0 && result.rubricScore?.assessmentMode !== 'strict' && (
                   <div className="rounded-lg border bg-white/80 p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
@@ -801,7 +879,7 @@ const DocumentAnalysis = () => {
           <Card className="study-card animate-fade-up rounded-lg p-6">
             <WorkspaceSectionHeader
               title="Stored document checks"
-              description="Upload history is stored locally in this browser with each file fingerprint and result."
+              description={usesPrivateCloud(user?.id || 'guest') ? 'Owner-only private storage. Seven-day deletion by default; choose Keep to retain a document.' : 'Local preview storage. Expired documents are removed when this browser opens the archive.'}
               actions={<WorkspaceCountBadge count={recentRecords.length} />}
             />
 
@@ -827,10 +905,13 @@ const DocumentAnalysis = () => {
                       <div className="flex flex-wrap gap-2 text-xs">
                         <span className="rounded-md bg-muted px-2 py-1">{Math.round(record.fileSize / 1024)} KB</span>
                         <span className="rounded-md bg-muted px-2 py-1">{record.pageCount ? `${record.pageCount} pages` : "pages unknown"}</span>
+                        <span>{record.keepDocument ? 'Kept until you delete it' : `Expires ${new Date(record.expiresAt || new Date(record.createdAt).getTime() + 7 * 86400000).toLocaleDateString()}`}</span>
                       </div>
                     }
                     actions={
                       <>
+                      <Button variant="outline" size="sm" disabled={retentionBusy} onClick={() => updateRetention(record)}>{record.keepDocument ? 'Use seven-day deletion' : 'Keep this document'}</Button>
+                      <Button variant="outline" size="sm" disabled={retentionBusy} onClick={() => deleteStoredDocument(record)}>Delete now</Button>
                       <Button
                         type="button"
                         variant="outline"

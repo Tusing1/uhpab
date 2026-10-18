@@ -4,6 +4,7 @@ const readEnv = (key: string) => {
 };
 
 export const runtimeConfig = {
+  privateResearchReady: readEnv('VITE_PRIVATE_RESEARCH_READY') === 'true',
   supabaseUrl: readEnv("VITE_SUPABASE_URL"),
   supabaseAnonKey: readEnv("VITE_SUPABASE_ANON_KEY"),
   googleAiApiKey: readEnv("VITE_GOOGLE_AI_API_KEY"),

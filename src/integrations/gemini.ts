@@ -4,6 +4,7 @@ import { runtimeConfig } from "@/lib/runtimeConfig";
 const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
 export interface GeminiResponse {
+  text?: string;
   output_text?: string;
   outputText?: string;
   steps?: Array<{
@@ -27,6 +28,7 @@ export interface GeminiResponse {
 }
 
 const extractGeminiText = (data: GeminiResponse) => {
+  if (data.text) return data.text;
   if (data.output_text) return data.output_text;
   if (data.outputText) return data.outputText;
 

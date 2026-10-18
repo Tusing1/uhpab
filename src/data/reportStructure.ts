@@ -1,6 +1,8 @@
 // Report structure derived from the official UHPAB guideline sections.
 
 import officialGuidelines from './uhpabOfficialGuidelines';
+import proposalStructure from './proposalStructure';
+import { getAppendixSections, subheadingTitle, type ResearchStructure } from './researchGuidelineRules';
 
 type OfficialGuideline = {
   section_id: string;
@@ -37,7 +39,6 @@ const childKeyMap: Record<string, string> = {
   title_page: 'titlePage',
   declaration: 'declaration',
   approval: 'approval',
-  supervisor_commitment: 'supervisorCommitment',
   dedication: 'dedication',
   acknowledgement: 'acknowledgement',
   table_of_contents: 'tableOfContents',
@@ -83,39 +84,13 @@ const childKeyMap: Record<string, string> = {
   chapter_5_4: 'implicationsToNursingPractice',
 };
 
-const defaultAppendixSections = {
-  workPlan: {
-    title: 'Appendix 1: Work plan',
-    description: 'Timeline or schedule used for completing the research work.',
-    requirements: ['Include major research activities', 'Show realistic timeframes']
-  },
-  budget: {
-    title: 'Appendix 2: Budget',
-    description: 'Estimated or actual budget for conducting the study.',
-    requirements: ['List budget items', 'Show quantities and costs where applicable']
-  },
-  consentForm: {
-    title: 'Appendix 3: Consent form',
-    description: 'Participant consent document used during data collection.',
-    requirements: ['Explain the study', 'Mention voluntary participation', 'Include signature lines']
-  },
-  tools: {
-    title: 'Appendix 4: Data collection tools',
-    description: 'Questionnaire, interview guide, checklist, or other study tool.',
-    requirements: ['Attach complete tools', 'Align questions with study objectives']
-  },
-  maps: {
-    title: 'Appendix 5: Maps',
-    description: 'Map of the study area where required.',
-    requirements: ['Use a clear map', 'Cite the map source where applicable']
-  }
-};
+const defaultAppendixSections = getAppendixSections('report');
 
 const toRootKey = (value: string) => rootKeyMap[normalizeReportId(value)] || toCamelKey(value);
 const toChildKey = (value: string) => childKeyMap[normalizeReportId(value)] || toCamelKey(value);
 
 const toStructureSection = (section: OfficialGuideline) => ({
-  title: section.section_name,
+  title: subheadingTitle(section.section_name),
   description: section.rules_and_guidelines[0] ?? '',
   requirements: section.rules_and_guidelines,
   formatting: [
@@ -130,7 +105,7 @@ const toStructureSection = (section: OfficialGuideline) => ({
 
 const reportStructure = (officialGuidelines as OfficialGuideline[])
   .filter((section) => !section.parent_section_id)
-  .reduce<Record<string, any>>((structure, root) => {
+  .reduce<ResearchStructure>((structure, root) => {
     const children = (officialGuidelines as OfficialGuideline[]).filter(
       (section) => section.parent_section_id === root.section_id
     );
@@ -142,7 +117,7 @@ const reportStructure = (officialGuidelines as OfficialGuideline[])
     }, {});
 
     structure[rootKey] = {
-      title: root.section_name,
+      title: /^chapter\b/i.test(root.section_name) ? root.section_name.toUpperCase() : root.section_name,
       description: root.rules_and_guidelines[0] ?? '',
       requirements: root.rules_and_guidelines,
       formatting: [
@@ -151,7 +126,7 @@ const reportStructure = (officialGuidelines as OfficialGuideline[])
       ]
         .filter(Boolean)
         .join(' '),
-      sections: rootKey === 'appendices' && Object.keys(childSections).length === 0
+      sections: rootKey === 'appendices'
         ? defaultAppendixSections
         : childSections
     };
@@ -159,4 +134,8 @@ const reportStructure = (officialGuidelines as OfficialGuideline[])
     return structure;
   }, {});
 
+// Chapters One and Two have the same numbered structure in both document types.
+// Reuse their contracts instead of maintaining another partial copy.
+reportStructure.chapter1 = { ...proposalStructure.chapter1, description: 'Introduces the completed research study; maintain its actual topic, objectives and scope.' };
+reportStructure.chapter2 = { ...proposalStructure.chapter2 };
 export default reportStructure;

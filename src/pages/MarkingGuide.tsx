@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { WorkspacePage, WorkspacePageHeader } from "@/components/workspace/WorkspacePage";
@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { markingGuideSourceUrl, reportMarkingGuide, totalMarkingGuideMarks } from "@/data/markingGuide";
+import { markingGuideSourceUrl, getDocumentMarkingGuide, markingGuideAdaptation } from "@/data/markingGuide";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -17,19 +18,22 @@ import {
 } from "lucide-react";
 
 const MarkingGuide = () => {
+  const [type, setType] = useState<'proposal' | 'report'>('report');
+  const reportMarkingGuide = getDocumentMarkingGuide(type);
+  const totalMarkingGuideMarks = reportMarkingGuide.reduce((sum, section) => sum + section.marks, 0);
   return (
     <DashboardLayout>
       <WorkspacePage>
         <WorkspacePageHeader
-          eyebrow="Research report marking guide"
+          eyebrow={`Research ${type} marking guide`}
           tone="success"
           icon={<GraduationCap size={14} />}
-          title="See exactly where the 100 marks come from"
-          description="Use this guide to revise each report section before running the document checker. The criteria are paraphrased from the published research report marking guide."
+          title={`See where the ${totalMarkingGuideMarks} practice marks come from`}
+          description={markingGuideAdaptation}
           actions={
             <>
               <Button asChild className="gap-2">
-                <Link to="/document-analysis">
+                <Link to={`/document-analysis?type=${type}`}>
                   Check my document
                   <ArrowRight size={16} />
                 </Link>
@@ -70,6 +74,8 @@ const MarkingGuide = () => {
           }
         />
 
+        <Tabs value={type} onValueChange={value => setType(value as 'proposal' | 'report')} className="mt-6"><TabsList><TabsTrigger value="proposal">Proposal</TabsTrigger><TabsTrigger value="report">Report</TabsTrigger></TabsList></Tabs>
+        <p className="mt-3 text-sm text-muted-foreground">Presence alone earns no quality marks. Every requirement is checked for study-specific substance. Proposal totals exclude report-only work; the percentage is normalised, not an official proposal allocation.</p>
         <section className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {reportMarkingGuide.map((section, index) => {
             const percentage = Math.round((section.marks / totalMarkingGuideMarks) * 100);
@@ -110,7 +116,7 @@ const MarkingGuide = () => {
                   <h2 className="text-xl font-semibold">{section.title}</h2>
                 </div>
                 <Button asChild variant="outline" size="sm" className="w-fit gap-2 bg-white/80">
-                  <Link to={`/document-analysis`}>
+                  <Link to={`/document-analysis?type=${type}&part=${section.id}`}>
                     Run check
                     <FileSearch size={15} />
                   </Link>
@@ -127,6 +133,7 @@ const MarkingGuide = () => {
                       </Badge>
                     </div>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{criterion.guidance}</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-5 text-muted-foreground">{criterion.standards?.map(standard => <li key={standard}>{standard}</li>)}</ul>
                   </div>
                 ))}
               </div>

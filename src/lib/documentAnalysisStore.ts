@@ -1,9 +1,10 @@
 import type { AnalysisResult, DocumentType } from "@/utils/documentAnalysis";
+import { usesPrivateCloud, listPrivateResearchRecords, getPrivateResearchRecord, savePrivateResearchRecord, keepPrivateResearchDocument, deletePrivateResearchDocument, defaultDocumentExpiry, isResearchDocumentExpired } from './privateResearchStorage';
 
 const DB_NAME = "uhpab-document-analysis";
 const DB_VERSION = 1;
 const STORE_NAME = "analysisDocuments";
-export const ANALYSIS_ENGINE_VERSION = 5;
+export const ANALYSIS_ENGINE_VERSION = 7;
 
 export type DocumentFingerprint = {
   contentHash: string;
@@ -28,6 +29,9 @@ export type StoredAnalysisRecord = {
   analysisRuns: number;
   cacheNotes: string[];
   engineVersion?: number;
+  storagePath?: string;
+  expiresAt?: string | null;
+  keepDocument?: boolean;
 };
 
 type AnalysisLookup = {
@@ -43,6 +47,7 @@ type SaveAnalysisInput = AnalysisLookup & {
   result: AnalysisResult;
   reusedFromId?: string;
   cacheNotes?: string[];
+  keepDocument?: boolean;
 };
 
 const hasIndexedDb = () => typeof indexedDB !== "undefined";
@@ -69,7 +74,19 @@ const openAnalysisDb = () =>
     };
 
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = async () => {
+      const db = request.result;
+      try {
+        const records = await requestToPromise<StoredAnalysisRecord[]>(transactionStore(db, 'readonly').getAll());
+        const expired = records.filter(record => isResearchDocumentExpired(record));
+        if (expired.length) {
+          const store = transactionStore(db, 'readwrite');
+          const pending = expired.map(record => requestToPromise(store.delete(record.id)));
+          await Promise.all(pending);
+        }
+        resolve(db);
+      } catch (error) { db.close(); reject(error); }
+    };
   });
 
 const transactionStore = (db: IDBDatabase, mode: IDBTransactionMode) =>
@@ -125,6 +142,11 @@ export const findReusableAnalysis = async ({
   fingerprint,
 }: AnalysisLookup): Promise<{ record: StoredAnalysisRecord | null; notes: string[] }> => {
   const notes: string[] = [];
+  if (usesPrivateCloud(userId)) {
+    const records = await listPrivateResearchRecords(userId, 100);
+    const record = records.find(item => item.contentHash === fingerprint.contentHash && item.documentType === documentType && item.component === component && item.engineVersion === ANALYSIS_ENGINE_VERSION && item.result.rubricScore?.assessmentMode === 'strict');
+    return { record: record || null, notes: record ? ['Same file fingerprint found. Returning the saved private examiner review without extending its deadline.'] : [] };
+  }
   const db = await openAnalysisDb();
 
   try {
@@ -136,7 +158,7 @@ export const findReusableAnalysis = async ({
     );
     const exactMatch = exactMatches.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
 
-    if (exactMatch && exactMatch.engineVersion === ANALYSIS_ENGINE_VERSION) {
+    if (exactMatch && exactMatch.engineVersion === ANALYSIS_ENGINE_VERSION && exactMatch.result.rubricScore?.assessmentMode === 'strict') {
       notes.push("Same file fingerprint found. Returning the saved analysis result.");
       return { record: exactMatch, notes };
     }
@@ -181,7 +203,9 @@ export const saveAnalysisRecord = async ({
   result,
   reusedFromId,
   cacheNotes = [],
+  keepDocument = false,
 }: SaveAnalysisInput): Promise<StoredAnalysisRecord> => {
+  if (usesPrivateCloud(userId)) return savePrivateResearchRecord({ userId, documentType, component, file, fingerprint, result, reusedFromId, cacheNotes, keepDocument, engineVersion: ANALYSIS_ENGINE_VERSION });
   const db = await openAnalysisDb();
   const now = new Date().toISOString();
 
@@ -223,6 +247,8 @@ export const saveAnalysisRecord = async ({
           result,
           file,
           createdAt: now,
+          expiresAt: keepDocument ? null : defaultDocumentExpiry(),
+          keepDocument,
           updatedAt: now,
           analysisRuns: 1,
           cacheNotes,
@@ -237,6 +263,7 @@ export const saveAnalysisRecord = async ({
 };
 
 export const listAnalysisRecords = async (userId: string, limit = 6): Promise<StoredAnalysisRecord[]> => {
+  if (usesPrivateCloud(userId)) return listPrivateResearchRecords(userId, limit);
   const db = await openAnalysisDb();
 
   try {
@@ -252,7 +279,8 @@ export const listAnalysisRecords = async (userId: string, limit = 6): Promise<St
   }
 };
 
-export const getAnalysisRecord = async (recordId: string): Promise<StoredAnalysisRecord | null> => {
+export const getAnalysisRecord = async (recordId: string, userId?: string): Promise<StoredAnalysisRecord | null> => {
+  if (userId && usesPrivateCloud(userId)) return getPrivateResearchRecord(recordId);
   const db = await openAnalysisDb();
 
   try {
@@ -267,6 +295,7 @@ export const getAnalysisRecord = async (recordId: string): Promise<StoredAnalysi
 };
 
 export const deleteAnalysisRecord = async (recordId: string, userId: string): Promise<boolean> => {
+  if (usesPrivateCloud(userId)) return deletePrivateResearchDocument(recordId, userId);
   const db = await openAnalysisDb();
 
   try {
@@ -280,4 +309,16 @@ export const deleteAnalysisRecord = async (recordId: string, userId: string): Pr
   } finally {
     db.close();
   }
+};
+
+export const setAnalysisDocumentRetention = async (recordId: string, userId: string, keep: boolean) => {
+  if (usesPrivateCloud(userId)) return keepPrivateResearchDocument(recordId, keep);
+  const db = await openAnalysisDb();
+  try {
+    const record = await requestToPromise<StoredAnalysisRecord | undefined>(transactionStore(db, 'readonly').get(recordId));
+    if (!record || record.userId !== userId) throw new Error('The document is expired or unavailable.');
+    const updated = { ...record, keepDocument: keep, expiresAt: keep ? null : defaultDocumentExpiry() };
+    await requestToPromise(transactionStore(db, 'readwrite').put(updated));
+    return updated;
+  } finally { db.close(); }
 };

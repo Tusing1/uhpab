@@ -31,7 +31,6 @@ import {
   ANALYSIS_ENGINE_VERSION,
   deleteAnalysisRecord,
   listAnalysisRecords,
-  saveAnalysisRecord,
   type StoredAnalysisRecord,
 } from "@/lib/documentAnalysisStore";
 import { sanitizeFileName, triggerBrowserDownload } from "@/lib/download";
@@ -61,7 +60,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { analyzeDocument } from "@/utils/documentAnalysis";
+import { readPrivateResearchFile } from "@/lib/privateResearchStorage";
 
 type ArchiveFilter = "all" | "analysis" | "improvement" | "humanizer" | "originality";
 
@@ -115,7 +114,7 @@ export const ReviewArchivePanel = ({ className }: ReviewArchivePanelProps) => {
   const [filter, setFilter] = useState<ArchiveFilter>("all");
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [recheckingRecordId, setRecheckingRecordId] = useState<string | null>(null);
+  const recheckingRecordId: string | null = null;
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -210,45 +209,8 @@ export const ReviewArchivePanel = ({ className }: ReviewArchivePanelProps) => {
       return;
     }
 
-    setRecheckingRecordId(record.id);
-    try {
-      const file = new File([record.file], record.fileName, {
-        type: record.fileType,
-        lastModified: record.fileLastModified,
-      });
-      const result = await analyzeDocument(file, record.documentType, record.component);
-      const updatedRecord = await saveAnalysisRecord({
-        userId,
-        documentType: record.documentType,
-        component: record.component,
-        fileName: record.fileName,
-        file,
-        fingerprint: {
-          contentHash: record.contentHash,
-          pageCount: record.pageCount,
-        },
-        result,
-        reusedFromId: record.id,
-        cacheNotes: ["Rechecked with the current marking engine using the stored original file."],
-      });
-
-      setAnalysisRecords((current) =>
-        current
-          .map((item) => (item.id === updatedRecord.id ? updatedRecord : item))
-          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      );
-      const rubric = updatedRecord.result.rubricScore;
-      toast.success(
-        rubric
-          ? `Recheck complete: ${rubric.awarded}/${rubric.total} marks`
-          : "Recheck complete"
-      );
-    } catch (error) {
-      console.error("Failed to recheck saved document:", error);
-      toast.error(error instanceof Error ? error.message : "The saved document could not be rechecked");
-    } finally {
-      setRecheckingRecordId(null);
-    }
+    navigate('/document-analysis', { state: { documentAnalysisRecordId: record.id } });
+    toast.info('Confirm external processing, then start a fresh examiner review.');
   };
 
   const deleteArchiveItem = async (item: ArchiveItem) => {
@@ -329,11 +291,14 @@ export const ReviewArchivePanel = ({ className }: ReviewArchivePanelProps) => {
     );
   };
 
-  const downloadSource = (item: ArchiveItem) => {
+  const downloadSource = async (item: ArchiveItem) => {
     if (item.kind === "analysis") {
-      const url = URL.createObjectURL(item.record.file);
+      try {
+      const blob = await readPrivateResearchFile(item.record);
+      const url = URL.createObjectURL(blob);
       triggerBrowserDownload(url, sanitizeFileName(item.record.fileName));
       window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+      } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to retrieve private document.'); }
       return;
     }
 

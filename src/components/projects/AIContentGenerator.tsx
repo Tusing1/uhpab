@@ -30,96 +30,14 @@ interface AIContentGeneratorProps {
 
 // Enhanced research components based on UHPAB guidelines
 const generateResearchComponents = (projectType: 'proposal' | 'report') => {
-  if (projectType === 'proposal') {
-    return [
-      // Preliminary Pages
-      { id: 'titlePage', label: 'Title Page', section: 'preliminaryPages', field: 'titlePage', description: 'Contains title, your name, and other important information' },
-      { id: 'declaration', label: 'Declaration', section: 'preliminaryPages', field: 'declaration', description: 'Statement declaring originality of work' },
-      { id: 'approvalSheet', label: 'Proposal Approval Form', section: 'preliminaryPages', field: 'approvalSheet', description: 'Sheet for supervisor approval' },
-      { id: 'commitment', label: 'Commitment Form', section: 'preliminaryPages', field: 'commitmentForm', description: 'Supervisor commitment statement' },
-      { id: 'acronyms', label: 'List of Acronyms', section: 'preliminaryPages', field: 'acronyms', description: 'Alphabetical list of all acronyms used' },
-      { id: 'operationalDefs', label: 'Operational Definitions', section: 'preliminaryPages', field: 'operationalDefinitions', description: 'Definitions of key terms' },
-      { id: 'tableOfContents', label: 'Table of Contents', section: 'preliminaryPages', field: 'tableOfContents', description: 'List of all sections with page numbers' },
-      
-      // Chapter 1
-      { id: 'background', label: 'Background', section: 'chapter1', field: 'background', description: 'Overview of the research area (max 2 pages)' },
-      { id: 'problemStatement', label: 'Problem Statement', section: 'chapter1', field: 'problemStatement', description: 'Clear description of the problem (max half page)' },
-      { id: 'researchObjectives', label: 'Research Objectives', section: 'chapter1', field: 'researchObjectives', description: 'General and specific objectives' },
-      { id: 'purpose', label: 'Purpose / General Objective', section: 'chapter1', field: 'purpose', description: 'Overall aim of the research' },
-      { id: 'objectives', label: 'Specific Objectives', section: 'chapter1', field: 'objectives', description: 'SMART objectives (2-3)' },
-      { id: 'researchQuestions', label: 'Research Questions', section: 'chapter1', field: 'researchQuestions', description: 'Questions derived from objectives' },
-      { id: 'justification', label: 'Justification', section: 'chapter1', field: 'justification', description: 'Rationale for conducting the study' },
-      { id: 'significance', label: 'Significance', section: 'chapter1', field: 'significance', description: 'Contribution to stakeholders' },
-      { id: 'scope', label: 'Scope of the Study', section: 'chapter1', field: 'scope', description: 'Content, geographical area and time span' },
-      
-      // Chapter 2
-      { id: 'literatureReview', label: 'Literature Review', section: 'chapter2', field: 'literatureReview', description: 'Review of existing literature (3-5 pages)' },
-      
-      // Chapter 3 - Grouped methodology components
-      { id: 'methodologyPart1', label: 'Methodology (Introduction, Design & Setting)', section: 'chapter3', field: 'methodologyPart1', description: 'Research design, methods and setting (3.0-3.5)' },
-      { id: 'methodologyPart2', label: 'Methodology (Population, Sampling & Variables)', section: 'chapter3', field: 'methodologyPart2', description: 'Population, sampling methods and study variables (3.6-3.10)' },
-      { id: 'methodologyPart3', label: 'Methodology (Data Collection & Analysis)', section: 'chapter3', field: 'methodologyPart3', description: 'Data collection, analysis and ethical considerations (3.11-end)' },
-      
-      // References and Appendices
-      { id: 'references', label: 'References', section: 'references', field: 'references', description: 'List of all sources (APA 7th Edition)' },
-      { id: 'workPlan', label: 'Work Plan', section: 'appendices', field: 'workPlan', description: 'Timeline for research process' },
-      { id: 'budget', label: 'Budget', section: 'appendices', field: 'budget', description: 'Estimated costs for the research' },
-      { id: 'consentForm', label: 'Consent Form', section: 'appendices', field: 'consentForm', description: 'Draft of informed consent document' },
-      { id: 'dataTools', label: 'Data Collection Tools', section: 'appendices', field: 'dataCollectionTools', description: 'Draft questionnaires, interview guides, etc.' },
-    ];
-  } else {
-    return [
-      // Preliminary Pages for Report
-      { id: 'titlePage', label: 'Title Page', section: 'preliminaryPages', field: 'titlePage', description: 'Contains title, your name, and other important information' },
-      { id: 'declaration', label: 'Declaration', section: 'preliminaryPages', field: 'declaration', description: 'Statement declaring originality of work' },
-      { id: 'approval', label: 'Approval', section: 'preliminaryPages', field: 'approval', description: 'Research approval format with signatures' },
-      { id: 'commitment', label: 'Supervisor Commitment', section: 'preliminaryPages', field: 'commitment', description: 'Statement signed by supervisor' },
-      { id: 'authorization', label: 'Authorization & Copyright', section: 'preliminaryPages', field: 'authorization', description: 'Statement about report availability' },
-      { id: 'dedication', label: 'Dedication', section: 'preliminaryPages', field: 'dedication', description: 'Optional page to dedicate work' },
-      { id: 'acknowledgement', label: 'Acknowledgement', section: 'preliminaryPages', field: 'acknowledgement', description: 'Thank individuals and institutions' },
-      { id: 'tableOfContents', label: 'Table of Contents', section: 'preliminaryPages', field: 'tableOfContents', description: 'List of all sections with page numbers' },
-      { id: 'listOfTables', label: 'List of Tables', section: 'preliminaryPages', field: 'listOfTables', description: 'List all tables with titles and page numbers' },
-      { id: 'listOfFigures', label: 'List of Figures', section: 'preliminaryPages', field: 'listOfFigures', description: 'List all figures with titles and page numbers' },
-      { id: 'acronyms', label: 'List of Acronyms', section: 'preliminaryPages', field: 'listOfAcronyms', description: 'Alphabetical list of all acronyms' },
-      { id: 'definitionOfTerms', label: 'Definition of Terms', section: 'preliminaryPages', field: 'definitionOfTerms', description: 'Define key terms as used in context' },
-      { id: 'abstract', label: 'Abstract', section: 'preliminaryPages', field: 'abstract', description: 'Summary of research (max 300 words)' },
-      
-      // Chapter 1-3 (Same as proposal)
-      { id: 'background', label: 'Background', section: 'chapter1', field: 'background', description: 'Overview of the research area' },
-      { id: 'problemStatement', label: 'Problem Statement', section: 'chapter1', field: 'problemStatement', description: 'Clear description of the problem' },
-      { id: 'researchObjectives', label: 'Research Objectives', section: 'chapter1', field: 'researchObjectives', description: 'General and specific objectives' },
-      { id: 'purpose', label: 'Purpose / General Objective', section: 'chapter1', field: 'purpose', description: 'Overall aim of the research' },
-      { id: 'objectives', label: 'Specific Objectives', section: 'chapter1', field: 'objectives', description: 'SMART objectives' },
-      { id: 'researchQuestions', label: 'Research Questions', section: 'chapter1', field: 'researchQuestions', description: 'Questions derived from objectives' },
-      { id: 'justification', label: 'Justification', section: 'chapter1', field: 'justification', description: 'Rationale for conducting the study' },
-      { id: 'significance', label: 'Significance', section: 'chapter1', field: 'significance', description: 'Contribution to stakeholders' },
-      { id: 'scope', label: 'Scope of the Study', section: 'chapter1', field: 'scope', description: 'Content, geographical area and time span' },
-      { id: 'literatureReview', label: 'Literature Review', section: 'chapter2', field: 'literatureReview', description: 'Review of existing literature' },
-      
-      // Methodology - Grouped components for report
-      { id: 'methodologyPart1', label: 'Methodology (Introduction, Design & Setting)', section: 'chapter3', field: 'methodologyPart1', description: 'Research design, methods and setting (3.0-3.5)' },
-      { id: 'methodologyPart2', label: 'Methodology (Population, Sampling & Variables)', section: 'chapter3', field: 'methodologyPart2', description: 'Population, sampling methods and study variables (3.6-3.10)' },
-      { id: 'methodologyPart3', label: 'Methodology (Data Collection & Analysis)', section: 'chapter3', field: 'methodologyPart3', description: 'Data collection, analysis and ethical considerations (3.11-end)' },
-      
-      // Chapter 4 (Results)
-      { id: 'findings', label: 'Findings Introduction', section: 'chapter4', field: 'introduction', description: 'Description of sample size and presentation methods' },
-      { id: 'demographics', label: 'Demographics', section: 'chapter4', field: 'demographics', description: 'Participant demographics' },
-      { id: 'objective1Findings', label: 'Objective 1 Findings', section: 'chapter4', field: 'objective1Findings', description: 'Results related to first objective' },
-      { id: 'objective2Findings', label: 'Objective 2 Findings', section: 'chapter4', field: 'objective2Findings', description: 'Results related to second objective' },
-      { id: 'objective3Findings', label: 'Objective 3 Findings', section: 'chapter4', field: 'objective3Findings', description: 'Results related to third objective' },
-      
-      // Chapter 5 (Conclusion)
-      { id: 'discussion', label: 'Discussion', section: 'chapter5', field: 'discussion', description: 'Interpretation of findings (2-3 pages)' },
-      { id: 'limitations', label: 'Limitations', section: 'chapter5', field: 'limitations', description: 'Constraints encountered' },
-      { id: 'conclusions', label: 'Conclusions', section: 'chapter5', field: 'conclusions', description: 'Summary of key findings' },
-      { id: 'recommendations', label: 'Recommendations', section: 'chapter5', field: 'recommendations', description: 'Suggested actions (max 4)' },
-      { id: 'implications', label: 'Implications', section: 'chapter5', field: 'implications', description: 'Relevance to nursing practice' },
-      
-      // References and Appendices
-      { id: 'references', label: 'References', section: 'references', field: 'references', description: 'List of all sources (APA 7th Edition)' },
-      { id: 'appendices', label: 'Appendices', section: 'appendices', field: 'appendices', description: 'Supplementary materials' },
-    ];
-  }
+  const structure = projectType === 'report' ? reportStructure : proposalStructure;
+  return Object.entries(structure).flatMap(([section, chapter]) => {
+    const children = chapter.sections || {};
+    if (!Object.keys(children).length) return [{ id: section, label: chapter.title, section, field: 'content', description: chapter.description }];
+    return Object.entries(children).map(([field, child]) => ({
+      id: `${section}:${field}`, label: child.title, section, field, description: child.description,
+    }));
+  });
 };
 
 // Function to get all project content as context for reference generation
@@ -244,19 +162,9 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
         .join('\n');
       
       // Special handling for references to collect citations from the whole project
-      if (selectedComponent === 'references') {
+      if (selectedObj.section === 'references') {
         const allProjectContent = getProjectContentAsString(project);
         promptPrefix = `Extract all citations from the following research content and create a proper References section in APA 7th Edition format. Include only references that are actually cited in the content:\n\n${allProjectContent}\n\n`;
-      }
-      // Special handling for methodology sections to generate in chunks
-      else if (selectedComponent.startsWith('methodology')) {
-        if (selectedComponent === 'methodologyPart1') {
-          promptPrefix = `Create sections 3.0 (Introduction) through 3.5 (Study Setting) for the Methodology chapter according to UHPAB guidelines for a ${project.type} titled: "${project.title}". Include appropriate subsections and maintain proper formatting.\n\n`;
-        } else if (selectedComponent === 'methodologyPart2') {
-          promptPrefix = `Create sections 3.6 (Study Population) through 3.10 (Study Variables) for the Methodology chapter according to UHPAB guidelines for a ${project.type} titled: "${project.title}". Include appropriate subsections and maintain proper formatting.\n\n`;
-        } else if (selectedComponent === 'methodologyPart3') {
-          promptPrefix = `Create sections 3.11 (Research Instruments) through the end of the Methodology chapter according to UHPAB guidelines for a ${project.type} titled: "${project.title}". Include appropriate subsections and maintain proper formatting.\n\n`;
-        }
       }
       
       const basePrompt = generationMode === 'improve' && existingContent 
@@ -265,21 +173,24 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
       
       const fullPrompt = promptPrefix + basePrompt + (contextPrompt 
         ? `\n\nAdditional context provided by the user: ${contextPrompt}` 
-        : '') + (profileContext ? `\n\nUse these saved student details when the section requires identity, school, class, HTIN, signatures, title page details, declaration, approval, commitment, consent, or submission wording:\n${profileContext}` : '');
+        : '') + (profileContext ? `\n\nUse these saved student details only for required candidate identity, HTIN, submission, declaration, approval or consent fields. No supervisor details on the title page:\n${profileContext}` : '');
       
       const chapterOne = project.chapters.chapter1 as Record<string, unknown> | undefined;
-      const componentId = selectedObj.id === 'purpose' ? 'generalObjective' : selectedObj.id === 'objectives' ? 'specificObjectives' : selectedObj.id;
+      const componentId = selectedObj.field;
       const isFormulation = selectedObj.section === 'chapter1' && ['generalObjective', 'specificObjectives', 'researchQuestions', 'researchObjectives'].includes(componentId);
-      const response = await generateResearchComponent(selectedObj.label, fullPrompt, project.type, isFormulation ? {
+      const response = await generateResearchComponent(selectedObj.label, fullPrompt, project.type, {
         projectTitle: project.title,
         projectType: project.type,
-        sectionKey: 'chapter1',
+        sectionKey: selectedObj.section,
         componentId,
         componentLabel: selectedObj.label,
         currentDraft: existingContent,
+        studyContext: fullPrompt,
+        knownSources: Array.isArray(project.chapters._sourcesLibrary) ? project.chapters._sourcesLibrary : [],
         specificObjectives: String(chapterOne?.specificObjectives || chapterOne?.objectives || ''),
         objectiveCount: project.chapters._objectiveCount === 2 ? 2 : 3,
-      } : undefined);
+        guidelines: ((project.type === 'report' ? reportStructure : proposalStructure)[selectedObj.section]?.sections?.[selectedObj.field]),
+      });
       
       if (response.error) {
         throw new Error(response.error);
@@ -347,23 +258,7 @@ export const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({ project,
         updatedProject.chapters[selectedObj.section] = {};
       }
       
-      // Handle methodology parts to map to the correct sections in the project
-      if (selectedComponent === 'methodologyPart1') {
-        // Parse the content and distribute to proper fields for introduction through study setting
-        (updatedProject.chapters.chapter3 as any).introduction = generatedContent;
-      } 
-      else if (selectedComponent === 'methodologyPart2') {
-        // Parse the content and distribute to proper fields for population through study variables  
-        (updatedProject.chapters.chapter3 as any).studyPopulation = generatedContent;
-      }
-      else if (selectedComponent === 'methodologyPart3') {
-        // Parse the content and distribute to proper fields for research instruments through end
-        (updatedProject.chapters.chapter3 as any).dataCollection = generatedContent;
-      }
-      else {
-        // Update the specific field for non-methodology components
-        (updatedProject.chapters[selectedObj.section] as any)[selectedObj.field] = generatedContent;
-      }
+      (updatedProject.chapters[selectedObj.section] as any)[selectedObj.field] = generatedContent;
       
       // Update the progress for this section
       updatedProject.progress[selectedObj.section as keyof typeof updatedProject.progress] += 10;

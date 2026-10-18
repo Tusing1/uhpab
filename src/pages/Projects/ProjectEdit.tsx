@@ -79,6 +79,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { generateContent } from '@/integrations/gemini';
 import { ResearchFormulationError } from '@/lib/researchFormulation';
+import { legacySectionAliases } from '@/data/researchGuidelineRules';
 import {
   buildChapterOneCombinedPrompt,
   buildUhpabGenerationPrompt,
@@ -100,89 +101,10 @@ const projectDownloadSteps = [
 ];
 
 const buildDefaultChapters = (projectType: 'proposal' | 'report') => {
-  const base: any = {
-    preliminaryPages: {
-      titlePage: '',
-      declaration: '',
-      approval: '',
-      supervisorCommitment: '',
-      tableOfContents: '',
-      acronyms: '',
-      definitions: ''
-    },
-    chapter1: {
-      introduction: '',
-      background: '',
-      statementOfProblem: '',
-      researchObjectives: '',
-      generalObjective: '',
-      specificObjectives: '',
-      researchQuestions: '',
-      justification: '',
-      significance: '',
-      scope: ''
-    },
-    chapter2: {
-      introduction: '',
-      body: ''
-    },
-    chapter3: {
-      introduction: '',
-      studyDesign: '',
-      studySetting: '',
-      studyPopulation: '',
-      sampleSize: '',
-      samplingMethod: '',
-      inclusionExclusion: '',
-      studyVariables: '',
-      researchInstruments: '',
-      dataCollection: '',
-      dataManagement: '',
-      dataPresentation: '',
-      qualityControl: '',
-      ethicalConsiderations: '',
-      limitations: '',
-      dissemination: ''
-    },
-    references: { content: '' },
-    appendices: {
-      workPlan: '',
-      budget: '',
-      consentForm: '',
-      tools: '',
-      maps: ''
-    }
-  };
-
-  if (projectType === 'report') {
-    base.preliminaryPages = {
-      titlePage: '',
-      iDeclaration: '',
-      iiApproval: '',
-      iiiCommitmentByResearchSupervisor: '',
-      ivDedication: '',
-      vAcknowledgement: '',
-      viTableOfContents: '',
-      viiListOfTablesPicturesAndFigures: '',
-      viiiAbbreviationsAcronyms: '',
-      ixOperationalDefinitions: '',
-      xAbstract: ''
-    };
-    base.chapter4 = {
-      introduction: '',
-      demographicCharacteristics: '',
-      objectiveFindings: ''
-    };
-    base.chapter5 = {
-      introduction: '',
-      discussionOfFindings: '',
-      recommendations: '',
-      conclusions: '',
-      implicationsToNursingPractice: ''
-    };
-  }
-
-  return base;
+  const structure = projectType === 'report' ? reportStructure : proposalStructure;
+  return Object.fromEntries(Object.entries(structure).map(([key, section]) => [
+    key, section.sections ? Object.fromEntries(Object.keys(section.sections).map(field => [field, ''])) : { content: '' },
+  ]));
 };
 
 const buildDefaultProgress = (projectType: 'proposal' | 'report') => ({
@@ -200,13 +122,8 @@ const autoFilledComponentIds = new Set([
   'declaration',
   'approval',
   'approvalSheet',
-  'supervisorCommitment',
-  'commitment',
-  'commitmentForm',
   'iDeclaration',
   'iiApproval',
-  'iiiCommitmentByResearchSupervisor',
-  'authorization',
   'viTableOfContents',
   'tableOfContents',
   'viiListOfTablesPicturesAndFigures',
@@ -250,19 +167,25 @@ const contentAliases: Record<string, string[]> = {
   body: ['content', 'literatureReview'],
   dataManagement: ['dataAnalysis'],
   qualityControl: ['qualityAssurance'],
-  supervisorCommitment: ['commitmentForm', 'commitment'],
-  approval: ['approvalSheet'],
   definitions: ['operationalDefinitions', 'definitionOfTerms'],
   acronyms: ['listOfAcronyms'],
   demographicCharacteristics: ['demographics'],
   discussionOfFindings: ['discussion'],
   limitationsOfTheStudy: ['limitations'],
-  implicationsToNursingPractice: ['implications']
+  implicationsToNursingPractice: ['implications'],
+  ...legacySectionAliases,
 };
 
 const getComponentContent = (chapters: any, section: string, component: string) => {
   const sectionData = chapters?.[section] || {};
   const directValue = sectionData[component];
+  if (section === 'appendices' && component === 'ethicalRequirements' && !directValue) {
+    return ['consentForm', 'approvalLetters', 'introductionLetter', 'schoolApprovals'].map(key => sectionData[key]).filter(value => typeof value === 'string' && value.trim()).join('\n');
+  }
+  if (section === 'preliminaryPages' && typeof directValue === 'string') {
+    if (component === 'titlePage' && /supervisor|qualifications/i.test(directValue)) return '';
+    if (component === 'tableOfContents' && /commitment|authorization|copyright/i.test(directValue)) return '';
+  }
   if (typeof directValue === 'string' && directValue.trim()) return directValue;
 
   for (const alias of contentAliases[component] || []) {
@@ -288,6 +211,7 @@ const getAutoFilledPreview = (component: string, projectTitle: string, user: any
       `<p>BY<br/>${name.toUpperCase()}<br/>HTIN: ${htin}</p>`,
       `<p>A ${documentLabel.toUpperCase()} SUBMITTED TO UGANDA HEALTH PROFESSIONS ASSESSMENT BOARD IN PARTIAL FULFILMENT OF THE REQUIREMENTS FOR THE AWARD OF ${course.toUpperCase()}.</p>`,
       `<p>${school.toUpperCase()}</p>`,
+      `<p>${new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Africa/Kampala' }).toUpperCase()}</p>`,
       `</div>`
     ].join('');
   }
@@ -298,10 +222,6 @@ const getAutoFilledPreview = (component: string, projectTitle: string, user: any
 
   if (['approval', 'approvalSheet', 'iiApproval'].includes(component)) {
     return `<p>This ${documentLabel} has been submitted with the approval of the research supervisor and institution.</p><p>Supervisor: __________________ Signature: __________________ Date: __________________</p><p>Principal: __________________ Signature: __________________ Date: __________________</p>`;
-  }
-
-  if (['supervisorCommitment', 'commitment', 'commitmentForm', 'iiiCommitmentByResearchSupervisor'].includes(component)) {
-    return `<p>The research supervisor commits to guide ${name} while conducting the study titled "${title}".</p><p>Supervisor signature: __________________ Date: __________________</p><p>Principal witness/stamp: __________________</p>`;
   }
 
   if (['tableOfContents', 'viTableOfContents'].includes(component)) {
@@ -727,7 +647,7 @@ const runUhpabChecks = (projectData: any, formData: any, citationKeys: string[],
   checks.push({
     label: 'Reference age',
     status: oldReferenceEntries.length ? 'Needs attention' : 'Passed',
-    detail: oldReferenceEntries.length ? `${oldReferenceEntries.length} source(s) are older than 10 years.` : 'No unaccepted old sources found.',
+    detail: oldReferenceEntries.length ? `${oldReferenceEntries.length} source(s) are older than 10 years relative to the research year.` : 'No sources outside the ten-year window found.',
     section: 'references'
   });
   if (projectData?.type === 'report') {
@@ -1034,19 +954,7 @@ const ProjectEdit = () => {
 
   const getGuidelineForComponent = (component: string) => {
     const structure = projectData?.type === 'report' ? reportStructure : proposalStructure;
-    
-    for (const sectionKey in structure) {
-      const section = structure[sectionKey];
-      if (!section.sections) continue;
-      
-      for (const compKey in section.sections) {
-        const comp = section.sections[compKey];
-        if (compKey === component) {
-          return comp;
-        }
-      }
-    }
-    return null;
+    return structure[selectedSection]?.sections?.[component] || null;
   };
 
   const handleImproveWithAI = async (action = 'improve') => {
@@ -1096,7 +1004,8 @@ const ProjectEdit = () => {
         currentDraft: temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent),
         specificObjectives: getComponentContent(formData.chapters, 'chapter1', 'specificObjectives'),
         objectiveCount: formData.chapters._objectiveCount === 2 ? 2 : 3,
-        knownSources
+        knownSources,
+        studyContext: JSON.stringify({ researchYear: Number(formData.chapters._researchYear) || new Date(projectData?.createdAt || Date.now()).getFullYear(), methodology: formData.chapters.chapter3, findings: formData.chapters.chapter4, registeredResults: formData.chapters._tableFigureRegister })
       };
       const sectionContract = getUhpabSectionContract(writingContext);
 
@@ -1183,60 +1092,9 @@ const ProjectEdit = () => {
         });
         return;
       }
-      if (action === 'draftWithBackground' && selectedSection === 'chapter1' && selectedComponent === 'introduction') {
-        const backgroundGuidelines = getGuidelineForComponent('background');
-        const introDraft = getChapterOneIntroductionHtml();
-        const backgroundDraft = getUhpabLocalStarterDraft({
-          projectTitle: projectData?.title || formData.title,
-          projectType: projectData?.type || 'proposal',
-          sectionKey: 'chapter1',
-          componentId: 'background',
-          componentLabel: backgroundGuidelines?.title || '1.1 Background to the Study',
-          guidelines: backgroundGuidelines
-        });
-        const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', introDraft);
-        const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', backgroundDraft);
-        setFormData(nextWithBackground);
-        setTemporaryContent(introDraft);
-        setIsEditing(true);
-        try {
-          await persistProjectFormData(nextWithBackground, "Local introduction and background starter added.");
-        } catch (saveError) {
-          console.error("Chapter One starter save failed:", saveError);
-        }
-        toast.warning("Local starter used", {
-          description: "Advanced Researcher did not finish, so a safe UHPAB intro and background starter was added.",
-        });
-        return;
-      }
-      const shouldUseStarterFallback =
-        /not configured|api key/i.test(message) ||
-        action === 'draft' ||
-        !stripHtml(temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent)).trim();
-
-      if (shouldUseStarterFallback) {
-        const componentGuidelines = getGuidelineForComponent(selectedComponent);
-        const componentLabel = componentGuidelines?.title || sectionComponents.find(c => c.id === selectedComponent)?.label || '';
-        const starterDraft = getUhpabLocalStarterDraft({
-          projectTitle: projectData?.title || formData.title,
-          projectType: projectData?.type || 'proposal',
-          sectionKey: selectedSection,
-          componentId: selectedComponent,
-          componentLabel,
-          guidelines: componentGuidelines
-        });
-        setTemporaryContent(starterDraft);
-        setIsEditing(true);
-        toast.warning(action === 'draft' ? "Local starter used" : "Starter draft added", {
-          description: action === 'draft'
-            ? "Advanced Researcher drafting did not finish, so a local UHPAB starter was inserted to keep you moving."
-            : "A local UHPAB starter was inserted. Edit it with your real details before saving.",
-        });
-      } else {
-        toast.error("Advanced Researcher writing could not finish", {
-          description: "Your work is safe. Continue manually or try the action again later.",
-        });
-      }
+      toast.error('The draft could not be accepted', {
+        description: message || 'The output did not pass the UHPAB checks. Your existing work has been kept; retry or edit manually.',
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -1425,11 +1283,11 @@ const ProjectEdit = () => {
   const getSectionLabel = (section: string) => {
     switch (section) {
       case 'preliminaryPages': return 'Preliminary Pages';
-      case 'chapter1': return 'Chapter 1: Introduction';
-      case 'chapter2': return 'Chapter 2: Literature Review';
-      case 'chapter3': return 'Chapter 3: Methodology';
-      case 'chapter4': return 'Chapter 4: Findings';
-      case 'chapter5': return 'Chapter 5: Discussion';
+      case 'chapter1': return 'Chapter One: Introduction';
+      case 'chapter2': return 'Chapter Two: Literature review';
+      case 'chapter3': return 'Chapter Three: Methodology';
+      case 'chapter4': return 'Chapter Four: Findings';
+      case 'chapter5': return 'Chapter Five: Discussion';
       case 'references': return 'References';
       case 'appendices': return 'Appendices';
       default: return section;
@@ -1490,6 +1348,7 @@ const ProjectEdit = () => {
   };
 
   const selectComponent = (section: string, component: string) => {
+    if (/commitment|authorization|copyright/i.test(component)) { toast.info('This page is no longer part of the student document.'); return; }
     setSelectedSection(section);
     setSelectedComponent(component);
     setIsEditing(false);
@@ -1552,6 +1411,7 @@ const ProjectEdit = () => {
                 key={comp.id}
                 variant={selectedComponent === comp.id ? "default" : "ghost"}
                 size="sm"
+                tabIndex={isSelected ? 0 : -1}
                 className={cn(
                   "h-auto min-h-8 w-full justify-start gap-2 whitespace-normal py-1.5 text-left text-xs",
                   deferred && "opacity-55"
@@ -2334,9 +2194,11 @@ const ProjectEdit = () => {
         acceptedOld: false,
         year: getReferenceYear(entry)
       }));
+  const projectYear = new Date(projectData?.createdAt || Date.now()).getFullYear();
+  const researchYear = Number(formData.chapters?._researchYear) || projectYear;
   const oldReferenceEntries = referenceEntries.filter((item: any) => {
     const year = Number(item.year || getReferenceYear(item.reference));
-    return year && year < new Date().getFullYear() - 10 && !item.acceptedOld;
+    return year && year < researchYear - 10;
   });
   const missingReferenceKeys = citationKeys.filter((key) => {
     const { author, year } = splitCitationKey(key);
@@ -2738,6 +2600,23 @@ const ProjectEdit = () => {
                 </div>
 
                 <div className="space-y-3 rounded-lg border bg-white/70 p-3 text-sm dark:bg-card/70">
+                  <div className="flex items-center gap-3">
+                    <Label htmlFor="reference-research-year">Research year</Label>
+                    <Input
+                      id="reference-research-year"
+                      type="number"
+                      min={1900}
+                      max={new Date().getFullYear() + 5}
+                      value={researchYear}
+                      className="w-28"
+                      onChange={(event) => {
+                        const year = Number(event.target.value);
+                        if (year >= 1900 && year <= new Date().getFullYear() + 5) {
+                          setFormData((previous) => ({ ...previous, chapters: { ...previous.chapters, _researchYear: year } }));
+                        }
+                      }}
+                    />
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
                       {citationKeys.length} citations detected
@@ -2773,7 +2652,7 @@ const ProjectEdit = () => {
                           <span className="line-clamp-2">{item.reference}</span>
                           {!String(item.id).startsWith('legacy-') && (
                             <Button size="sm" variant="outline" onClick={() => toggleReferenceAcceptedOld(item.id)}>
-                              Accept
+                              {item.acceptedOld ? 'Review recorded' : 'Record review'}
                             </Button>
                           )}
                         </div>
@@ -2809,7 +2688,7 @@ const ProjectEdit = () => {
                                   Edit
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => toggleReferenceAcceptedOld(item.id)} disabled={String(item.id).startsWith('legacy-')}>
-                                  {item.acceptedOld ? 'Unmark old' : 'Accept old'}
+                                  {item.acceptedOld ? 'Clear review' : 'Record review'}
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => handleDeleteReference(item.id)}>
                                   <Trash2 className="mr-1 h-3 w-3" />

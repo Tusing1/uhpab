@@ -16,10 +16,10 @@ const formattingGuidelines = {
     placement: 'Bottom center of page'
   },
   headings: {
-    chapterTitles: 'Centered, bold, all caps, 14pt',
-    level1: 'Bold, centered, title case, 12pt',
-    level2: 'Bold, left-aligned, title case, 12pt',
-    level3: 'Bold, indented, sentence case, 12pt'
+    chapterTitles: 'Centered, bold, all caps, 12pt; chapter number in words; fresh page',
+    level1: 'Bold, left-aligned, sentence case, 12pt',
+    level2: 'Bold, left-aligned, sentence case, 12pt',
+    level3: 'Bold, left-aligned, sentence case, 12pt'
   },
   tablesAndFigures: {
     numbering: 'Sequential by chapter (e.g., Table 4.1)',
@@ -40,7 +40,7 @@ const formattingGuidelines = {
     ordering: 'Alphabetical by author surname',
     spacing: 'Double-spaced',
     indentation: 'Hanging indent',
-    minimum: '20 references (primarily <10 years old)'
+    minimum: 'At least 20 cited references; not older than 10 years relative to the year the research is conducted'
   }
 };
 
