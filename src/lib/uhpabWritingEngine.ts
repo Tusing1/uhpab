@@ -38,6 +38,7 @@ export interface UhpabWritingContext {
   specificObjectives?: string;
   studyContext?: string;
   objectiveCount?: ObjectiveCount;
+  requireEvidence?: boolean;
   knownSources?: Array<{
     citationText?: string;
     apaReference?: string;
@@ -74,7 +75,7 @@ const stripHtmlWithBreaks = (html = '') =>
   html
     .replace(/<li[^>]*>/gi, '\n- ')
     .replace(/<\/li>/gi, '\n')
-    .replace(/<\/(h[1-6]|p|div|tr)>/gi, '\n')
+    .replace(/<\/(h[1-6]|p|div|tr)>/gi, '\n\n')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/td>\s*<td[^>]*>/gi, ' ')
     .replace(/<[^>]*>/g, '')
@@ -129,9 +130,11 @@ const generatedTextToOrderedListHtml = (value = '', maxItems = 3) => {
 };
 
 const limitWords = (value = '', maxWords: number) => {
-  const words = value.trim().split(/\s+/).filter(Boolean);
+  const words = [...value.matchAll(/\S+/g)];
   if (words.length <= maxWords) return value.trim();
-  return `${words.slice(0, maxWords).join(' ').replace(/[,:;]$/, '')}.`;
+  const end = words[maxWords - 1];
+  const truncated = value.slice(0, end.index! + end[0].length).trim().replace(/[,:;]$/, '');
+  return /[.!?]$/.test(truncated) ? truncated : `${truncated}.`;
 };
 
 const getCleanProjectTitle = (projectTitle?: string) =>
@@ -518,6 +521,12 @@ Rules:
 - Only use in-text citations from the saved sources list above. If no saved source matches, write [citation needed].
 - If a claim needs evidence and no verified source is provided, write [citation needed] or [verify local statistic].
 - If a required factual input is unknown, use an explicit placeholder such as [insert sample size]. Never add supervisor identity fields to a title page.
+${context.requireEvidence ? `Strict evidence mode overrides the placeholder guidance above:
+- Use only confirmed study facts and the actual supporting findings supplied with saved sources. Metadata alone does not substantiate a claim.
+- Do not add hospital observations, local prevalence, unreported studies, new outcomes or methodological decisions. Do not broaden the study outcome to related diseases or proxy outcomes.
+- Do not explain examiner instructions to the reader (for example, design versus approach). Write only the manuscript section.
+- Never fill an evidence gap with a plausible assertion followed by a citation-needed marker. Omit unsupported claims; return no draft if essential facts are missing.
+- Keep distinct paragraphs in separate <p> elements and preserve the scope and meaning of supplied objectives.` : ''}
 ${context.currentDraft ? `\nCurrent draft/result to use:\n${context.currentDraft}` : ''}`;
 };
 
@@ -580,7 +589,7 @@ const removeGeneratedSectionChrome = (value = '', componentLabel = '') => {
   return stripHtmlWithBreaks(value)
     .replace(/```[\s\S]*?```/g, '')
     .replace(/\*\*/g, '')
-    .split(/\n+/)
+    .split(/\n/)
     .map((line) => line.trim())
     .filter((line) => {
       if (!line) return true;
@@ -617,7 +626,7 @@ const constrainParagraphDraft = (value = '', maxWords?: number, maxParagraphs?: 
   return generatedTextToParagraphHtml(maxWords ? limitWords(joined, maxWords) : joined);
 };
 
-export const normalizeUhpabGeneratedDraft = (value = '', context: UhpabWritingContext) => {
+const normalizeDraft = (value = '', context: UhpabWritingContext) => {
   assertUhpabDraftAllowed(value, context);
   const contract = getUhpabSectionContract(context);
 
@@ -657,9 +666,22 @@ export const normalizeUhpabGeneratedDraft = (value = '', context: UhpabWritingCo
   return generatedTextToParagraphHtml(maxLimited);
 };
 
+export const normalizeUhpabGeneratedDraft = (value = '', context: UhpabWritingContext) => {
+  const limit = getUhpabSectionContract(context).maxWords;
+  if (context.requireEvidence && limit && stripHtml(value).split(/\s+/).filter(Boolean).length > limit) throw new Error(`The draft exceeds this section's ${limit}-word limit. Retry with a shorter draft; your previous text is safe.`);
+  const result = normalizeDraft(value, context);
+  assertUhpabDraftAllowed(result, context);
+  if (context.requireEvidence && context.sectionKey === 'chapter1' && context.componentId === 'background') {
+    const count = (result.match(/<p\b/gi) || []).length;
+    if (count < 4 || count > 6) throw new Error('Background needs 4-6 distinct paragraphs. Your existing draft has been kept.');
+  }
+  return result;
+};
+
 export const hasUsableGeneratedContent = (html = '') => stripHtml(html).length > 0;
 
 export function assertUhpabDraftAllowed(value: string, context: UhpabWritingContext) {
+  if (context.requireEvidence && /\[\[(?:.|\n)*?\]\]|\[(?:citation needed|(?:verify|insert|add|provide)\b[^\]]*)\]/i.test(value)) throw new Error('The draft still contains missing evidence or facts. Add supporting source findings and confirmed study details before trying again.');
   const id = context.componentId;
   if (/commitment|authorization|copyright/i.test(id)) throw new Error('This section is not part of the current UHPAB student document.');
   if (context.projectType === 'proposal' && (id === 'abstract' || id === 'similarityReport' || ['chapter4', 'chapter5'].includes(context.sectionKey))) throw new Error('This is a report-only section, not part of a proposal.');
@@ -688,7 +710,7 @@ export function assertUhpabDraftAllowed(value: string, context: UhpabWritingCont
         const identity = [source.authors, source.organization, source.citationText, source.apaReference].filter(Boolean).join(' ');
         return normalizeAuthor(identity).includes(author) && [source.year, source.citationText, source.apaReference].join(' ').includes(citation[2]);
       });
-      if (!known) throw new Error(`The generated citation ${citation[0]} is not linked to a saved source. Add the source or regenerate using explicit citation placeholders.`);
+      if (!known) throw new Error(`The citation ${citation[0]} is not linked to a saved source. Add its supporting source before trying again.`);
     }
   }
 }

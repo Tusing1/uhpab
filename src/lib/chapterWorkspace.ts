@@ -84,6 +84,7 @@ export function workspaceWritingContext(w: ChapterWorkspace, id: string): UhpabW
   return { projectTitle: w.topic, projectType: w.documentType, sectionKey: w.chapterKey, componentId: id,
     componentLabel: section.title, guidelines: section, currentDraft: w.sections[id]?.content || '',
     objectiveCount: w.context.objectiveCount === '2' ? 2 : 3,
+    requireEvidence: true,
     specificObjectives: w.context.objectives || w.sections.specificObjectives?.content || '',
     knownSources: workspaceSources(w, id),
     studyContext: JSON.stringify({ facts: w.context, supportingSources: workspaceSources(w, id),

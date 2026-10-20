@@ -362,7 +362,8 @@ export const buildTemplateDocx = async (projectType: 'proposal' | 'report', proj
     if (main.length) main.push(pageBreak());
     main.push(heading(chapter.title));
     for (const [field, section] of Object.entries(chapter.sections || {})) {
-      addSection(main, projectData, section.title, [key, field], section.description);
+      if (field === 'researchObjectives') main.push(heading(section.title, HeadingLevel.HEADING_2));
+      else addSection(main, projectData, section.title, [key, field], section.description);
     }
     if (key === 'chapter4') addRegisteredChapter4Assets(main, projectData);
   }

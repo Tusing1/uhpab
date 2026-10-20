@@ -67,7 +67,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { generateReport } from '@/lib/api';
 import { sanitizeFileName, triggerBrowserDownload } from '@/lib/download';
 import { AIContentGenerator } from '@/components/projects/AIContentGenerator';
-import { humanizeResearchText } from '@/lib/humanReviewEngine';
+import ChapterStudyDetails from '@/components/research/ChapterStudyDetails';
+import ChapterSources from '@/components/research/ChapterSources';
+import { generationNeeds, workspaceWritingContext, reviewWorkspaceSection, sanitizeChapterHtml } from '@/lib/chapterWorkspace';
+import { mergeActiveWriting, projectChapterWorkspace, recalculateWritingProgress, sectionReviewed, writingSections } from '@/lib/projectWritingFlow';
+import { writingFailure } from '@/lib/writingFailure';
+import { useWritingNavigationGuard } from '@/hooks/useWritingNavigationGuard';
 import { Label } from '@/components/ui/label';
 import { proposalStructure, reportStructure } from '@/data/uhpabGuidelines';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -78,17 +83,12 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { generateContent } from '@/integrations/gemini';
-import { ResearchFormulationError } from '@/lib/researchFormulation';
 import { legacySectionAliases } from '@/data/researchGuidelineRules';
 import {
-  buildChapterOneCombinedPrompt,
   buildUhpabGenerationPrompt,
-  getChapterOneIntroductionHtml,
   getUhpabSectionContract,
-  getUhpabLocalStarterDraft,
   hasUsableGeneratedContent,
   normalizeUhpabGeneratedDraft,
-  splitChapterOneDraft,
   type UhpabWritingAction,
   type UhpabWritingContext
 } from '@/lib/uhpabWritingEngine';
@@ -762,6 +762,13 @@ const ProjectEdit = () => {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [supportPanelOpen, setSupportPanelOpen] = useState(false);
+  const [generationError, setGenerationError] = useState<ReturnType<typeof writingFailure> & { action: string } | null>(null);
+  const [reviewed, setReviewed] = useState(false);
+  const [roadmapOpen, setRoadmapOpen] = useState(true);
+  const loadedProject = React.useRef('');
+  const saveLock = React.useRef(false);
+  const generationRequest = React.useRef(0);
+  const savedSnapshot = React.useRef('');
   
   const { projects, getProject, updateProject, isLoading } = useProjects();
   const { user } = useAuth();
@@ -771,6 +778,8 @@ const ProjectEdit = () => {
     chapters: buildDefaultChapters('proposal'),
     progress: buildDefaultProgress('proposal')
   });
+  const pendingChanges = Boolean(savedSnapshot.current && JSON.stringify(formData) !== savedSnapshot.current) || isEditing || reviewed !== sectionReviewed(formData, selectedSection, selectedComponent);
+  useWritingNavigationGuard(pendingChanges || isGenerating);
 
   // Track recently edited sections
   const [recentSections, setRecentSections] = useState<Array<{
@@ -790,7 +799,7 @@ const ProjectEdit = () => {
         const fullStructure = buildDefaultChapters(project.type);
         const progressStructure = buildDefaultProgress(project.type);
         
-        setFormData({
+        const loadedForm = {
           title: project.title,
           chapters: {
             ...fullStructure,
@@ -800,10 +809,32 @@ const ProjectEdit = () => {
             ...progressStructure,
             ...project.progress
           }
-        });
+        };
+        setFormData(loadedForm);
+        savedSnapshot.current = JSON.stringify(loadedForm);
+        if (loadedProject.current !== project.id) {
+          loadedProject.current = project.id;
+          const resume = project.chapters._activeWritingStep as { section?: string; component?: string } | undefined;
+          if (resume?.section && writingSections(project.type, resume.section).some(([id]) => id === resume.component)) {
+            setSelectedSection(resume.section); setSelectedComponent(resume.component!);
+          } else {
+            const started = ['chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5'].some(key => Object.values((project.chapters[key] || {}) as object).some(value => typeof value === 'string' && value.trim()));
+            if (started) {
+              const next = ['chapter1', 'chapter2', 'chapter3', ...(project.type === 'report' ? ['chapter4','chapter5'] : [])].flatMap(section => writingSections(project.type, section).map(([component]) => ({ section, component: String(component) }))).find(step => !getComponentContent(project.chapters, step.section, step.component));
+              if (next) { setSelectedSection(next.section); setSelectedComponent(next.component); }
+            }
+          }
+        }
       }
     }
   }, [projectId, projects, getProject]);
+
+  useEffect(() => {
+    setReviewed(sectionReviewed(formData, selectedSection, selectedComponent));
+    setGenerationError(null);
+  }, [selectedSection, selectedComponent, projectData?.updatedAt]);
+
+  useEffect(() => () => { generationRequest.current++; }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -821,40 +852,9 @@ const ProjectEdit = () => {
     }));
   };
 
-  const getContentProgress = (value: string) => {
-    const contentLength = value.length;
-    let progress = 0;
+  const buildFormDataWithChapterChange = (baseData: any, chapter: string, field: string, value: string) =>
+    mergeActiveWriting(baseData, projectData?.type || 'proposal', chapter, field, sanitizeChapterHtml(value), false);
 
-    if (contentLength > 0) {
-      if (contentLength < 300) {
-        progress = Math.max(5, Math.round((contentLength / 300) * 25));
-      } else if (contentLength < 1000) {
-        progress = 25 + Math.round(((contentLength - 300) / 700) * 45);
-      } else {
-        progress = 70 + Math.round(Math.min(((contentLength - 1000) / 1500) * 30, 30));
-      }
-    }
-
-    return progress;
-  };
-
-  const buildFormDataWithChapterChange = (baseData: any, chapter: string, field: string, value: string) => {
-    const progress = getContentProgress(value);
-    return {
-      ...baseData,
-      chapters: {
-        ...baseData.chapters,
-        [chapter]: {
-          ...baseData.chapters?.[chapter],
-          [field]: value
-        }
-      },
-      progress: {
-        ...baseData.progress,
-        [chapter]: Math.max(baseData.progress?.[chapter] || 0, progress)
-      }
-    };
-  };
 
   const handleChapterChange = (chapter: string, field: string, value: string) => {
     setFormData(prev => buildFormDataWithChapterChange(prev, chapter, field, value));
@@ -875,32 +875,30 @@ const ProjectEdit = () => {
     };
 
     const savedProject = await updateProject(updatedProject);
+    savedSnapshot.current = JSON.stringify(nextFormData);
     setProjectData(savedProject);
     if (successMessage) toast.success(successMessage);
     return savedProject;
   };
 
-  const handleSave = async () => {
-    if (!projectId || !projectData) {
-      toast.error("Project data is missing. Cannot save changes.");
-      return;
-    }
-    
-    setIsSaving(true);
-    setError('');
-    
+  const saveWriting = async (resume = { section: selectedSection, component: selectedComponent }) => {
+    if (saveLock.current || isGenerating) return false;
+    saveLock.current = true; setIsSaving(true); setError('');
     try {
-      await persistProjectFormData(formData, "Project saved successfully!");
-      setIsEditing(false);
-      navigate(`/projects/${projectId}/edit`);
-    } catch (err: any) {
-      console.error("Error saving project:", err);
-      setError(`Failed to save project: ${err?.message || "Unknown error"}`);
-      toast.error(`Failed to save project: ${err?.message || "Unknown error"}`);
-    } finally {
-      setIsSaving(false);
-    }
+      const value = isEditing ? sanitizeChapterHtml(temporaryContent) : selectedContent;
+      if (reviewed && writingWorkspace) reviewWorkspaceSection({ ...writingWorkspace, sections: { ...writingWorkspace.sections, [selectedComponent]: { content: value, status: 'drafting' } } }, selectedComponent);
+      const next = mergeActiveWriting(formData, projectData?.type || 'proposal', selectedSection, selectedComponent, value, reviewed, resume);
+      const saved = await persistProjectFormData(next);
+      if (!saved) throw new Error('Project is unavailable. Your text has been kept.');
+      setFormData(next); setIsEditing(false); setTemporaryContent('');
+      toast.success('Saved'); return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Save failed. Your text is still here.');
+      return false;
+    } finally { saveLock.current = false; setIsSaving(false); }
   };
+  const handleSave = async () => { await saveWriting(); };
+
 
   const handleDownload = async (format: 'pdf' | 'docx' | 'doc') => {
     if (!projectId || !user?.id || !projectData) {
@@ -922,7 +920,7 @@ const ProjectEdit = () => {
       setDownloadStatus('Applying the UHPAB document structure...');
       const report = await generateReport(projectId, user.id, projectData.type, format, {
         title: formData.title,
-        chapters: formData.chapters,
+        chapters: isEditing ? buildFormDataWithChapterChange(formData, selectedSection, selectedComponent, temporaryContent).chapters : formData.chapters,
         student: user
       });
       
@@ -957,146 +955,40 @@ const ProjectEdit = () => {
     return structure[selectedSection]?.sections?.[component] || null;
   };
 
-  const handleImproveWithAI = async (action = 'improve') => {
-    if (!selectedSection || !selectedComponent) {
-      toast.error("Please select a section to generate content for.");
+  const handleImproveWithAI = async (action = 'draft') => {
+    if (isGenerating || saveLock.current || isCurrentComponentAutoFilled) return;
+    if (action === 'draftWithBackground' || action === 'humanize') {
+      setGenerationError({ ...writingFailure(new Error('Use the section-specific draft action. Automated rewriting is not a human review.')), action: 'draft' });
       return;
     }
-
-    if (isAutoFilledComponent(selectedSection, selectedComponent)) {
-      toast.info("This page is prefilled from your profile and the DOCX template.");
+    if (writingWorkspace && generationNeeds(writingWorkspace, selectedComponent).length) {
+      setGenerationError({ ...writingFailure(new Error('Add the required study details and supporting source findings below first.')), action });
       return;
     }
-
-    const isFormulation = selectedSection === 'chapter1' && ['generalObjective', 'specificObjectives', 'researchQuestions'].includes(selectedComponent);
-    if (action === 'humanize' && !isFormulation) {
-      const rawContent = temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent);
-      const sourceText = stripHtml(rawContent);
-      if (!sourceText.trim()) {
-        toast.error("Add text to this section before running human review.");
-        return;
-      }
-
-      const humanReview = humanizeResearchText(sourceText);
-      setTemporaryContent(humanReview.revisedText);
-      setIsEditing(true);
-      toast.success("Human review applied", {
-        description: `${humanReview.signals.length} signal${humanReview.signals.length === 1 ? "" : "s"} checked and ${humanReview.changes.length} cleanup ${humanReview.changes.length === 1 ? "change" : "changes"} applied.`,
-      });
-      return;
-    }
-
-    setIsGenerating(true);
+    const token = ++generationRequest.current;
+    setIsGenerating(true); setGenerationError(null);
     try {
-      const componentGuidelines = getGuidelineForComponent(selectedComponent);
-      const componentLabel = componentGuidelines?.title || sectionComponents.find(c => c.id === selectedComponent)?.label || '';
-      const isChapterOneIntroduction = selectedSection === 'chapter1' && selectedComponent === 'introduction';
-      const knownSources = Array.isArray(formData.chapters?._sourcesLibrary)
-        ? formData.chapters._sourcesLibrary
-        : [];
-      const writingContext: UhpabWritingContext = {
-        projectTitle: projectData?.title || formData.title,
-        projectType: projectData?.type || 'proposal',
-        sectionKey: selectedSection,
-        componentId: selectedComponent,
-        componentLabel,
-        guidelines: componentGuidelines,
-        currentDraft: temporaryContent || getComponentContent(formData.chapters, selectedSection, selectedComponent),
-        specificObjectives: getComponentContent(formData.chapters, 'chapter1', 'specificObjectives'),
-        objectiveCount: formData.chapters._objectiveCount === 2 ? 2 : 3,
-        knownSources,
-        studyContext: JSON.stringify({ researchYear: Number(formData.chapters._researchYear) || new Date(projectData?.createdAt || Date.now()).getFullYear(), methodology: formData.chapters.chapter3, findings: formData.chapters.chapter4, registeredResults: formData.chapters._tableFigureRegister })
-      };
-      const sectionContract = getUhpabSectionContract(writingContext);
-
-      if ((action === 'draft' || isFormulation) && sectionContract.mode === 'deterministic') {
-        setTemporaryContent(sectionContract.fallback(writingContext));
-        setIsEditing(true);
-        toast.success(isFormulation ? "Aligned section ready" : isChapterOneIntroduction ? "Short introduction ready" : "Chapter preview ready", {
-          description: isFormulation
-            ? "Prepared directly from your topic and saved specific objectives."
-            : isChapterOneIntroduction
-            ? "This section is fixed to the UHPAB-style Chapter One preview. Write the real context under 1.1 Background."
-            : "This chapter introduction uses a fixed UHPAB-style preview so it stays short and clean.",
-        });
-        return;
-      }
-
-      if (action === 'draftWithBackground' && isChapterOneIntroduction) {
-        const combinedDraft = await generateContent(buildChapterOneCombinedPrompt(writingContext));
-        const parts = splitChapterOneDraft(combinedDraft);
-
-        if (!hasUsableGeneratedContent(parts.introduction) || !hasUsableGeneratedContent(parts.background)) {
-          throw new Error("The combined Chapter One draft could not be separated cleanly.");
-        }
-
-        const cleanBackground = normalizeUhpabGeneratedDraft(
-          parts.background,
-          {
-            ...writingContext,
-            componentId: 'background',
-            componentLabel: '1.1 Background to the Study'
-          }
-        );
-        const nextWithIntro = buildFormDataWithChapterChange(formData, 'chapter1', 'introduction', getChapterOneIntroductionHtml());
-        const nextWithBackground = buildFormDataWithChapterChange(nextWithIntro, 'chapter1', 'background', cleanBackground);
-        const { nextFormData, addedKeys } = addCitationPlaceholdersToFormData(nextWithBackground, cleanBackground);
-        setFormData(nextFormData);
-        setTemporaryContent(getChapterOneIntroductionHtml());
-        setIsEditing(true);
-        await persistProjectFormData(nextFormData, "Introduction and background drafted.");
-        toast.success("Start point ready", {
-          description: addedKeys.length
-            ? `1.1 Background was added and ${addedKeys.length} citation placeholder${addedKeys.length === 1 ? '' : 's'} were sent to References.`
-            : "1.0 Introduction is open now. 1.1 Background has also been added for the next step.",
-        });
-        return;
-      }
-
-      const generatedDraft = await generateContent(buildUhpabGenerationPrompt(writingContext, action as UhpabWritingAction));
-
-      if (generatedDraft) {
-        let generatedText = generatedDraft;
-        generatedText = generatedText.split(/Note:|Explanation:|Summary:|Generated by/)[0].trim();
-        const humanReview = isChapterOneIntroduction || isFormulation
-          ? { revisedText: isChapterOneIntroduction ? getChapterOneIntroductionHtml() : generatedText, signals: [], changes: [] }
-          : humanizeResearchText(generatedText);
-        generatedText = normalizeUhpabGeneratedDraft(
-          humanReview.revisedText,
-          writingContext
-        );
-        const { nextFormData, addedKeys } = addCitationPlaceholdersToFormData(formData, generatedText);
-        if (addedKeys.length) {
-          setFormData(nextFormData);
-          toast.info(`${addedKeys.length} citation placeholder${addedKeys.length === 1 ? '' : 's'} added to References.`, {
-            description: "Open References later to replace placeholders with full APA details.",
-          });
-        }
-        
-        setTemporaryContent(generatedText);
-        setIsEditing(true);
-        if (humanReview.signals.length > 0 || humanReview.changes.length > 0) {
-          toast.success("Generated draft cleaned by Human Review", {
-            description: `${humanReview.changes.length} safe cleanup ${humanReview.changes.length === 1 ? "change" : "changes"} applied before editing.`,
-          });
-        }
-      } else {
-        throw new Error("Invalid response from AI");
-      }
-    } catch (error) {
-      console.error("AI generation failed:", error);
-      const message = error instanceof Error ? error.message : "";
-      if (isFormulation || error instanceof ResearchFormulationError) {
-        toast.error("Research formulation needs attention", {
-          description: message || "The objectives could not be validated. Your existing work has been kept.",
-        });
-        return;
-      }
-      toast.error('The draft could not be accepted', {
-        description: message || 'The output did not pass the UHPAB checks. Your existing work has been kept; retry or edit manually.',
-      });
+      const writingContext: UhpabWritingContext = writingWorkspace
+        ? workspaceWritingContext(writingWorkspace, selectedComponent)
+        : { projectTitle: formData.title, projectType: projectData?.type || 'proposal', sectionKey: selectedSection,
+            componentId: selectedComponent, componentLabel: selectedComponentMeta?.label || '',
+            guidelines: getGuidelineForComponent(selectedComponent), currentDraft: selectedContent,
+            knownSources: Array.isArray(formData.chapters._sourcesLibrary) ? formData.chapters._sourcesLibrary : [],
+            requireEvidence: true,
+            studyContext: JSON.stringify({ methodology: formData.chapters.chapter3, findings: formData.chapters.chapter4, registeredResults: formData.chapters._tableFigureRegister }) };
+      const contract = getUhpabSectionContract(writingContext);
+      const generated = contract.mode === 'deterministic'
+        ? contract.fallback(writingContext)
+        : await generateContent(buildUhpabGenerationPrompt(writingContext, action as UhpabWritingAction));
+      if (token !== generationRequest.current) return;
+      if (!hasUsableGeneratedContent(generated)) throw new Error('No usable draft returned. Add missing evidence or facts; your previous text is safe.');
+      setTemporaryContent(sanitizeChapterHtml(normalizeUhpabGeneratedDraft(generated, writingContext)));
+      setReviewed(false); setIsEditing(true);
+      toast.success('Draft ready for your review');
+    } catch (cause) {
+      if (token === generationRequest.current) setGenerationError({ ...writingFailure(cause), action });
     } finally {
-      setIsGenerating(false);
+      if (token === generationRequest.current) setIsGenerating(false);
     }
   };
 
@@ -1110,20 +1002,13 @@ const ProjectEdit = () => {
   };
 
   const handleSaveContent = async () => {
-    const nextFormData = buildFormDataWithChapterChange(formData, selectedSection, selectedComponent, temporaryContent);
-    setFormData(nextFormData);
-    setIsEditing(false);
-    try {
-      await persistProjectFormData(nextFormData, "Section saved.");
-    } catch (error) {
-      console.error("Section save failed:", error);
-      toast.error("Section could not be saved. Please try again.");
-    }
+    await saveWriting();
   };
 
   const handleCancelEditing = () => {
     setIsEditing(false);
     setTemporaryContent('');
+    setReviewed(sectionReviewed(formData, selectedSection, selectedComponent, selectedContent));
   };
   
   // Rich text editing functions
@@ -1319,14 +1204,15 @@ const ProjectEdit = () => {
   };
 
   const isComponentDone = (section: string, component: string) => {
-    if (isAutoFilledComponent(section, component) && !deferredFinalPageIds.has(component)) return true;
-    return !!getComponentContent(formData.chapters, section, component);
+    return sectionReviewed(formData, section, component, getComponentContent(formData.chapters, section, component) || (isAutoFilledComponent(section, component) ? getAutoFilledPreview(component, formData.title, user, projectData?.type) : ''));
   };
 
   const getComponentStatus = (section: string, component: string) => {
     if (isFinalPageDeferred(section, component)) return 'Finish later';
     if (section === selectedSection && component === selectedComponent && isEditing) return 'Drafting';
-    if (isComponentDone(section, component)) return 'Done';
+    if (isComponentDone(section, component)) return 'Reviewed';
+    if (isAutoFilledComponent(section, component)) return 'Ready to review';
+    if (getComponentContent(formData.chapters, section, component)) return 'Draft saved';
     return 'Not started';
   };
 
@@ -1340,17 +1226,20 @@ const ProjectEdit = () => {
   const getComponentsForSection = (data: any) => {
     const sectionEntries = data?.sections ? Object.entries(data.sections) : [];
     const entries = sectionEntries.length ? sectionEntries : [['content', data]];
-    return entries.map(([id, content]: [string, any]) => ({
+    return entries.filter(([id]) => id !== 'researchObjectives').map(([id, content]: [string, any]) => ({
       id,
       label: content?.title || data?.title || id,
       description: content?.description || data?.description || ''
     }));
   };
 
-  const selectComponent = (section: string, component: string) => {
+  const selectComponent = async (section: string, component: string) => {
+    if (isGenerating || isSaving) return;
+    if (pendingChanges && !await saveWriting({ section, component })) return;
     if (/commitment|authorization|copyright/i.test(component)) { toast.info('This page is no longer part of the student document.'); return; }
     setSelectedSection(section);
     setSelectedComponent(component);
+    setRoadmapOpen(true);
     setIsEditing(false);
     setTemporaryContent('');
     requestAnimationFrame(() => {
@@ -1358,98 +1247,29 @@ const ProjectEdit = () => {
     });
   };
 
-  // Render section card with progress
   const renderSectionCard = (section: string, components: any[]) => {
-    const progress = formData.progress[section] || 0;
-    const isSelected = selectedSection === section;
-    const doneCount = components.filter(comp => isComponentDone(section, comp.id)).length;
-    
-    return (
-      <div
-        key={section}
-        className={cn(
-          "rounded-lg border bg-white/75 p-3 transition-all hover:border-primary/50 dark:bg-card/75",
-          isSelected ? "border-primary shadow-sm" : "border-border"
-        )}
+    const expanded = selectedSection === section && roadmapOpen;
+    const completed = components.filter(comp => isComponentDone(section, comp.id)).length;
+    return <section key={section} className="border-b py-2">
+      <button type="button" className="w-full py-3 text-left" aria-expanded={expanded} aria-controls={`roadmap-${section}`}
+        disabled={isSaving || isGenerating}
         onClick={() => {
-          const firstOpenComponent = components.find(comp => !isFinalPageDeferred(section, comp.id));
-          if (firstOpenComponent) selectComponent(section, firstOpenComponent.id);
-        }}
-      >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold">{getSectionLabel(section)}</h3>
-              {getSectionHelperBadge(section) && (
-                <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
-                  {getSectionHelperBadge(section)}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">{doneCount}/{components.length} items ready</p>
-          </div>
-          <span className={cn(
-            "rounded-full px-2 py-0.5 text-xs font-medium",
-            progress >= 70 ? "bg-emerald-100 text-emerald-700" : isSelected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-          )}>
-            {progress >= 70 ? 'Done' : isSelected && isEditing ? 'Drafting' : progress > 0 ? `${progress}%` : 'Not started'}
-          </span>
-        </div>
-        <Progress value={progress} className="h-1.5 mb-3" />
-        <div className={cn(
-          "grid transition-all duration-300",
-          isSelected ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        )}>
-          <div className="min-h-0 overflow-hidden">
-        <div className="space-y-1">
-            {components.map(comp => {
-              const deferred = isFinalPageDeferred(section, comp.id);
-              const done = isComponentDone(section, comp.id);
-              const status = getComponentStatus(section, comp.id);
-              return (
-              <Button
-                key={comp.id}
-                variant={selectedComponent === comp.id ? "default" : "ghost"}
-                size="sm"
-                tabIndex={isSelected ? 0 : -1}
-                className={cn(
-                  "h-auto min-h-8 w-full justify-start gap-2 whitespace-normal py-1.5 text-left text-xs",
-                  deferred && "opacity-55"
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  selectComponent(section, comp.id);
-                  if (deferred) {
-                    toast.info(`This page is normally finalized after ${getDeferredPageMilestone(comp.id)}. You can review it now and continue.`);
-                  }
-                }}
-              >
-                <span className={cn(
-                  "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[0px]",
-                  done ? "border-emerald-500 bg-emerald-500 text-white" : deferred ? "border-muted-foreground/40" : "border-primary/50"
-                )}>
-                  {done && <CheckCircle2 className="h-3 w-3" />}
-                  {!done && deferred && <span className="text-[10px]">-</span>}
-                </span>
-                <span className="flex-1">
-                  <span className="block">{comp.label}</span>
-                  <span className={cn(
-                    "block text-[11px]",
-                    status === 'Done' ? "text-emerald-700" : status === 'Drafting' ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    {status}
-                  </span>
-                </span>
-              </Button>
-            )})}
-        </div>
-          </div>
-        </div>
-      </div>
-    );
+          if (selectedSection === section) { setRoadmapOpen(value => !value); return; }
+          const target = components.find(comp => !isFinalPageDeferred(section, comp.id) && !isComponentDone(section, comp.id)) || components[0];
+          if (target) selectComponent(section, target.id);
+        }}>
+        <span className="block text-sm font-semibold">{getSectionLabel(section)}</span>
+        <span className="text-xs text-muted-foreground">{completed}/{components.length} reviewed</span>
+      </button>
+      {expanded && <div id={`roadmap-${section}`} className="space-y-1 pb-3">
+        {components.map(comp => <Button key={comp.id} variant={selectedComponent === comp.id ? 'secondary' : 'ghost'}
+          className="h-auto min-h-11 w-full justify-start whitespace-normal py-2 text-left text-xs"
+          disabled={isSaving || isGenerating} onClick={() => selectComponent(section, comp.id)}>
+          <span><span className="block">{comp.label}</span><span className="block text-[11px] text-muted-foreground">{getComponentStatus(section, comp.id)}</span></span>
+        </Button>)}
+      </div>}
+    </section>;
   };
-
-  // Display loading state while fetching data
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -1483,9 +1303,7 @@ const ProjectEdit = () => {
 
   // Calculate average progress
   const getAverageProgress = () => {
-    if (!formData.progress) return 0;
-    
-    const values = Object.values(formData.progress) as number[];
+    const values = Object.entries(recalculateWritingProgress(formData, projectData?.type || 'proposal').progress).filter(([key]) => structure[key]).map(([, value]) => value);
     const average = values.reduce((a: number, b: number) => a + b, 0) / values.length;
     return Math.round(average); // Return a rounded integer percentage
   };
@@ -1505,6 +1323,14 @@ const ProjectEdit = () => {
 
   const sectionComponents = getCurrentSectionComponents();
   const selectedComponentMeta = sectionComponents.find(c => c.id === selectedComponent);
+  const writingWorkspace = projectChapterWorkspace(formData, projectData?.type || 'proposal', selectedSection, user?.id);
+  const currentNeeds = writingWorkspace ? generationNeeds(writingWorkspace, selectedComponent) : [];
+  const fixedSection = !!writingWorkspace && getUhpabSectionContract(workspaceWritingContext(writingWorkspace, selectedComponent)).mode === 'deterministic';
+  const updateStudyWorkspace = (next: NonNullable<typeof writingWorkspace>) => {
+    setReviewed(false);
+    setGenerationError(null);
+    setFormData(prev => ({ ...prev, chapters: { ...prev.chapters, _studyContext: next.context, _objectiveCount: next.context.objectiveCount === '2' ? 2 : 3, _sourcesLibrary: next.sources } }));
+  };
   const isCurrentComponentAutoFilled = isAutoFilledComponent(selectedSection, selectedComponent);
   const selectedContent =
     getComponentContent(formData.chapters, selectedSection, selectedComponent) ||
@@ -1538,23 +1364,12 @@ const ProjectEdit = () => {
   };
 
   const handleSaveAndNext = async () => {
-    const nextFormData = buildFormDataWithChapterChange(formData, selectedSection, selectedComponent, temporaryContent);
-    setFormData(nextFormData);
-    addToRecent(
-      selectedSection,
-      selectedComponent,
-      selectedComponentMeta?.label || ''
-    );
-    setIsEditing(false);
-    try {
-      await persistProjectFormData(nextFormData);
-      toast.success("Saved. Moving to the next page.");
-      goToWorkflowStep(currentStepIndex + 1);
-    } catch (error) {
-      console.error("Save and next failed:", error);
-      toast.error("Section could not be saved. Please try again.");
-    }
+    const next = workflowSteps[currentStepIndex + 1];
+    if (!await saveWriting(next ? { section: next.section, component: next.component } : undefined)) return;
+    addToRecent(selectedSection, selectedComponent, selectedComponentMeta?.label || '');
+    if (next) { setSelectedSection(next.section); setSelectedComponent(next.component); }
   };
+
 
   const updateReferencesContent = (content: string, items?: any[]) => {
     setFormData(prev => ({
@@ -2131,15 +1946,22 @@ const ProjectEdit = () => {
     }
 
     let wordsBefore = 0;
+    let previousPages = 0;
+    let currentChapterWords = 0;
     for (const step of workflowSteps) {
       if (step.section === selectedSection && step.component === selectedComponent) break;
       if (step.section === 'preliminaryPages') continue;
       const content = getComponentContent(formData.chapters, step.section, step.component);
-      wordsBefore += estimateWords(content);
+      if (step.section === selectedSection) wordsBefore += estimateWords(content);
     }
-
-    const estimatedPage = Math.max(1, Math.floor(wordsBefore / 420) + 1);
-    const continuesFromPrevious = wordsBefore > 0 && wordsBefore % 420 !== 0;
+    for (const section of getWorkflowOrder(projectData?.type || 'proposal')) {
+      if (section === selectedSection) break;
+      if (section === 'preliminaryPages') continue;
+      currentChapterWords = getComponentsForSection(structure[section]).reduce((sum, comp) => sum + estimateWords(getComponentContent(formData.chapters, section, comp.id)), 0);
+      previousPages += Math.max(1, Math.ceil(currentChapterWords / 300));
+    }
+    const estimatedPage = previousPages + Math.max(1, Math.floor(wordsBefore / 300) + 1);
+    const continuesFromPrevious = wordsBefore > 0 && wordsBefore % 300 !== 0;
     const sectionData = structure[selectedSection as keyof typeof structure] as any;
 
     return {
@@ -2147,6 +1969,7 @@ const ProjectEdit = () => {
       pageNumber: String(estimatedPage),
       chapterTitle: selectedSection.startsWith('chapter') ? sectionData?.title : undefined,
       sectionTitle: selectedLabel,
+      parentTitle: selectedSection === 'chapter1' && ['generalObjective', 'specificObjectives', 'researchQuestions'].includes(selectedComponent) ? '1.3 Research Objectives' : undefined,
       isTitlePage: false,
       isPreliminary: false,
       continuesFromPrevious
@@ -2212,7 +2035,7 @@ const ProjectEdit = () => {
     attention: documentChecks.filter((check) => check.status === 'Needs attention').length,
     missing: documentChecks.filter((check) => check.status === 'Missing').length
   };
-  const showEvidenceTools = ['chapter1', 'chapter2', 'chapter3', 'chapter5', 'references'].includes(selectedSection);
+  const showEvidenceTools = selectedSection === 'references' || selectedSection === 'chapter5';
   const showSpecialSupportTools = selectedSection === 'references' || (selectedSection === 'chapter4' && projectData?.type === 'report');
   const shouldShowSupportPanel = showSpecialSupportTools || (showEvidenceTools && supportPanelOpen);
 
@@ -2228,6 +2051,7 @@ const ProjectEdit = () => {
             <div className="min-w-0 flex-1">
               <Input
                 value={formData.title}
+                disabled={isSaving || isGenerating}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 className="h-auto border-none bg-transparent px-0 text-2xl font-bold shadow-none hover:bg-muted/20 focus-visible:ring-0 sm:text-3xl"
               />
@@ -2235,13 +2059,14 @@ const ProjectEdit = () => {
                 <span>{projectData?.type === 'proposal' ? 'Research Proposal' : 'Final Report'}</span>
                 <span>-</span>
                 <span>Overall Progress: {getAverageProgress()}%</span>
+                <span role="status">{isSaving ? 'Saving...' : pendingChanges ? 'Unsaved changes' : 'Saved'}</span>
               </div>
             </div>
           </div>
           
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:justify-end">
-            {(documentArtifactCount > 0 || missingReferenceKeys.length > 0) && (
-              <Button variant="outline" onClick={handleRepairDocument} disabled={isSaving || isDownloading} className="gap-2 bg-white">
+            {!isEditing && (documentArtifactCount > 0 || missingReferenceKeys.length > 0) && (
+              <Button variant="outline" onClick={handleRepairDocument} disabled={isSaving || isDownloading || isGenerating} className="gap-2 bg-white">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand className="h-4 w-4" />}
                 Repair document
               </Button>
@@ -2260,10 +2085,10 @@ const ProjectEdit = () => {
               )}
             </Button>
             
-            <Button onClick={handleSave} disabled={isSaving} className="gap-2">
-              {isSaving ? 'Saving...' : 'Save Changes'}
+            {!isEditing && <Button onClick={handleSave} disabled={isSaving || isGenerating} variant="outline" className="gap-2">
+              {isSaving ? 'Saving...' : 'Save project'}
               <Save className="h-4 w-4" />
-            </Button>
+            </Button>}
           </div>
         </div>
 
@@ -3011,9 +2836,15 @@ const ProjectEdit = () => {
                 )}
               </div>
               <div className="p-6 relative min-h-[400px]">
+                {writingWorkspace && (!fixedSection || currentNeeds.length > 0) && <ChapterStudyDetails workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} />}
+                {writingWorkspace && (selectedSection === 'chapter2' || ['background', 'statementOfProblem'].includes(selectedComponent)) && <ChapterSources key={projectId} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} onInsert={citation => { setTemporaryContent(`${isEditing ? temporaryContent : selectedContent}<p>${sanitizeChapterHtml(citation)}</p>`); setIsEditing(true); setReviewed(false); }} />}
+                {!!currentNeeds.length && <p className="my-3 text-sm text-amber-800">Before generating: {currentNeeds.join('; ')}. Manual writing remains available.</p>}
+                {generationError && <Alert variant="destructive" className="my-3"><AlertTitle>{generationError.title}</AlertTitle><AlertDescription>{generationError.message}{generationError.retryable && <Button variant="outline" size="sm" disabled={isGenerating || isSaving || !!currentNeeds.length} onClick={() => handleImproveWithAI(generationError.action)} className="ml-2">Retry generation</Button>}</AlertDescription></Alert>}
                 {isGenerating ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div role="status" className="flex flex-col items-center justify-center gap-4 py-16">
                     <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="text-sm">Preparing this section. Your previous text is kept.</p>
+                    <Button variant="outline" onClick={() => { generationRequest.current++; setIsGenerating(false); }}>Stop waiting</Button>
                   </div>
                 ) : (
                   <ProjectEditorContent
@@ -3029,7 +2860,12 @@ const ProjectEdit = () => {
                       );
                     }}
                     temporaryContent={temporaryContent}
-                    setTemporaryContent={setTemporaryContent}
+                    setTemporaryContent={value => { if (value !== temporaryContent) { setTemporaryContent(value); setReviewed(false); } }}
+                    busy={isSaving}
+                    generationBlocked={!!currentNeeds.length}
+                    fixedSection={fixedSection}
+                    reviewed={reviewed}
+                    onReview={setReviewed}
                     improveWithAI={isCurrentComponentAutoFilled ? () => toast.info('This page is prefilled from your profile and the DOCX template.') : handleImproveWithAI}
                     label={selectedComponentMeta?.label || ''}
                     description={
@@ -3045,10 +2881,8 @@ const ProjectEdit = () => {
                         : selectedSection === 'chapter1' && selectedComponent === 'introduction'
                           ? [
                               { id: 'draft', label: 'Generate intro only' },
-                              { id: 'draftWithBackground', label: 'Generate intro + background' },
                               { id: 'improve', label: 'Improve' },
                               { id: 'academic', label: 'Make academic' },
-                              { id: 'humanize', label: 'Human review' },
                               { id: 'shorten', label: 'Shorten' },
                               { id: 'uhpab', label: 'Check UHPAB' }
                             ]
@@ -3057,14 +2891,12 @@ const ProjectEdit = () => {
                               { id: 'draft', label: 'Draft starter' },
                               { id: 'interpret', label: 'Interpret result' },
                               { id: 'academic', label: 'Make academic' },
-                              { id: 'humanize', label: 'Human review' },
                               { id: 'uhpab', label: 'Check UHPAB' }
                             ]
                           : [
                               { id: 'draft', label: 'Draft starter' },
                               { id: 'improve', label: 'Improve' },
                               { id: 'academic', label: 'Make academic' },
-                              { id: 'humanize', label: 'Human review' },
                               { id: 'shorten', label: 'Shorten' },
                               { id: 'uhpab', label: 'Check UHPAB' }
                             ]
@@ -3077,11 +2909,11 @@ const ProjectEdit = () => {
                     canPrevious={canPreviousStep}
                     canNext={canNextStep}
                     onPrevious={() => goToWorkflowStep(currentStepIndex - 1)}
-                    onNext={() => goToWorkflowStep(currentStepIndex + 1)}
+                    onNext={handleSaveAndNext}
                     onSaveAndNext={handleSaveAndNext}
                     isAutoFilled={isCurrentComponentAutoFilled}
                     isDeferredFinalPage={!!currentStep?.deferred}
-                    onInsertCitation={handleInsertCitation}
+                    onInsertCitation={fixedSection || isCurrentComponentAutoFilled ? undefined : handleInsertCitation}
                     pageMeta={pageMeta}
                   />
                 )}

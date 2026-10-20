@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Bot, Quote, Save, Wand } from "lucide-react";
+import { ArrowLeft, ArrowRight, Quote, Save, Wand } from "lucide-react";
 import parse from "html-react-parser";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
@@ -26,11 +26,17 @@ interface ProjectEditorContentProps {
   isDeferredFinalPage?: boolean;
   onInsertCitation?: () => void;
   aiActions?: Array<{ id: string; label: string }>;
+  busy?: boolean;
+  generationBlocked?: boolean;
+  fixedSection?: boolean;
+  reviewed?: boolean;
+  onReview?: (reviewed: boolean) => void;
   pageMeta?: {
     pageNumber?: string;
     pageNumberKind: 'none' | 'roman' | 'arabic';
     chapterTitle?: string;
     sectionTitle?: string;
+    parentTitle?: string;
     isTitlePage?: boolean;
     isPreliminary?: boolean;
     continuesFromPrevious?: boolean;
@@ -65,43 +71,23 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
     { id: 'shorten', label: 'Shorten' },
     { id: 'uhpab', label: 'Check UHPAB' }
   ],
-  pageMeta
+  pageMeta,
+  busy = false, generationBlocked = false, fixedSection = false, reviewed = false, onReview,
 }) => {
   const hasContent = currentValue?.trim().length > 0;
   const isAbstract = /\babstract\b/i.test(label);
   const showDraftAction = allowAI && !isAutoFilled && !isDeferredFinalPage;
-  const showPolishActions = allowAI && hasContent && !isAutoFilled && !isDeferredFinalPage;
-  const combinedDraftAction = aiActions.find((action) => action.id === 'draftWithBackground');
+  const showPolishActions = allowAI && hasContent && !isAutoFilled && !isDeferredFinalPage && !fixedSection;
   const polishActions = aiActions.filter((action) => !['draft', 'draftWithBackground'].includes(action.id));
-  const helperText = isAutoFilled
-    ? "I have filled most of this page from the student's profile. Review it, then continue."
-    : isDeferredFinalPage
-      ? "This page is usually finished later after Chapter Three, tables, and findings exist. You can skip it for now."
-      : hasContent
-        ? "Review this section, make small edits if needed, then use Save and Next to keep moving."
-        : "Start with this one section only. Write a short draft, use a starter where helpful, then save and continue.";
   const pageFooterLabel = pageMeta?.pageNumberKind === 'roman'
     ? `Preliminary page ${pageMeta.pageNumber}`
     : pageMeta?.pageNumberKind === 'arabic'
-      ? `Page ${pageMeta.pageNumber}`
+      ? `Estimated page ${pageMeta.pageNumber}`
       : pageMeta?.pageNumber;
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-lg border bg-cyan-50/80 p-4 text-cyan-950 dark:bg-cyan-950/30 dark:text-cyan-50">
-        <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-white shadow-sm">
-            <Bot className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              {stepLabel && <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold text-cyan-800">{stepLabel}</span>}
-            <p className="font-semibold">Study helper</p>
-            </div>
-            <p className="mt-1 text-sm">{helperText}</p>
-          </div>
-        </div>
-      </div>
+    <fieldset disabled={busy} className="min-w-0 w-full space-y-5 border-0 p-0">
+      {stepLabel && <p className="text-xs text-muted-foreground">{stepLabel}</p>}
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
@@ -112,15 +98,9 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
           {!isEditing ? (
             <>
               {showDraftAction && (
-                <Button onClick={() => improveWithAI('draft')} className="gap-2">
+                <Button disabled={generationBlocked || hasContent} onClick={() => improveWithAI('draft')} variant="outline" className="gap-2">
                   <Wand className="h-4 w-4" />
-                  {hasContent ? "Regenerate draft" : "Generate draft"}
-                </Button>
-              )}
-              {showDraftAction && combinedDraftAction && (
-                <Button onClick={() => improveWithAI(combinedDraftAction.id)} variant="outline" className="gap-2">
-                  <Wand className="h-4 w-4" />
-                  {combinedDraftAction.label}
+                  Generate draft
                 </Button>
               )}
               <Button onClick={startEditing} variant={hasContent ? "default" : "outline"} className="gap-2">
@@ -132,11 +112,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
               <Button onClick={cancelEditing} variant="outline">
                 Cancel
               </Button>
-              <Button onClick={saveContent} variant="outline" className="gap-2">
-                <Save className="h-4 w-4" />
-                Save
-              </Button>
-              {onInsertCitation && (
+              {onInsertCitation && !fixedSection && (
                 <Button onClick={onInsertCitation} variant="outline" className="gap-2">
                   <Quote className="h-4 w-4" />
                   Insert citation
@@ -154,25 +130,22 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         </div>
       </div>
 
-      {!isEditing && showPolishActions && (
-        <div className="rounded-lg border bg-muted/25 p-3">
+      {(isEditing || showPolishActions) && (
+        <details className="border-y py-3">
+          <summary className="cursor-pointer text-sm font-medium">More tools</summary>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">Polish and check after drafting</p>
-              <p className="text-xs leading-5 text-muted-foreground">
-                Use these only after the section has content. They improve wording, shorten, or check UHPAB alignment.
-              </p>
-            </div>
             <div className="flex flex-wrap gap-2">
-              {polishActions.map((action) => (
-                <Button key={action.id} onClick={() => improveWithAI(action.id)} variant="outline" size="sm" className="gap-2 bg-card">
+              {isEditing && <Button variant="outline" size="sm" onClick={saveContent}><Save className="mr-2 h-4 w-4" />Save without moving</Button>}
+              {!isEditing && !fixedSection && <Button variant="outline" size="sm" disabled={generationBlocked} onClick={() => improveWithAI('draft')}>Regenerate draft</Button>}
+              {!isEditing && showPolishActions && polishActions.filter(action => action.id !== 'humanize').map((action) => (
+                <Button key={action.id} disabled={generationBlocked} onClick={() => improveWithAI(action.id)} variant="outline" size="sm" className="gap-2 bg-card">
                   <Wand className="h-3.5 w-3.5" />
                   {action.label}
                 </Button>
               ))}
             </div>
           </div>
-        </div>
+        </details>
       )}
 
       <div className="rounded-lg bg-slate-100/80 p-3 ring-1 ring-border/70 sm:p-5 dark:bg-slate-950/30">
@@ -186,14 +159,10 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
                 {pageMeta.chapterTitle}
               </p>
             )}
+            {pageMeta?.parentTitle && <p className="mb-3 text-[12pt] font-bold">{pageMeta.parentTitle}</p>}
             {pageMeta?.sectionTitle && !pageMeta.isTitlePage && (
               <p className={pageMeta.isPreliminary ? "mb-6 text-center text-[12pt] font-bold uppercase" : "mb-4 text-[12pt] font-bold"}>
                 {pageMeta.sectionTitle}
-              </p>
-            )}
-            {pageMeta?.continuesFromPrevious && (
-              <p className="mb-4 text-xs italic text-slate-500">
-                This section continues on the same running chapter page as the previous section.
               </p>
             )}
           </div>
@@ -201,11 +170,8 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
           <div className="flex-1">
           {isEditing ? (
             <div className="space-y-3">
-              <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
-                <p className="font-semibold">Writing box: {label}</p>
-                <p>Write only this section, then use Save or Save and Next.</p>
-              </div>
               <RichTextEditor
+                disabled={busy}
                 singleSpaced={isAbstract}
                 value={temporaryContent}
                 onChange={setTemporaryContent}
@@ -238,18 +204,20 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         </div>
       </div>
 
+      {onReview && <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1" checked={reviewed} disabled={!((isEditing ? temporaryContent : currentValue)?.replace(/<[^>]*>/g, '').trim())} onChange={event => onReview(event.target.checked)} />I have reviewed the wording, facts and sources in this section.</label>}
+
       {!isEditing && (
         <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
           <Button onClick={onPrevious} variant="ghost" className="gap-2" disabled={!canPrevious}>
             <ArrowLeft className="h-4 w-4" />
             Previous section
           </Button>
-          <Button onClick={onNext} className="gap-2" disabled={!canNext}>
-            Next section
+          <Button onClick={canNext ? onNext : saveContent} className="gap-2">
+            {canNext ? 'Save and Next' : 'Save section'}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       )}
-    </div>
+    </fieldset>
   );
 };

@@ -16,6 +16,7 @@ import { triggerBrowserDownload, sanitizeFileName } from '@/lib/download';
 import { generateResearchComponent } from '@/utils/geminiApi';
 import { assertUhpabDraftAllowed } from '@/lib/uhpabWritingEngine';
 import { chapterSections, chapterStructure, changeWorkspaceContext, citedWorkspaceSources, generationNeeds, newChapterWorkspace, plainChapterText, reviewWorkspaceSection, sanitizeChapterHtml, workspaceFingerprint, workspaceWritingContext, type ChapterKey, type ChapterSource, type ChapterWorkspace } from '@/lib/chapterWorkspace';
+import { writingFailure } from '@/lib/writingFailure';
 import { readResearchList } from '@/lib/researchFormulation';
 import { deleteChapterWorkspace, listChapterWorkspaces, saveChapterWorkspace, transferChapterWorkspace, type TransferMode } from '@/lib/chapterWorkspaceStore';
 
@@ -155,7 +156,7 @@ export default function ChapterWork() {
       const next = { ...snapshot, sections: { ...snapshot.sections, [id]: { content: sanitizeChapterHtml(result.text), previousContent: content, status: 'drafting' as const, contextFingerprint: workspaceFingerprint(snapshot) } } };
       edit(next);
       toast.success('Draft ready. Read and edit it before marking it reviewed.');
-    } catch (e) { if (token === requestNumber.current) setError(errorText(e)); }
+    } catch (e) { if (token === requestNumber.current) { const failure = writingFailure(e); setError(`${failure.title}: ${failure.message}`); } }
     finally { if (token === requestNumber.current) setBusy(''); }
   };
   const download = async () => {
