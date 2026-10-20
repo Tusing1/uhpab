@@ -71,7 +71,7 @@ import { AIContentGenerator } from '@/components/projects/AIContentGenerator';
 import ChapterStudyDetails from '@/components/research/ChapterStudyDetails';
 import ChapterSources from '@/components/research/ChapterSources';
 import { generationNeeds, workspaceWritingContext, reviewWorkspaceSection, sanitizeChapterHtml } from '@/lib/chapterWorkspace';
-import { mergeActiveWriting, projectChapterWorkspace, recalculateWritingProgress, sectionReviewed, writingSections } from '@/lib/projectWritingFlow';
+import { mergeActiveWriting, projectChapterWorkspace, recalculateWritingProgress, sectionReviewed, writingSections, updateProjectStudyWorkspace } from '@/lib/projectWritingFlow';
 import { writingFailure } from '@/lib/writingFailure';
 import { useWritingNavigationGuard } from '@/hooks/useWritingNavigationGuard';
 import { Label } from '@/components/ui/label';
@@ -766,6 +766,8 @@ const ProjectEdit = () => {
   const [reviewed, setReviewed] = useState(false);
   const [roadmapOpen, setRoadmapOpen] = useState(true);
   const [roadmapVisible, setRoadmapVisible] = useState(false);
+  const [preparationExpanded, setPreparationExpanded] = useState(true);
+  const [showPreparationErrors, setShowPreparationErrors] = useState(false);
   const [roadmapSection, setRoadmapSection] = useState('preliminaryPages');
   const loadedProject = React.useRef('');
   const saveLock = React.useRef(false);
@@ -845,6 +847,8 @@ const ProjectEdit = () => {
 
   useEffect(() => {
     setSupportPanelOpen(false);
+    setPreparationExpanded(true);
+    setShowPreparationErrors(false);
   }, [selectedSection, selectedComponent]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -1332,7 +1336,7 @@ const ProjectEdit = () => {
   const updateStudyWorkspace = (next: NonNullable<typeof writingWorkspace>) => {
     setReviewed(false);
     setGenerationError(null);
-    setFormData(prev => ({ ...prev, chapters: { ...prev.chapters, _studyContext: next.context, _objectiveCount: next.context.objectiveCount === '2' ? 2 : 3, _sourcesLibrary: next.sources } }));
+    setFormData(prev => updateProjectStudyWorkspace(prev, next));
   };
   const isCurrentComponentAutoFilled = isAutoFilledComponent(selectedSection, selectedComponent);
   const selectedContent =
@@ -2796,17 +2800,19 @@ const ProjectEdit = () => {
                     setTemporaryContent={value => { if (value !== temporaryContent) { setTemporaryContent(value); setReviewed(false); } }}
                     busy={isSaving}
                     generationBlocked={!!currentNeeds.length}
+                    generationRequirements={currentNeeds}
+                    onResolveRequirements={() => { setPreparationExpanded(true); setShowPreparationErrors(true); }}
                     fixedSection={fixedSection}
                     reviewed={reviewed}
                     onReview={setReviewed}
                     nextLabel={workflowSteps[currentStepIndex + 1]?.label}
                     preparation={writingWorkspace && (!fixedSection || currentNeeds.length > 0) ? (
-                      <Accordion key={`${selectedSection}-${selectedComponent}`} type="single" collapsible defaultValue={currentNeeds.length ? 'prepare' : undefined}>
+                      <Accordion key={`${selectedSection}-${selectedComponent}`} type="single" collapsible value={preparationExpanded ? 'prepare' : ''} onValueChange={value => setPreparationExpanded(value === 'prepare')}>
                         <AccordionItem value="prepare" className="border-y">
                           <AccordionTrigger className="min-h-12 text-left">Study details and evidence{currentNeeds.length ? ` · ${currentNeeds.length} needed` : ''}</AccordionTrigger>
                           <AccordionContent className="space-y-4">
                             <p className="text-xs text-muted-foreground"><span className="font-semibold text-red-600 dark:text-red-400">*</span> Required for draft generation</p>
-                            <ChapterStudyDetails embedded workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} />
+                            <ChapterStudyDetails embedded showErrors={showPreparationErrors} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} />
                             {(selectedSection === 'chapter2' || ['background', 'statementOfProblem'].includes(selectedComponent)) && <ChapterSources key={projectId} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} onInsert={citation => { setTemporaryContent(`${isEditing ? temporaryContent : selectedContent}<p>${sanitizeChapterHtml(citation)}</p>`); setIsEditing(true); setReviewed(false); }} />}
                           </AccordionContent>
                         </AccordionItem>

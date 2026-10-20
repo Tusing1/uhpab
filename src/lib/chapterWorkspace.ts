@@ -69,7 +69,7 @@ export function citedWorkspaceSources(w: ChapterWorkspace, html: string) {
 }
 export function generationNeeds(w: ChapterWorkspace, id: string): string[] {
   const needs = requiredContext(w, id).filter(key => !w.context[key]?.trim()).map(key => contextFields[key].label);
-  if ((w.chapterKey === 'chapter2' || ['background', 'statementOfProblem'].includes(id)) && !workspaceSources(w, id).length) needs.push('A saved source with a supporting finding or evidence note');
+  if ((w.chapterKey === 'chapter2' || ['background', 'statementOfProblem'].includes(id)) && !workspaceSources(w, id).length) needs.push('Save a supporting source with its citation, APA reference and finding');
   if (id === 'studyDesign' && w.context.design && !/cross.sectional|case.control|cohort|experimental|phenomenolog|ethnograph|case study|grounded theory|descriptive|exploratory/i.test(w.context.design)) needs.push('An actual study design, not just quantitative or qualitative');
   return needs;
 }

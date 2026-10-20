@@ -17,6 +17,7 @@ import { generateResearchComponent } from '@/utils/geminiApi';
 import { assertUhpabDraftAllowed } from '@/lib/uhpabWritingEngine';
 import { chapterSections, chapterStructure, changeWorkspaceContext, citedWorkspaceSources, generationNeeds, newChapterWorkspace, plainChapterText, reviewWorkspaceSection, sanitizeChapterHtml, workspaceFingerprint, workspaceWritingContext, type ChapterKey, type ChapterSource, type ChapterWorkspace } from '@/lib/chapterWorkspace';
 import { writingFailure } from '@/lib/writingFailure';
+import { focusMissingStudyField } from '@/lib/studyPreparation';
 import { readResearchList } from '@/lib/researchFormulation';
 import { deleteChapterWorkspace, listChapterWorkspaces, saveChapterWorkspace, transferChapterWorkspace, type TransferMode } from '@/lib/chapterWorkspaceStore';
 
@@ -141,7 +142,8 @@ export default function ChapterWork() {
     edit({ ...draft, sections: { ...draft.sections, [id]: { ...draft.sections[id], content: sanitized, status: plainChapterText(html) ? 'drafting' : 'not-started' } } });
   };
   const generate = async () => {
-    if (!draft || needs.length || busy) return;
+    if (!draft || busy) return;
+    if (needs.length) { setError(`Still needed before generation: ${needs.join('; ')}.`); requestAnimationFrame(() => focusMissingStudyField(editorPanel.current)); return; }
     if (hasContent && !window.confirm('Replace this section with a new draft? Your current text will be kept for Undo.')) return;
     const token = ++requestNumber.current;
     const snapshot = draft;
@@ -245,7 +247,7 @@ export default function ChapterWork() {
           <ChapterStudyDetails workspace={draft} sectionId={id} disabled={!!busy} onChange={edit} />
           {(draft.chapterKey === 'chapter2' || ['background', 'statementOfProblem'].includes(id)) && <ChapterSources key={draft.id} workspace={draft} sectionId={id} disabled={!!busy} onChange={edit} onInsert={citation => setContent(`${content}<p>${sanitizeChapterHtml(citation)}</p>`)} />}
           {needs.length > 0 && <p className="text-sm text-amber-800" role="status">Before generating: {needs.join('; ')}. You can still write and save below.</p>}
-          <div className="flex flex-wrap items-center gap-3"><Button variant="outline" disabled={!!busy || !!needs.length} onClick={generate}><Sparkles size={16} className="mr-2" />{hasContent ? 'Regenerate draft' : 'Generate draft'}</Button>{draft.sections[id]?.previousContent && <Button variant="ghost" disabled={!!busy} onClick={() => { const old = draft.sections[id]; edit({ ...draft, sections: { ...draft.sections, [id]: { ...old, content: old.previousContent!, previousContent: old.content, status: 'drafting' } } }); }}><Undo2 size={16} className="mr-2" />Undo replacement</Button>}<span className="text-xs text-muted-foreground">{plainChapterText(content).split(/\s+/).filter(Boolean).length} words</span></div>
+          <div className="flex flex-wrap items-center gap-3"><Button variant="outline" disabled={!!busy} onClick={generate}><Sparkles size={16} className="mr-2" />{hasContent ? 'Regenerate draft' : 'Generate draft'}</Button>{draft.sections[id]?.previousContent && <Button variant="ghost" disabled={!!busy} onClick={() => { const old = draft.sections[id]; edit({ ...draft, sections: { ...draft.sections, [id]: { ...old, content: old.previousContent!, previousContent: old.content, status: 'drafting' } } }); }}><Undo2 size={16} className="mr-2" />Undo replacement</Button>}<span className="text-xs text-muted-foreground">{plainChapterText(content).split(/\s+/).filter(Boolean).length} words</span></div>
           <div className="chapter-manuscript"><h3>{chapterStructure(draft.documentType, draft.chapterKey).title}</h3><h4>{section.title}</h4><RichTextEditor key={id} value={content} onChange={setContent} disabled={!!busy} placeholder="Write your section here" /></div>
           <label className="flex items-start gap-3 text-sm"><input className="mt-1" type="checkbox" disabled={!!busy || !hasContent} checked={draft.sections[id]?.status === 'reviewed'} onChange={e => markReviewed(e.target.checked)} />I have read this section and checked its facts and sources.</label>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"><Button variant="outline" disabled={!!busy} onClick={() => save()}><Save size={16} className="mr-2" />Save</Button><span role="status" className="text-xs text-muted-foreground">{busy || (dirty ? 'Unsaved changes' : 'Saved')}</span><Button disabled={!!busy} onClick={async () => { const index = draft.selectedSectionIds.indexOf(id); const nextId = draft.selectedSectionIds[index + 1]; const result = await save(nextId ? { ...draft, activeSectionId: nextId } : draft); if (result) { toast.success(nextId ? 'Saved. Next section ready.' : 'Chapter saved.'); editorPanel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }}>Save and {draft.selectedSectionIds.indexOf(id) === draft.selectedSectionIds.length - 1 ? 'finish' : 'next'}<ArrowRight size={16} className="ml-2" /></Button></div>

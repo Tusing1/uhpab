@@ -8,6 +8,16 @@ type Chapters = Record<string, unknown> & {
 const sectionData = (chapters: Chapters, key: string): Record<string, string> =>
   chapters[key] && typeof chapters[key] === 'object' && !Array.isArray(chapters[key]) ? chapters[key] as Record<string, string> : {};
 export type WritingForm = { title: string; chapters: Chapters; progress: Record<string, number> };
+const objectiveSignature = (data: WritingForm) => JSON.stringify([data.title, sectionData(data.chapters, 'chapter1').specificObjectives || '', data.chapters._objectiveCount === 2 ? 2 : 3]);
+
+export function updateProjectStudyWorkspace(data: WritingForm, next: ChapterWorkspace): WritingForm {
+  const chapters = { ...data.chapters, _studyContext: { ...next.context }, _objectiveCount: next.context.objectiveCount === '2' ? 2 : 3, _sourcesLibrary: next.sources };
+  const result = { ...data, chapters };
+  if (next.context.objectives?.trim() && next.context.objectives !== data.chapters._studyContext?.objectives) {
+    chapters._studyContext._confirmedObjectivesFor = objectiveSignature(result);
+  }
+  return result;
+}
 export const writingSections = (type: 'proposal' | 'report', section: string) => {
   const structure = type === 'report' ? reportStructure : proposalStructure;
   const data = structure[section];
@@ -51,7 +61,7 @@ export function projectChapterWorkspace(data: WritingForm, type: 'proposal' | 'r
   // A changed manuscript objective must not leave an older confirmed copy active.
   if (objectives) {
     if (sectionReviewed(data, 'chapter1', 'specificObjectives', objectives)) context.objectives = objectives;
-    else delete context.objectives;
+    else if (context._confirmedObjectivesFor !== objectiveSignature(data)) delete context.objectives;
   }
   return { ...w, id: `project-${userId}-${section}`, context,
     sections: Object.fromEntries(ids.map(id => [id, { content: sectionData(data.chapters, section)[id] || '', status: sectionReviewed(data, section, id) ? 'reviewed' : 'drafting' }])),

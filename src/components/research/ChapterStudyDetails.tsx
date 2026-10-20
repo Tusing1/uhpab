@@ -2,8 +2,8 @@ import { Textarea } from '@/components/ui/textarea';
 import RequiredMark from './RequiredMark';
 import { changeWorkspaceContext, contextFields, generationNeeds, requiredContext, type ChapterWorkspace } from '@/lib/chapterWorkspace';
 
-export default function ChapterStudyDetails({ workspace: w, sectionId, disabled, onChange, embedded = false }: {
-  workspace: ChapterWorkspace; sectionId: string; disabled: boolean; onChange: (next: ChapterWorkspace) => void; embedded?: boolean;
+export default function ChapterStudyDetails({ workspace: w, sectionId, disabled, onChange, embedded = false, showErrors = false }: {
+  workspace: ChapterWorkspace; sectionId: string; disabled: boolean; onChange: (next: ChapterWorkspace) => void; embedded?: boolean; showErrors?: boolean;
 }) {
   const needs = generationNeeds(w, sectionId);
   const required = requiredContext(w, sectionId);
@@ -11,7 +11,7 @@ export default function ChapterStudyDetails({ workspace: w, sectionId, disabled,
   const set = (key: string, value: string) => onChange(changeWorkspaceContext(w, { context: { ...w.context, [key]: value } }));
   const body = <div className="space-y-4">
       {fields.map(key => <label key={key} className="block space-y-2 text-sm"><span>{contextFields[key].label}{required.includes(key) ? <RequiredMark /> : <span className="ml-1 text-muted-foreground">(optional)</span>}</span>
-        <Textarea className="min-h-36 sm:min-h-28" required={required.includes(key)} aria-required={required.includes(key)} disabled={disabled} placeholder={contextFields[key].placeholder} value={w.context[key] || ''} onChange={e => set(key, e.target.value)} />
+        <Textarea className="min-h-36 sm:min-h-28 aria-[invalid=true]:border-red-600" aria-invalid={showErrors && required.includes(key) && !w.context[key]?.trim()} required={required.includes(key)} aria-required={required.includes(key)} disabled={disabled} placeholder={contextFields[key].placeholder} value={w.context[key] || ''} onChange={e => set(key, e.target.value)} />
       </label>)}
       {['specificObjectives', 'researchQuestions'].includes(sectionId) && <label className="block space-y-2 text-sm">Number of objectives
         <select className="h-11 w-full rounded-md border bg-background px-3 text-sm" value={w.context.objectiveCount || '3'} disabled={disabled} onChange={e => set('objectiveCount', e.target.value)}>

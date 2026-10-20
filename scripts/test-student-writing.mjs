@@ -134,11 +134,37 @@ check('Required preparation precedes generation, with real required fields and a
   assert.match(sourceForm, /<details[^>]*open=""/);
   assert.equal((sourceForm.match(/aria-required="true"/g) || []).length, 3);
   assert.match(sourceForm, /Summarize one relevant finding/);
+  const saveSourceButton = sourceForm.match(/<button\b[^>]*>[\s\S]*?<\/button>/g).find(button => button.includes('Save source'));
+  assert.doesNotMatch(saveSourceButton, /\bdisabled=/);
   const html = renderToStaticMarkup(React.createElement(editor.ProjectEditorContent, { isEditing: false, startEditing() {}, cancelEditing() {}, saveContent() {}, temporaryContent: '', setTemporaryContent() {}, improveWithAI() {}, label: 'Background', description: '', currentValue: '', generationBlocked: true, preparation: React.createElement('div', { id: 'preparation-test' }, 'Required study details') }));
   assert.ok(html.indexOf('id="preparation-test"') < html.indexOf('Generate draft'));
-  assert.match(html, /disabled=""[^>]*>.*?Generate draft/);
+  const generateButton = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g).find(button => button.includes('Generate draft'));
+  assert.doesNotMatch(generateButton, /\bdisabled=/);
+  assert.match(html, /Still needed before generation/);
   w.context = { setting: 'Confirmed setting', rationale: 'Confirmed gap' };
   w.sources = [{ id: 'qa', title: 'Evidence', authors: 'WHO', year: '2024', citationText: '(WHO, 2024)', apaReference: 'WHO. (2024). Evidence.', notes: 'A finding read in the source.', intendedUse: 'background', url: '' }];
   assert.deepEqual(model.generationNeeds(w, 'background'), []);
+});
+check('Explicitly entered confirmed objectives survive typing and unrelated context changes', () => {
+  const base = { ...empty(), chapters: { chapter1: { specificObjectives: '<p>Unreviewed manuscript objectives.</p>' } } };
+  const workspace = flow.projectChapterWorkspace(base, 'proposal', 'chapter2');
+  const confirmed = 'To assess the stated factors among the stated population at the stated setting.';
+  const next = flow.updateProjectStudyWorkspace(base, { ...workspace, context: { ...workspace.context, objectives: confirmed } });
+  assert.equal(flow.projectChapterWorkspace(next, 'proposal', 'chapter2').context.objectives, confirmed);
+  const afterTyping = flow.updateProjectStudyWorkspace(next, { ...flow.projectChapterWorkspace(next, 'proposal', 'chapter2'), context: { ...next.chapters._studyContext, additional: 'Another confirmed fact.' } });
+  assert.equal(flow.projectChapterWorkspace(afterTyping, 'proposal', 'chapter2').context.objectives, confirmed);
+  assert.equal(flow.projectChapterWorkspace({ ...next, title: 'Changed study topic' }, 'proposal', 'chapter2').context.objectives, undefined);
+  assert.equal(flow.projectChapterWorkspace({ ...next, chapters: { ...next.chapters, chapter1: { specificObjectives: 'Changed manuscript objectives' } } }, 'proposal', 'chapter2').context.objectives, undefined);
+});
+check('All Chapter One, Two and Three sections become ready when their stated requirements are filled', () => {
+  for (const type of ['proposal', 'report']) for (const chapter of ['chapter1', 'chapter2', 'chapter3']) {
+    const workspace = flow.projectChapterWorkspace(empty(), type, chapter);
+    for (const id of workspace.selectedSectionIds) {
+      const w = { ...workspace, context: { ...workspace.context }, sources: [] };
+      for (const key of model.requiredContext(w, id)) w.context[key] = key === 'design' ? 'Cross-sectional survey to assess the current situation.' : 'Confirmed study detail.';
+      w.sources = [{ id: 'qa', title: 'Evidence', authors: 'QA', year: '2024', citationText: '(QA, 2024)', apaReference: 'QA. (2024). Synthetic fixture.', notes: 'A supplied test finding.', intendedUse: id, url: '' }];
+      assert.deepEqual(model.generationNeeds(w, id), [], `${type}/${chapter}/${id}`);
+    }
+  }
 });
 console.log(`\n${checks} student-writing checks passed. No student documents or external API calls used.`);

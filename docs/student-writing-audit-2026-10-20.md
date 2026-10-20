@@ -75,3 +75,13 @@ Limits: source-identity validation does not prove a paper supports every generat
 Preparation now precedes Generate draft. Required study details and the three required source fields have visible red asterisks, accessible required labels and required attributes. Optional source metadata stays collapsed. Source entry opens automatically when evidence is required and none is saved. Advisory placeholders explain the requested setting, rationale, design, population and source findings without suggesting invented data.
 
 Writing regression checks now total 12 and verify required-field markers, placeholder advice, preparation-before-generation order and the readiness transition. Local browser verification confirmed five required Background inputs appear before Generate draft, and completing them plus Save source enables the button. Mobile width 390px had no horizontal overflow. Synthetic inputs were discarded without saving the project or calling Gemini.
+
+### Generation Readiness Feedback Fix
+
+The signed-in updated tab showed an empty required rationale and zero saved supporting sources. A separate older tab still had the pre-release UI. Neither was reloaded or edited during inspection.
+
+Generate and Regenerate now remain actionable outside active saving/generation. Missing requirements are listed beside the action; activating it opens preparation, highlights missing study fields and focuses the first missing input without sending an incomplete request to Gemini. Save source likewise reports its missing citation/reference/finding instead of staying silently disabled. The standalone chapter editor uses the same action-time validation and focus behavior.
+
+Fixed a separate adapter bug: explicitly typed confirmed objectives were being removed when manuscript objectives existed but were not reviewed. Explicit confirmations are now tied to the topic, manuscript objective text and requested count; unrelated typing preserves them, while changes to those objective inputs invalidate stale confirmations.
+
+Verification: 14 writing checks, 16 chapter checks and 15 formulation checks passed; build and targeted lint passed. New coverage enumerates every proposal/report section in Chapters One-Three and verifies readiness after its stated requirements are supplied. Local browser checks covered collapsed-preparation reopening, keyboard activation, missing-input focus, source-save validation and the completed Statement of the Problem readiness state on a 390px viewport. No live generation request was sent; synthetic inputs were discarded without saving. Existing unrelated TypeScript errors remain unchanged.

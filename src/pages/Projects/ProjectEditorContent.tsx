@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Check, Pencil, Quote, Save, Wand, X } from "lucide-react";
 import parse from "html-react-parser";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { focusMissingStudyField } from '@/lib/studyPreparation';
 
 interface ProjectEditorContentProps {
   isEditing: boolean;
@@ -28,6 +29,8 @@ interface ProjectEditorContentProps {
   aiActions?: Array<{ id: string; label: string }>;
   busy?: boolean;
   generationBlocked?: boolean;
+  generationRequirements?: string[];
+  onResolveRequirements?: () => void;
   fixedSection?: boolean;
   reviewed?: boolean;
   onReview?: (reviewed: boolean) => void;
@@ -75,9 +78,21 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
   ],
   pageMeta,
   preparation, nextLabel,
-  busy = false, generationBlocked = false, fixedSection = false, reviewed = false, onReview,
+  busy = false, generationBlocked = false, generationRequirements = [], onResolveRequirements, fixedSection = false, reviewed = false, onReview,
 }) => {
   const writingRef = React.useRef<HTMLDivElement>(null);
+  const preparationRef = React.useRef<HTMLDivElement>(null);
+  const [requirementsRequested, setRequirementsRequested] = React.useState(false);
+  const requestDraft = (action = 'draft') => {
+    if (generationBlocked) {
+      setRequirementsRequested(true);
+      onResolveRequirements?.();
+      requestAnimationFrame(() => focusMissingStudyField(preparationRef.current));
+      return;
+    }
+    setRequirementsRequested(false);
+    improveWithAI(action);
+  };
   React.useEffect(() => {
     if (!isEditing) return;
     const frame = requestAnimationFrame(() => writingRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }));
@@ -113,18 +128,23 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         </div>
       </div>
 
-      {preparation}
+      <div ref={preparationRef}>{preparation}</div>
+
+      {generationBlocked && <div role={requirementsRequested ? 'alert' : 'status'} className="border-l-2 border-primary pl-4 text-sm">
+        <p className="font-medium">Still needed before generation</p>
+        <ul className="mt-1 list-disc space-y-1 pl-4">{(generationRequirements.length ? generationRequirements : ['Required study details']).map(need => <li key={need}>{need}</li>)}</ul>
+      </div>}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {!isEditing ? (
             <>
               {showDraftAction && !hasContent && (
-                <Button disabled={generationBlocked} variant={generationBlocked ? 'outline' : 'default'} onClick={() => improveWithAI('draft')} className="min-h-11 gap-2">
+                <Button onClick={() => requestDraft()} className="min-h-11 gap-2">
                   <Wand className="h-4 w-4" />
                   Generate draft
                 </Button>
               )}
-              <Button onClick={startEditing} variant={hasContent || generationBlocked || !showDraftAction ? "default" : "outline"} className="min-h-11 gap-2">
+              <Button onClick={startEditing} variant={hasContent || !showDraftAction ? "default" : "outline"} className="min-h-11 gap-2">
                 <Pencil className="h-4 w-4" />{hasContent ? 'Edit section' : 'Write myself'}
               </Button>
             </>
@@ -149,9 +169,9 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap gap-2">
               {isEditing && <Button variant="outline" size="sm" onClick={saveContent}><Save className="mr-2 h-4 w-4" />Save without moving</Button>}
-              {!isEditing && !fixedSection && <Button variant="outline" size="sm" disabled={generationBlocked} onClick={() => improveWithAI('draft')}>Regenerate draft</Button>}
+              {!isEditing && !fixedSection && <Button variant="outline" size="sm" onClick={() => requestDraft()}>Regenerate draft</Button>}
               {!isEditing && showPolishActions && polishActions.filter(action => action.id !== 'humanize').map((action) => (
-                <Button key={action.id} disabled={generationBlocked} onClick={() => improveWithAI(action.id)} variant="outline" size="sm" className="gap-2 bg-card">
+                <Button key={action.id} onClick={() => requestDraft(action.id)} variant="outline" size="sm" className="gap-2 bg-card">
                   <Wand className="h-3.5 w-3.5" />
                   {action.label}
                 </Button>

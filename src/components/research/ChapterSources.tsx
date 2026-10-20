@@ -18,6 +18,8 @@ export default function ChapterSources({ workspace: w, sectionId, disabled, onCh
   const [query, setQuery] = useState('');
   const [looking, setLooking] = useState(false);
   const [error, setError] = useState('');
+  const [showSourceNeeds, setShowSourceNeeds] = useState(false);
+  const sourceNeeds = [!source.citationText.trim() && 'In-text citation', !source.apaReference.trim() && 'Full APA reference', /\[\[/.test(source.apaReference) && 'Replace APA placeholders with real source details', !source.notes.trim() && 'Supporting finding / evidence note'].filter(Boolean);
   const blocked = disabled || looking;
   const evidenceRequired = w.chapterKey === 'chapter2' || ['background', 'statementOfProblem'].includes(sectionId);
   const sourceCount = workspaceSources(w, sectionId).length;
@@ -78,8 +80,9 @@ export default function ChapterSources({ workspace: w, sectionId, disabled, onCh
         </div>
         <label className="flex items-center gap-2 pb-3 text-sm"><input type="checkbox" disabled={blocked} checked={!!source.acceptedOld} onChange={e => setSource({ ...source, acceptedOld: e.target.checked })} />Accepted classic, legal or guideline source</label>
       </details>
-      <Button className="min-h-11" variant="outline" disabled={blocked || !source.citationText.trim() || !source.apaReference.trim() || !source.notes.trim() || /\[\[/.test(source.apaReference)}
-        onClick={() => { onChange(changeWorkspaceContext(w, { sources: [...w.sources.filter(s => s.id !== source.id), source] })); setSource(emptySource()); }}>Save source</Button>
+      {showSourceNeeds && sourceNeeds.length > 0 && <p role="alert" className="text-sm text-red-700">Still needed to save this source: {sourceNeeds.join('; ')}.</p>}
+      <Button className="min-h-11" variant="outline" disabled={blocked}
+        onClick={() => { if (sourceNeeds.length) { setShowSourceNeeds(true); return; } onChange(changeWorkspaceContext(w, { sources: [...w.sources.filter(s => s.id !== source.id), source] })); setSource(emptySource()); setShowSourceNeeds(false); }}>Save source</Button>
     </div>
   </details>;
 }
