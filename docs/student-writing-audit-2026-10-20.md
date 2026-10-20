@@ -69,3 +69,9 @@ Limits: source-identity validation does not prove a paper supports every generat
 - Mobile formatting has bold/italic/underline plus an expandable menu for other tools. Touch controls are 44px; text and tables are width constrained. Starting editing scrolls directly to the writing surface, respecting reduced motion.
 - Browser checks passed on a synthetic local project: desktop, 390px and 320px; drawer fit, chapter browsing/selection, manual editing, Save and Next, compact formatting expansion and no horizontal overflow. Production student work was not changed. Screenshots stay under tmp/screenshots and are excluded from Git.
 - Writing regressions now total 11 checks, including rendered empty/populated/editing states and focused navigation. The 16 chapter and 15 formulation checks still pass. Build and targeted UI lint pass; existing unrelated TypeScript errors remain.
+
+### Required-Field Arrangement
+
+Preparation now precedes Generate draft. Required study details and the three required source fields have visible red asterisks, accessible required labels and required attributes. Optional source metadata stays collapsed. Source entry opens automatically when evidence is required and none is saved. Advisory placeholders explain the requested setting, rationale, design, population and source findings without suggesting invented data.
+
+Writing regression checks now total 12 and verify required-field markers, placeholder advice, preparation-before-generation order and the readiness transition. Local browser verification confirmed five required Background inputs appear before Generate draft, and completing them plus Save source enables the button. Mobile width 390px had no horizontal overflow. Synthetic inputs were discarded without saving the project or calling Gemini.

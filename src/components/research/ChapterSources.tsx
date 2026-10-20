@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { chapterSections, changeWorkspaceContext, workspaceSources, type ChapterSource, type ChapterWorkspace } from '@/lib/chapterWorkspace';
 import { lookupChapterSource } from '@/lib/chapterSourceLookup';
+import RequiredMark from './RequiredMark';
 
 const emptySource = (): ChapterSource => ({ id: crypto.randomUUID(), title: '', authors: '', year: '', citationText: '', apaReference: '', url: '', notes: '', intendedUse: '' });
 
@@ -18,6 +19,8 @@ export default function ChapterSources({ workspace: w, sectionId, disabled, onCh
   const [looking, setLooking] = useState(false);
   const [error, setError] = useState('');
   const blocked = disabled || looking;
+  const evidenceRequired = w.chapterKey === 'chapter2' || ['background', 'statementOfProblem'].includes(sectionId);
+  const sourceCount = workspaceSources(w, sectionId).length;
   const researchYear = Number(w.context.researchYear) || new Date().getFullYear();
   const lookup = async () => {
     setLooking(true); setError('');
@@ -27,16 +30,12 @@ export default function ChapterSources({ workspace: w, sectionId, disabled, onCh
     } catch (e) { setError(e instanceof Error ? e.message : 'Lookup failed. You can add the source manually.'); }
     finally { setLooking(false); }
   };
-  return <details className="chapter-details">
-    <summary className="cursor-pointer text-sm font-medium">Sources and supporting evidence · {workspaceSources(w, sectionId).length}</summary>
+  return <details className="chapter-details" open={evidenceRequired && sourceCount === 0}>
+    <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">Sources and supporting evidence{evidenceRequired && <RequiredMark />} · {sourceCount} saved</summary>
     <div className="mt-4 space-y-4">
-      <label className="block space-y-1 text-sm">Research year (for source-age warnings)
-        <Input type="number" min="1900" max="2100" value={w.context.researchYear || ''} placeholder="Research year" disabled={blocked}
-          onChange={e => onChange(changeWorkspaceContext(w, { context: { ...w.context, researchYear: e.target.value } }))} />
-      </label>
       <div className="flex flex-wrap items-end gap-2">
-        <label className="min-w-0 flex-1 space-y-1 text-sm">Find source details
-          <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="DOI, specific article title or webpage URL" disabled={blocked} />
+        <label className="min-w-0 flex-1 space-y-1 text-sm">Find source details (optional)
+          <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Paste a DOI, article title or the exact webpage URL" disabled={blocked} />
         </label>
         <Button variant="outline" onClick={lookup} disabled={blocked || !query.trim()}><Search size={16} className="mr-2" />{looking ? 'Looking up...' : 'Lookup'}</Button>
       </div>
@@ -52,24 +51,34 @@ export default function ChapterSources({ workspace: w, sectionId, disabled, onCh
             onClick={() => { onChange(changeWorkspaceContext(w, { sources: w.sources.filter(item => item.id !== s.id) })); if (source.id === s.id) setSource(emptySource()); }}><Trash2 size={14} /></Button>
         </div>
       </article>)}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(['title', 'authors', 'year', 'citationText', 'url'] as const).map(key => <label key={key} className="space-y-1 text-sm">
-          {{ title: 'Source title', authors: 'Author / organization', year: 'Publication year', citationText: 'Citation, e.g. (WHO, 2021)', url: 'DOI URL or webpage' }[key]}
-          <Input disabled={blocked} value={source[key]} onChange={e => setSource({ ...source, [key]: e.target.value })} />
-        </label>)}
-        <label className="space-y-1 text-sm">Applies to
-          <select className="h-11 w-full rounded-md border bg-background px-3 text-sm" disabled={blocked} value={source.intendedUse} onChange={e => setSource({ ...source, intendedUse: e.target.value })}>
-            <option value="">All selected sections</option>
-            {chapterSections(w.documentType, w.chapterKey).filter(([key]) => w.selectedSectionIds.includes(key)).map(([key, s]) => <option key={key} value={key}>{s.title}</option>)}
-          </select>
-        </label>
-      </div>
-      <label className="block space-y-1 text-sm">Full APA reference<Textarea disabled={blocked} value={source.apaReference} onChange={e => setSource({ ...source, apaReference: e.target.value })} /></label>
-      <label className="block space-y-1 text-sm">Supporting finding / evidence note
-        <Textarea disabled={blocked} value={source.notes} onChange={e => setSource({ ...source, notes: e.target.value })} placeholder="Finding, population, setting and page/section. Record only what you read." />
+      <label className="block space-y-1 text-sm">In-text citation<RequiredMark />
+        <Input required aria-required="true" placeholder="Author and year, e.g. (WHO, 2024)" disabled={blocked} value={source.citationText} onChange={e => setSource({ ...source, citationText: e.target.value })} />
       </label>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={blocked} checked={!!source.acceptedOld} onChange={e => setSource({ ...source, acceptedOld: e.target.checked })} />Accepted classic, legal or guideline source</label>
-      <Button variant="outline" disabled={blocked || !source.citationText.trim() || !source.apaReference.trim() || !source.notes.trim() || /\[\[/.test(source.apaReference)}
+      <label className="block space-y-1 text-sm">Full APA reference<RequiredMark /><Textarea className="min-h-36 sm:min-h-28" required aria-required="true" placeholder="Author or organization. (Year). Title of the work. Journal or publisher. DOI or URL. Use the real source details, not this example." disabled={blocked} value={source.apaReference} onChange={e => setSource({ ...source, apaReference: e.target.value })} /></label>
+      <label className="block space-y-1 text-sm">Supporting finding / evidence note<RequiredMark />
+        <Textarea className="min-h-40 sm:min-h-28" required aria-required="true" disabled={blocked} value={source.notes} onChange={e => setSource({ ...source, notes: e.target.value })} placeholder="Summarize one relevant finding you actually read. Include the population, country or setting, and page or section. Copy statistics exactly and do not invent missing numbers." />
+      </label>
+      <details>
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">Optional source details</summary>
+        <div className="grid gap-3 py-3 sm:grid-cols-2">
+          {(['title', 'authors', 'year', 'url'] as const).map(key => <label key={key} className="space-y-1 text-sm">
+            {{ title: 'Source title', authors: 'Author / organization', year: 'Publication year', url: 'DOI URL or webpage' }[key]}
+            <Input placeholder={{title: 'Exact title of the article, report or webpage', authors: 'Author surnames or publishing organization', year: 'Four-digit publication year, e.g. 2024', url: 'https://... or https://doi.org/...'}[key]} disabled={blocked} value={source[key]} onChange={e => setSource({ ...source, [key]: e.target.value })} />
+          </label>)}
+          <label className="space-y-1 text-sm">Applies to
+            <select className="h-11 w-full rounded-md border bg-background px-3 text-sm" disabled={blocked} value={source.intendedUse} onChange={e => setSource({ ...source, intendedUse: e.target.value })}>
+              <option value="">All selected sections</option>
+              {chapterSections(w.documentType, w.chapterKey).filter(([key]) => w.selectedSectionIds.includes(key)).map(([key, s]) => <option key={key} value={key}>{s.title}</option>)}
+            </select>
+          </label>
+          <label className="space-y-1 text-sm">Research year (for source-age warnings)
+            <Input type="number" min="1900" max="2100" value={w.context.researchYear || ''} placeholder={`e.g. ${new Date().getFullYear()}`} disabled={blocked}
+              onChange={e => onChange(changeWorkspaceContext(w, { context: { ...w.context, researchYear: e.target.value } }))} />
+          </label>
+        </div>
+        <label className="flex items-center gap-2 pb-3 text-sm"><input type="checkbox" disabled={blocked} checked={!!source.acceptedOld} onChange={e => setSource({ ...source, acceptedOld: e.target.checked })} />Accepted classic, legal or guideline source</label>
+      </details>
+      <Button className="min-h-11" variant="outline" disabled={blocked || !source.citationText.trim() || !source.apaReference.trim() || !source.notes.trim() || /\[\[/.test(source.apaReference)}
         onClick={() => { onChange(changeWorkspaceContext(w, { sources: [...w.sources.filter(s => s.id !== source.id), source] })); setSource(emptySource()); }}>Save source</Button>
     </div>
   </details>;

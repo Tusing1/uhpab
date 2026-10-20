@@ -2805,7 +2805,7 @@ const ProjectEdit = () => {
                         <AccordionItem value="prepare" className="border-y">
                           <AccordionTrigger className="min-h-12 text-left">Study details and evidence{currentNeeds.length ? ` · ${currentNeeds.length} needed` : ''}</AccordionTrigger>
                           <AccordionContent className="space-y-4">
-                            {!!currentNeeds.length && <div className="border-l-2 border-teal-600 pl-4 text-sm"><p className="mb-2 font-medium">Needed for a supported draft</p><ul className="list-disc space-y-1 pl-4">{currentNeeds.map(need => <li key={need}>{need}</li>)}</ul></div>}
+                            <p className="text-xs text-muted-foreground"><span className="font-semibold text-red-600 dark:text-red-400">*</span> Required for draft generation</p>
                             <ChapterStudyDetails embedded workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} />
                             {(selectedSection === 'chapter2' || ['background', 'statementOfProblem'].includes(selectedComponent)) && <ChapterSources key={projectId} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} onInsert={citation => { setTemporaryContent(`${isEditing ? temporaryContent : selectedContent}<p>${sanitizeChapterHtml(citation)}</p>`); setIsEditing(true); setReviewed(false); }} />}
                           </AccordionContent>

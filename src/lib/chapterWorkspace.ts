@@ -34,14 +34,14 @@ export function newChapterWorkspace(userId: string, type: ChapterWorkspace['docu
 }
 
 export const contextFields: Record<string, { label: string; placeholder: string }> = {
-  objectives: { label: 'Confirmed specific objectives', placeholder: 'One approved objective per line, including population and setting.' },
-  setting: { label: 'Study setting', placeholder: 'Facility or community, district, and relevant facts you can confirm.' },
-  population: { label: 'Study population', placeholder: 'Target and accessible population; ages if known.' },
-  period: { label: 'Study period / research year', placeholder: 'Actual or planned dates, including the year.' },
-  design: { label: 'Study design and reason', placeholder: 'An actual design, e.g. cross-sectional, and why it fits. State the approach separately.' },
+  objectives: { label: 'Confirmed specific objectives', placeholder: 'Paste your approved specific objectives, one per line. Keep the same population and study location in every objective.' },
+  setting: { label: 'Study setting', placeholder: 'Name the hospital, health centre or community and its district. Add only setting details you know, such as the relevant clinic or services offered.' },
+  population: { label: 'Study population', placeholder: 'Who will take part? State the group, where they can be reached and their age range if known. Include the accessible population size only if confirmed.' },
+  period: { label: 'Study period / research year', placeholder: 'Enter the planned or actual start and end dates, including the year. State separately when data collection will take place if different.' },
+  design: { label: 'Study design and reason', placeholder: 'Name your chosen design, e.g. cross-sectional, and explain why it fits your objectives. Add quantitative, qualitative or mixed methods as the approach; the approach alone is not a design.' },
   sample: { label: 'Sample size and justification', placeholder: 'Number, formula or rationale, assumptions and calculation. Do not guess inputs.' },
-  sampling: { label: 'Sampling procedure', placeholder: 'Method and how participants are selected.' },
-  eligibility: { label: 'Eligibility criteria', placeholder: 'Inclusion and exclusion criteria.' },
+  sampling: { label: 'Sampling procedure', placeholder: 'Name the sampling method and describe how you will select participants, step by step. Include your sampling frame or interval if applicable.' },
+  eligibility: { label: 'Eligibility criteria', placeholder: 'List who can participate (inclusion) and who cannot (exclusion), e.g. relevant ages, attendance at the clinic and consent requirements.' },
   variables: { label: 'Study variables', placeholder: 'Dependent and independent variables, and how they are measured.' },
   instruments: { label: 'Research instruments', placeholder: 'Tools, sections and how they address the objectives.' },
   collection: { label: 'Data collection procedure', placeholder: 'Who collects data, participant approach, consent and steps.' },
@@ -51,8 +51,8 @@ export const contextFields: Record<string, { label: string; placeholder: string 
   ethics: { label: 'Ethical arrangements', placeholder: 'Approvals planned or obtained, consent, confidentiality and withdrawal.' },
   limitations: { label: 'Limitations and mitigation', placeholder: 'Real constraints and how each is addressed.' },
   dissemination: { label: 'Sharing findings', placeholder: 'UHPAB, institution, study facility/community and how findings are shared.' },
-  rationale: { label: 'Local problem / rationale', placeholder: 'What is happening, what gap exists and why this study is needed.' },
-  beneficiaries: { label: 'Beneficiaries', placeholder: 'Who benefits and how.' },
+  rationale: { label: 'Local problem / rationale', placeholder: 'What problem prompted this study at this location, and what is not yet known? Describe observations or evidence you can confirm. Do not guess local case numbers or percentages.' },
+  beneficiaries: { label: 'Beneficiaries', placeholder: 'Name who could use the findings, e.g. patients, health workers or facility managers. Explain the practical benefit for each group.' },
 };
 export function requiredContext(w: ChapterWorkspace, id: string): string[] {
   if (w.chapterKey === 'chapter2') return ['objectives'];

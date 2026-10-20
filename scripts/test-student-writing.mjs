@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 mkdirSync('tmp/writing-qa', { recursive: true });
 async function bundle(entry, name) {
   const outfile = resolve(`tmp/writing-qa/${name}.mjs`);
-  await build({ entryPoints: [entry], outfile, bundle: true, packages: 'external', platform: 'node', format: 'esm', alias: { '@': resolve('src') } });
+  await build({ entryPoints: [entry], outfile, bundle: true, packages: 'external', platform: 'node', format: 'esm', jsx: 'automatic', alias: { '@': resolve('src') } });
   return import(pathToFileURL(outfile));
 }
 const engine = await bundle('src/lib/uhpabWritingEngine.ts', 'engine');
@@ -17,6 +17,8 @@ const flow = await bundle('src/lib/projectWritingFlow.ts', 'flow');
 const model = await bundle('src/lib/chapterWorkspace.ts', 'model');
 const failures = await bundle('src/lib/writingFailure.ts', 'failure');
 const editor = await bundle('src/pages/Projects/ProjectEditorContent.tsx', 'editor');
+const details = await bundle('src/components/research/ChapterStudyDetails.tsx', 'details');
+const sourcesUI = await bundle('src/components/research/ChapterSources.tsx', 'sources-ui');
 let checks = 0;
 function check(label, run) { run(); checks++; console.log(`PASS ${label}`); }
 const topic = 'PREDICTORS OF TREATMENT DEFAULT AMONG DRUG-SENSITIVE TUBERCULOSIS PATIENTS AT KIYUMBA HEALTH CENTRE IV, KAMPALA';
@@ -120,5 +122,23 @@ check('Empty and populated sections have distinguishable primary actions and a s
   assert.match(editing, /Cancel editing/);
   assert.equal((editing.match(/Save and Next/g) || []).length, 1);
   assert.match(editing, /fixed inset-x-0 bottom-0/);
+});
+check('Required preparation precedes generation, with real required fields and advisory placeholders', () => {
+  const w = flow.projectChapterWorkspace(empty(), 'proposal', 'chapter1');
+  const fields = renderToStaticMarkup(React.createElement(details.default, { workspace: w, sectionId: 'background', disabled: false, embedded: true, onChange() {} }));
+  assert.equal((fields.match(/aria-required="true"/g) || []).length, 2);
+  assert.match(fields, /text-red-600/);
+  assert.match(fields, /Do not guess local case numbers/);
+  assert.match(fields, /leave blank if you have nothing else/);
+  const sourceForm = renderToStaticMarkup(React.createElement(sourcesUI.default, { workspace: w, sectionId: 'background', disabled: false, onChange() {}, onInsert() {} }));
+  assert.match(sourceForm, /<details[^>]*open=""/);
+  assert.equal((sourceForm.match(/aria-required="true"/g) || []).length, 3);
+  assert.match(sourceForm, /Summarize one relevant finding/);
+  const html = renderToStaticMarkup(React.createElement(editor.ProjectEditorContent, { isEditing: false, startEditing() {}, cancelEditing() {}, saveContent() {}, temporaryContent: '', setTemporaryContent() {}, improveWithAI() {}, label: 'Background', description: '', currentValue: '', generationBlocked: true, preparation: React.createElement('div', { id: 'preparation-test' }, 'Required study details') }));
+  assert.ok(html.indexOf('id="preparation-test"') < html.indexOf('Generate draft'));
+  assert.match(html, /disabled=""[^>]*>.*?Generate draft/);
+  w.context = { setting: 'Confirmed setting', rationale: 'Confirmed gap' };
+  w.sources = [{ id: 'qa', title: 'Evidence', authors: 'WHO', year: '2024', citationText: '(WHO, 2024)', apaReference: 'WHO. (2024). Evidence.', notes: 'A finding read in the source.', intendedUse: 'background', url: '' }];
+  assert.deepEqual(model.generationNeeds(w, 'background'), []);
 });
 console.log(`\n${checks} student-writing checks passed. No student documents or external API calls used.`);

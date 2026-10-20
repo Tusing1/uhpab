@@ -106,12 +106,16 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         </ol>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div>
         <div className="min-w-0">
           <h3 className="text-lg font-semibold">{label}</h3>
           <p className="max-w-3xl text-sm text-muted-foreground">{description}</p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+      </div>
+
+      {preparation}
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {!isEditing ? (
             <>
               {showDraftAction && !hasContent && (
@@ -138,9 +142,6 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
             </>
           )}
         </div>
-      </div>
-
-      {preparation}
 
       {(isEditing || showPolishActions) && (
         <details className="border-y py-3">
