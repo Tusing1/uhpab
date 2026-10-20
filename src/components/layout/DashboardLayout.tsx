@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -6,7 +6,6 @@ import {
   LayoutDashboard, 
   FileText, 
   BookOpen, 
-  ClipboardCheck,
   FileCheck2,
   Settings, 
   LogOut, 
@@ -17,9 +16,7 @@ import {
   FileSearch,
   HelpCircle,
   Lightbulb,
-  SearchCheck,
-  MessageSquareText,
-  Wand2,
+  ChevronsUpDown,
   GraduationCap,
   UserCheck,
   PanelLeftClose,
@@ -30,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/brand/BrandLogo';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   applyFontSizePreference,
   applyReduceMotionPreference,
@@ -46,7 +44,6 @@ interface NavItemProps {
   badge?: string;
   active?: boolean;
   onClick?: () => void;
-  onCompactReveal?: () => void;
   desktopCollapsed?: boolean;
 }
 
@@ -57,9 +54,6 @@ interface NavGroupConfig {
   items: NavItemConfig[];
 }
 
-const isDesktopViewport = () =>
-  typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
-
 const NavItem: React.FC<NavItemProps> = ({
   to,
   icon,
@@ -67,30 +61,20 @@ const NavItem: React.FC<NavItemProps> = ({
   badge,
   active,
   onClick,
-  onCompactReveal,
   desktopCollapsed,
 }) => {
-  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (desktopCollapsed && isDesktopViewport()) {
-      event.preventDefault();
-      onCompactReveal?.();
-      return;
-    }
-
-    onClick?.();
-  };
-
   return (
     <Link
       to={to}
       className={cn(
-        "flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-[background-color,color,padding,gap] duration-200 ease-out",
+        "relative flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-[background-color,color,padding,gap] duration-200 ease-out motion-reduce:transition-none",
         desktopCollapsed && "lg:justify-center lg:gap-0 lg:px-2",
         active
-          ? "bg-primary/10 text-primary"
+          ? "bg-primary/[0.07] text-primary before:absolute before:left-0 before:top-3 before:h-5 before:w-[3px] before:rounded-r before:bg-primary"
           : "text-foreground/70 hover:bg-muted hover:text-foreground"
       )}
-      onClick={handleClick}
+      onClick={onClick}
+      aria-label={label}
       aria-current={active ? "page" : undefined}
       title={desktopCollapsed ? label : undefined}
     >
@@ -131,8 +115,8 @@ const getPageLabel = (pathname: string) => {
   if (pathname.startsWith('/student-workspace')) return 'Student workspace';
 
   const labels: Record<string, string> = {
-    '/dashboard': 'Today',
-    '/getting-started': 'Help / Start here',
+    '/dashboard': 'My research',
+    '/getting-started': 'Start here',
     '/review-history': 'My research work',
     '/school-dashboard': 'School workspace',
     '/student-workspace': 'Student workspace',
@@ -142,14 +126,15 @@ const getPageLabel = (pathname: string) => {
     '/marking-guide': 'Marking guide',
     '/document-analysis': 'Check my document',
     '/content-improvement': 'Improve my writing',
-    '/humanizer': 'Human review',
+    '/humanizer': 'Polish wording',
     '/plagiarism-checker': 'Check originality',
-    '/research-topic-generator': 'Research topic generator',
+    '/research-topic-generator': 'Find a topic',
+    '/chapter-work': 'Work on a chapter',
     '/premium': 'Premium',
     '/settings': 'Settings',
   };
 
-  return labels[pathname] || 'UHPAB Research';
+  return labels[pathname] || (pathname.startsWith('/chapter-work/') ? 'Work on a chapter' : 'UHPAB Research');
 };
 
 const readNavigationStack = () => {
@@ -210,6 +195,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(
     () => getSidebarDefaultPreference() === "compact"
   );
@@ -237,18 +223,42 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     setIsSidebarOpen(false);
   };
 
-  const revealDesktopSidebar = () => {
-    setIsDesktopSidebarCollapsed(false);
-  };
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const sync = () => {
+      sidebarRef.current?.toggleAttribute('inert', !desktop.matches && !isSidebarOpen);
+      if (desktop.matches && isSidebarOpen) setIsSidebarOpen(false);
+    };
+    sync();
+    desktop.addEventListener('change', sync);
+    return () => desktop.removeEventListener('change', sync);
+  }, [isSidebarOpen]);
 
-  const revealDesktopSidebarBeforeAction = () => {
-    if (isDesktopSidebarCollapsed && isDesktopViewport()) {
-      revealDesktopSidebar();
-      return true;
-    }
-
-    return false;
-  };
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusable = () => Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') || [])
+      .filter((element) => element.getClientRects().length > 0);
+    focusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.key === 'Escape') setIsSidebarOpen(false);
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     const stack = readNavigationStack();
@@ -345,8 +355,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   };
 
   const pageLabel = getPageLabel(location.pathname);
-  const isProjectRoute = location.pathname.startsWith('/projects');
-  const showPrimaryAction = schoolStaff ? location.pathname !== homeRoute : !isProjectRoute;
+  const showPrimaryAction = schoolStaff && location.pathname !== homeRoute;
   const primaryActionLabel = schoolAdmin ? "School workspace" : schoolSupervisor ? "Supervisor workspace" : schoolStudent ? "Student workspace" : "Create project";
   const primaryActionShortLabel = schoolAdmin ? "School" : schoolSupervisor ? "Review" : schoolStudent ? "Work" : "Create";
   const primaryActionRoute = schoolStaff ? homeRoute : "/projects/new";
@@ -365,74 +374,50 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       .toUpperCase() ||
     user?.email?.slice(0, 2).toUpperCase() ||
     "UR";
-  const isNavActive = (to: string) => location.pathname === to || (to === '/projects' && location.pathname.startsWith('/projects'));
+  const isNavActive = (to: string) => location.pathname === to ||
+    (to === '/chapter-work' && location.pathname.startsWith('/chapter-work/')) ||
+    (to === '/dashboard' && (location.pathname.startsWith('/projects') || location.pathname === '/review-history')) ||
+    (to === '/projects' && location.pathname.startsWith('/projects'));
   const navGroups: NavGroupConfig[] = [
     {
-      label: schoolAdmin ? "School" : schoolSupervisor ? "Supervision" : schoolStudent ? "Student" : "Dashboard",
+      label: schoolAdmin ? "School" : schoolSupervisor ? "Supervision" : schoolStudent ? "Student" : "Research",
       items: schoolAdmin
         ? [
             { to: '/school-dashboard', icon: <GraduationCap size={18} />, label: 'School workspace' },
-            { to: '/getting-started', icon: <HelpCircle size={18} />, label: 'Start here' },
           ]
         : schoolSupervisor
           ? [
               { to: '/supervisor-dashboard', icon: <UserCheck size={18} />, label: 'Supervisor workspace' },
               { to: '/supervisor-students', icon: <GraduationCap size={18} />, label: 'Assigned students' },
-              { to: '/getting-started', icon: <HelpCircle size={18} />, label: 'Start here' },
             ]
           : schoolStudent
             ? [
                 { to: '/student-workspace', icon: <FileCheck2 size={18} />, label: 'Student workspace' },
-                { to: '/getting-started', icon: <HelpCircle size={18} />, label: 'Start here' },
-                { to: '/research-topic-generator', icon: <Lightbulb size={18} />, label: 'Topic builder' },
-                { to: '/projects/new?type=proposal', icon: <Plus size={18} />, label: 'Start proposal' },
-                { to: '/projects/new?type=report', icon: <BookOpen size={18} />, label: 'Start report' },
                 { to: '/projects', icon: <FileText size={18} />, label: 'My research work' },
               ]
         : [
-            { to: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Today' },
-            { to: '/getting-started', icon: <HelpCircle size={18} />, label: 'Start here' },
+            { to: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'My research' },
           ],
     },
-    ...(schoolAdmin || schoolSupervisor || schoolStudent
-      ? []
-      : [
-          {
-            label: "My Work",
-            items: [
-              { to: '/projects', icon: <FileText size={18} />, label: 'My research work' },
-            ],
-          },
-        ]),
     {
-      label: "Review Tools",
+      label: "Work",
       items: [
-        { to: '/document-analysis', icon: <FileSearch size={18} />, label: 'Document analysis' },
-        { to: '/plagiarism-checker', icon: <SearchCheck size={18} />, label: 'Originality check' },
-        { to: '/marking-guide', icon: <ClipboardCheck size={18} />, label: 'Marking guide' },
+        { to: '/research-topic-generator', icon: <Lightbulb size={18} />, label: 'Find a topic' },
+        { to: '/chapter-work', icon: <BookOpen size={18} />, label: 'Work on a chapter' },
+        { to: '/document-analysis', icon: <FileSearch size={18} />, label: 'Check my document' },
       ],
     },
     {
-      label: "Writing Tools",
+      label: "Help",
       items: [
-        { to: '/content-improvement', icon: <MessageSquareText size={18} />, label: 'Improve writing' },
-        { to: '/humanizer', icon: <Wand2 size={18} />, label: 'Human review', badge: 'Deep' },
         { to: '/guidelines', icon: <BookOpen size={18} />, label: 'UHPAB guidelines' },
-      ],
-    },
-    {
-      label: "Account",
-      items: [
-        ...(!isPremium()
-          ? [{ to: '/premium', icon: <Shield size={18} />, label: 'Premium tools' }]
-          : []),
-        { to: '/settings', icon: <Settings size={18} />, label: 'Settings' },
+        { to: '/getting-started', icon: <HelpCircle size={18} />, label: 'Start here' },
       ],
     },
   ];
 
   return (
-    <div className="study-surface flex min-h-screen">
+    <div className={cn("study-surface flex min-h-screen", location.pathname === '/dashboard' && 'research-dashboard-shell')}>
       {/* Backdrop overlay */}
       {isSidebarOpen && (
         <button
@@ -444,9 +429,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       )}
       
       {/* Sidebar */}
-      <aside 
+      <aside ref={sidebarRef} aria-label="Research sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 shrink-0 transform overflow-hidden border-r bg-card shadow-xl transition-[transform,width,border-color] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] lg:sticky lg:z-20 lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-50 h-dvh w-72 shrink-0 transform overflow-hidden border-r bg-card shadow-xl transition-[transform,width,border-color] duration-300 motion-reduce:transition-none [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] lg:sticky lg:top-0 lg:z-20 lg:translate-x-0 lg:shadow-none",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isDesktopSidebarCollapsed ? "lg:w-20" : "lg:w-72"
         )}
@@ -454,17 +439,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         <div className={cn(
           "flex h-full w-full flex-col"
         )}>
-          <div className={cn("flex items-center justify-between px-4 py-4", isDesktopSidebarCollapsed && "lg:justify-center lg:px-3")}>
+          <div className={cn("flex min-h-20 items-center justify-between border-b border-border/60 px-5 py-4", isDesktopSidebarCollapsed && "lg:justify-center lg:px-3")}>
             <div
               className="min-w-0"
               title="UHPAB Study"
-              onClick={(event) => {
-                if (revealDesktopSidebarBeforeAction()) {
-                  event.preventDefault?.();
-                }
-              }}
+              onClick={closeMobileSidebar}
             >
               <BrandLogo
+                to={homeRoute}
                 title="UHPAB Study"
                 markClassName="h-9 w-9"
                 textClassName={cn(
@@ -478,40 +460,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             </Button>
           </div>
           
-          <div className={cn(
-            "mx-4 mb-3 rounded-lg border bg-muted/45 p-3 transition-[margin,padding] duration-200 ease-out",
-            isDesktopSidebarCollapsed && "lg:mx-3 lg:flex lg:justify-center lg:p-2"
-          )}>
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                {userInitials}
-              </span>
-              <div className={cn(
-                "min-w-0 transition-[opacity,transform,width] duration-150 ease-out",
-                isDesktopSidebarCollapsed && "lg:w-0 lg:translate-x-1 lg:opacity-0"
-              )}>
-                <p className="truncate text-sm font-medium">{visibleUserName}</p>
-                <p className="truncate text-xs text-muted-foreground">{visibleUserEmail}</p>
-              </div>
-            </div>
-            <div className={cn("mt-2", isDesktopSidebarCollapsed && "lg:hidden")}>
-              <span className={cn(
-                "text-xs px-2 py-0.5 rounded-full",
-                isPremium() 
-                  ? "bg-primary/20 text-primary" 
-                  : "bg-muted text-muted-foreground"
-              )}>
-                {planLabel}
-              </span>
-            </div>
-          </div>
-          
-          <nav className="flex-1 overflow-y-auto px-4 pb-3">
+          <nav aria-label="Main navigation" className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
             {navGroups.map((group, groupIndex) => (
               <div key={group.label}>
                 {groupIndex > 0 && <Separator className="my-3" />}
                 <p className={cn(
-                  "px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-[opacity,height,padding] duration-150 ease-out",
+                  "px-3 pb-2 text-[11px] font-semibold uppercase text-muted-foreground transition-[opacity,height,padding] duration-150 ease-out",
                   isDesktopSidebarCollapsed && "lg:h-0 lg:overflow-hidden lg:p-0 lg:opacity-0"
                 )}>
                   {group.label}
@@ -526,7 +480,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                       badge={item.badge}
                       active={isNavActive(item.to)}
                       onClick={closeMobileSidebar}
-                      onCompactReveal={revealDesktopSidebar}
                       desktopCollapsed={isDesktopSidebarCollapsed}
                     />
                   ))}
@@ -535,44 +488,28 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             ))}
           </nav>
           
-          <div className="space-y-4 p-4">
-            {showPrimaryAction && (
-              <Button
-                variant="default"
-                size="sm"
-                className={cn("w-full gap-2 transition-[padding] duration-200 ease-out", isDesktopSidebarCollapsed && "lg:px-2")}
-                onClick={() => {
-                  if (revealDesktopSidebarBeforeAction()) return;
-                  navigate(primaryActionRoute);
-                  closeMobileSidebar();
-                }}
-                aria-label={primaryActionLabel}
-                title={primaryActionLabel}
-              >
-                {schoolAdmin ? <GraduationCap size={16} /> : schoolSupervisor ? <UserCheck size={16} /> : <Plus size={16} />}
-                <span className={cn(isDesktopSidebarCollapsed && "lg:hidden")}>{primaryActionLabel}</span>
-              </Button>
-            )}
-
-            {showPrimaryAction && <Separator />}
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={cn(
-                "w-full justify-start gap-2 text-muted-foreground transition-[justify-content,padding] duration-200 ease-out",
-                isDesktopSidebarCollapsed && "lg:justify-center lg:px-2"
-              )}
-              onClick={() => {
-                if (revealDesktopSidebarBeforeAction()) return;
-                void handleLogout();
-              }}
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut size={16} />
-              <span className={cn(isDesktopSidebarCollapsed && "lg:hidden")}>Sign out</span>
-            </Button>
+          <div className="shrink-0 space-y-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <NavItem to="/settings" icon={<Settings size={18} />} label="Settings" active={isNavActive('/settings')} onClick={closeMobileSidebar} desktopCollapsed={isDesktopSidebarCollapsed} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" aria-label="Account menu" title="Account menu" className={cn("flex min-h-12 w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isDesktopSidebarCollapsed && "lg:justify-center lg:px-0")}>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary/10 bg-primary/[0.06] text-xs font-semibold text-primary">{userInitials}</span>
+                  <span className={cn("min-w-0 flex-1", isDesktopSidebarCollapsed && "lg:hidden")}>
+                    <span className="block truncate text-sm font-medium">{visibleUserName || 'My account'}</span>
+                    <span className="block text-xs text-muted-foreground">{planLabel}</span>
+                  </span>
+                  <ChevronsUpDown size={15} className={cn("shrink-0 text-muted-foreground", isDesktopSidebarCollapsed && "lg:hidden")} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-60 max-w-[calc(100vw-2rem)]">
+                <DropdownMenuLabel className="min-w-0 font-normal"><span className="block truncate font-medium">{visibleUserName || 'My account'}</span><span className="block truncate text-xs text-muted-foreground">{visibleUserEmail}</span></DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => { navigate('/settings'); closeMobileSidebar(); }}><Settings size={16} className="mr-2" />Account settings</DropdownMenuItem>
+                {!schoolStaff && <DropdownMenuItem onSelect={() => { navigate('/premium'); closeMobileSidebar(); }}><Shield size={16} className="mr-2" />{isPremium() ? 'My premium plan' : 'View plans'}</DropdownMenuItem>}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => { closeMobileSidebar(); void handleLogout(); }}><LogOut size={16} className="mr-2" />Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </aside>
@@ -625,7 +562,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 <span className="hidden text-muted-foreground/40 sm:inline">/</span>
                 <p className="truncate text-sm font-semibold sm:text-base">{pageLabel}</p>
               </div>
-              <p className="hidden text-xs text-muted-foreground md:block">
+              {schoolStaff && <p className="hidden text-xs text-muted-foreground md:block">
                 {schoolAdmin
                   ? "School workspace: candidates, cohorts, supervisors, assignments, and submissions."
                   : schoolSupervisor
@@ -633,19 +570,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     : schoolStudent
                       ? "Student workspace: assignments, submissions, correction requests, and supervisor responses."
                   : "Your research workspace: roadmap, document checks, writing help, and UHPAB guidance."}
-              </p>
+              </p>}
             </div>
             
             <div className="ml-auto flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden gap-2 xl:flex"
-                onClick={() => navigate('/document-analysis')}
-              >
-                <SearchCheck size={15} />
-                Check document
-              </Button>
               {showPrimaryAction && (
                 <Button
                   variant="default"
@@ -656,17 +584,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   {schoolAdmin ? <GraduationCap size={15} /> : schoolSupervisor ? <UserCheck size={15} /> : schoolStudent ? <FileCheck2 size={15} /> : <Plus size={15} />}
                   <span className="hidden sm:inline">{primaryActionLabel}</span>
                   <span className="sm:hidden">{primaryActionShortLabel}</span>
-                </Button>
-              )}
-              {!isPremium() && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="hidden gap-1 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 xl:flex"
-                  onClick={() => navigate('/premium')}
-                >
-                  <Shield size={14} className="text-primary" />
-                  <span>Premium</span>
                 </Button>
               )}
             </div>

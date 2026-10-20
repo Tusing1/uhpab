@@ -21,6 +21,7 @@ const ForgotPassword = lazy(() => import("./pages/Auth/ForgotPassword"));
 const SchoolSignup = lazy(() => import("./pages/Auth/SchoolSignup"));
 const ContactSales = lazy(() => import("./pages/Auth/ContactSales"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ChapterWork = lazy(() => import("./pages/ChapterWork"));
 const ProjectsPage = lazy(() => import("./pages/Projects/ProjectsPage"));
 const NewProject = lazy(() => import("./pages/Projects/NewProject"));
 const ProjectView = lazy(() => import("./pages/Projects/ProjectView"));
@@ -78,6 +79,8 @@ const AppRoutes = () => (
       <Route path="/contact-sales" element={<ContactSales />} />
       <Route path="/dashboard" element={researcherRoute(<Dashboard />)} />
       <Route path="/getting-started" element={privateRoute(<GettingStarted />)} />
+      <Route path="/chapter-work" element={privateRoute(<ChapterWork />)} />
+      <Route path="/chapter-work/:workspaceId" element={privateRoute(<ChapterWork />)} />
       <Route path="/review-history" element={privateRoute(<Navigate to="/projects?view=archive" replace />)} />
       <Route path="/school-dashboard" element={schoolAdminRoute(<SchoolDashboard />)} />
       <Route path="/student-workspace" element={schoolStudentRoute(<SchoolStudentWorkspace />)} />

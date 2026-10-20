@@ -89,7 +89,7 @@ export const setPrivacyModePreference = (enabled: boolean) => {
 
 export const getSidebarDefaultPreference = (): SidebarDefault => {
   const stored = readStoredValue(SIDEBAR_DEFAULT_KEY);
-  return stored === "expanded" ? "expanded" : "compact";
+  return stored === "compact" ? "compact" : "expanded";
 };
 
 export const setSidebarDefaultPreference = (value: SidebarDefault) => {

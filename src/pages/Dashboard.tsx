@@ -1,637 +1,212 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Archive,
-  ArrowRight,
-  BookOpen,
-  Calendar,
-  FileSearch,
-  FileText,
-  GraduationCap,
-  History,
-  MessageSquareText,
-  PenLine,
-  Plus,
-  SearchCheck,
-  ShieldCheck,
-  Sparkles,
-  Wand2,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Archive, BookOpen, Check, FileSearch, FileText, HelpCircle, Lightbulb, PenLine, Plus } from 'lucide-react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { WorkspacePage } from '@/components/workspace/WorkspacePage';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectContext';
+import { listAnalysisRecords, type StoredAnalysisRecord } from '@/lib/documentAnalysisStore';
+import type { Project } from '@/types';
 
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { WorkspacePage, WorkspacePageHeader } from "@/components/workspace/WorkspacePage";
-import { useAuth } from "@/contexts/AuthContext";
-import { useProjects } from "@/contexts/ProjectContext";
-import { listAnalysisRecords, type StoredAnalysisRecord } from "@/lib/documentAnalysisStore";
-import {
-  listToolResultRecords,
-  type StoredToolResultRecord,
-} from "@/lib/toolResultStore";
-import type { Project } from "@/types";
-import { cn } from "@/lib/utils";
-
-type ReviewActivityItem = {
-  id: string;
-  title: string;
-  description: string;
-  meta: string;
-  updatedAt: string;
-  toolLabel: string;
-  route: string;
-  routeState?: Record<string, string>;
-  icon: React.ReactNode;
-  badgeClassName: string;
+const projectProgress = (project: Project) => {
+  const values = Object.values(project.progress || {}).filter((value): value is number =>
+    typeof value === 'number' && Number.isFinite(value));
+  return values.length ? Math.max(0, Math.min(100, Math.round(values.reduce((sum, value) => sum + value, 0) / values.length))) : 0;
 };
 
-type DashboardActivityItem = ReviewActivityItem & {
-  actionLabel: string;
-  progress?: number;
-};
-
-type QuickAction = {
-  title: string;
-  description: string;
-  buttonLabel: string;
-  route: string;
-  icon: React.ReactNode;
-  tone: "info" | "success" | "warning" | "neutral";
-  badge?: string;
-};
-
-const actionToneClasses: Record<QuickAction["tone"], { panel: string; icon: string; badge: string }> = {
-  info: {
-    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
-    icon: "bg-primary/10 text-primary",
-    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
-  },
-  success: {
-    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
-    icon: "bg-primary/10 text-primary",
-    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
-  },
-  warning: {
-    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
-    icon: "bg-primary/10 text-primary",
-    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
-  },
-  neutral: {
-    panel: "border-slate-200 bg-card hover:border-primary/30 hover:bg-primary/5",
-    icon: "bg-primary/10 text-primary",
-    badge: "border-slate-200 bg-muted/60 text-muted-foreground",
-  },
-};
-
-const formatReviewDate = (value: string) => {
+const dateLabel = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Recent";
-
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return Number.isNaN(date.getTime()) ? 'Recently' : new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric', month: 'short', timeZone: 'Africa/Kampala',
   }).format(date);
 };
 
-const getReadableDocumentType = (value?: string) => {
-  if (!value) return "Document";
-  return value.charAt(0).toUpperCase() + value.slice(1);
-};
-
-const getAverageProgress = (project?: Project) => {
-  if (!project) return 0;
-  const values = Object.values(project.progress || {}).filter(
-    (value): value is number => typeof value === "number"
-  );
-
-  if (values.length === 0) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-};
-
-const countSources = (project: Project) =>
-  Array.isArray(project.chapters?._sourcesLibrary) ? project.chapters._sourcesLibrary.length : 0;
-
-const countReferences = (project: Project) =>
-  Array.isArray(project.chapters?.references?.items) ? project.chapters.references.items.length : 0;
-
-const countTablesFigures = (project: Project) =>
-  Array.isArray(project.chapters?._tableFigureRegister)
-    ? project.chapters._tableFigureRegister.length
-    : 0;
-
 const Dashboard = () => {
-  const { user, isPremium, isSchoolAdmin } = useAuth();
+  const { user } = useAuth();
   const { projects, isLoading } = useProjects();
   const navigate = useNavigate();
-  const userId = user?.id || "guest";
-  const premium = isPremium();
-  const schoolAdmin = isSchoolAdmin();
-  const [analysisHistory, setAnalysisHistory] = useState<StoredAnalysisRecord[]>([]);
-  const [improvementHistory, setImprovementHistory] = useState<
-    StoredToolResultRecord<"content-improvement">[]
-  >([]);
-  const [originalityHistory, setOriginalityHistory] = useState<
-    StoredToolResultRecord<"plagiarism-checker">[]
-  >([]);
-  const [humanReviewHistory, setHumanReviewHistory] = useState<
-    StoredToolResultRecord<"humanizer">[]
-  >([]);
-  const [reviewHistoryLoading, setReviewHistoryLoading] = useState(true);
-
-  const recentProjects = useMemo(
-    () =>
-      [...projects]
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 3),
-    [projects]
-  );
-
-  const activeProject = recentProjects[0];
-  const activeProjectProgress = Math.round(getAverageProgress(activeProject));
-  const totalSources = projects.reduce((sum, project) => sum + countSources(project), 0);
-  const totalReferences = projects.reduce((sum, project) => sum + countReferences(project), 0);
-  const totalTablesFigures = projects.reduce((sum, project) => sum + countTablesFigures(project), 0);
-  const planName = schoolAdmin ? "School" : premium ? "Premium" : "Free";
-  const accessLabel = premium || schoolAdmin ? "Full access" : "Starter access";
-
-  const quickActions = useMemo<QuickAction[]>(
-    () => [
-      {
-        title: "Improve writing",
-        description: "Clean weak paragraphs while preserving the student's meaning and evidence.",
-        buttonLabel: "Open editor",
-        route: "/content-improvement",
-        icon: <MessageSquareText size={20} />,
-        tone: "success",
-        badge: "Corrections",
-      },
-      {
-        title: "Human review",
-        description: "Review robotic phrasing, filler, repetition, and artificial writing patterns.",
-        buttonLabel: "Review wording",
-        route: "/humanizer",
-        icon: <Wand2 size={20} />,
-        tone: "warning",
-        badge: "Deep mode",
-      },
-      {
-        title: "Originality check",
-        description: "Separate common research wording from passages that need citation attention.",
-        buttonLabel: "Check originality",
-        route: "/plagiarism-checker",
-        icon: <ShieldCheck size={20} />,
-        tone: "neutral",
-        badge: "Similarity",
-      },
-      ...(schoolAdmin
-        ? [
-            {
-              title: "School workspace",
-              description: "Monitor student work, assignments, and submitted research progress.",
-              buttonLabel: "Open school view",
-              route: "/school-dashboard",
-              icon: <GraduationCap size={20} />,
-              tone: "info" as const,
-              badge: "School",
-            },
-          ]
-        : []),
-    ],
-    [schoolAdmin]
-  );
-
-  const reviewActivity = useMemo<ReviewActivityItem[]>(() => {
-    const analysisItems: ReviewActivityItem[] = analysisHistory.map((record) => {
-      const rubric = record.result.rubricScore;
-      const awarded = rubric
-        ? `${rubric.awarded}/${rubric.total} marks`
-        : `${record.result.matchedGuidelines}/${record.result.totalGuidelines} checks`;
-
-      return {
-        id: `analysis-${record.id}`,
-        title: record.fileName,
-        description: `${getReadableDocumentType(record.documentType)} marking guide review`,
-        meta: `${awarded} - ${record.analysisRuns} ${record.analysisRuns === 1 ? "run" : "runs"}`,
-        updatedAt: record.updatedAt,
-        toolLabel: "Document Analysis",
-        route: "/document-analysis",
-        routeState: { documentAnalysisRecordId: record.id },
-        icon: <SearchCheck className="h-4 w-4" />,
-        badgeClassName: "border-sky-200 bg-sky-50 text-sky-800",
-      };
-    });
-
-    const improvementItems: ReviewActivityItem[] = improvementHistory.map((record) => {
-      const changeCount = record.result.changes.length;
-      const issueCount = record.result.issues.length;
-
-      return {
-        id: `improvement-${record.id}`,
-        title: record.issueLabel || record.fileName || "Saved improvement",
-        description: record.section || record.inputPreview || "Improved academic wording",
-        meta: `${changeCount} ${changeCount === 1 ? "change" : "changes"} - ${issueCount} ${
-          issueCount === 1 ? "issue" : "issues"
-        }`,
-        updatedAt: record.updatedAt,
-        toolLabel: "Content Improvement",
-        route: "/content-improvement",
-        routeState: { toolResultRecordId: record.id },
-        icon: <PenLine className="h-4 w-4" />,
-        badgeClassName: "border-emerald-200 bg-emerald-50 text-emerald-800",
-      };
-    });
-
-    const originalityItems: ReviewActivityItem[] = originalityHistory.map((record) => ({
-      id: `originality-${record.id}`,
-      title: record.fileName || record.issueLabel || "Saved originality check",
-      description: `${record.result.originalityScore}% original-looking - ${
-        record.result.uncommonFlagCount
-      } ${record.result.uncommonFlagCount === 1 ? "passage" : "passages"} to review`,
-      meta: `${record.result.similarityScore}% review attention after common wording filter`,
-      updatedAt: record.updatedAt,
-      toolLabel: "Originality Check",
-      route: "/plagiarism-checker",
-      routeState: { toolResultRecordId: record.id },
-      icon: <ShieldCheck className="h-4 w-4" />,
-      badgeClassName: "border-amber-200 bg-amber-50 text-amber-800",
-    }));
-
-    const humanReviewItems: ReviewActivityItem[] = humanReviewHistory.map((record) => ({
-      id: `humanizer-${record.id}`,
-      title: record.issueLabel || record.fileName || "Human review",
-      description: `${record.result.readinessScore}/100 readiness - ${
-        record.result.signals.length
-      } ${record.result.signals.length === 1 ? "signal" : "signals"} reviewed`,
-      meta: `${record.result.changes.length} cleanup ${
-        record.result.changes.length === 1 ? "change" : "changes"
-      } - ${record.runs} ${record.runs === 1 ? "run" : "runs"}`,
-      updatedAt: record.updatedAt,
-      toolLabel: "Human Review",
-      route: "/humanizer",
-      routeState: { toolResultRecordId: record.id },
-      icon: <Wand2 className="h-4 w-4" />,
-      badgeClassName: "border-violet-200 bg-violet-50 text-violet-800",
-    }));
-
-    return [...analysisItems, ...improvementItems, ...humanReviewItems, ...originalityItems]
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .slice(0, 6);
-  }, [analysisHistory, improvementHistory, humanReviewHistory, originalityHistory]);
-
-  const dashboardActivity = useMemo<DashboardActivityItem[]>(() => {
-    const projectItems: DashboardActivityItem[] = recentProjects.map((project) => {
-      const progress = Math.round(getAverageProgress(project));
-      const sourceCount = countSources(project);
-      const referenceCount = countReferences(project);
-
-      return {
-        id: `project-${project.id}`,
-        title: project.title,
-        description: `${getReadableDocumentType(project.type)} workspace - ${progress}% complete`,
-        meta: `${sourceCount} ${sourceCount === 1 ? "source" : "sources"} - ${referenceCount} ${
-          referenceCount === 1 ? "reference" : "references"
-        } - ${formatReviewDate(project.updatedAt)}`,
-        updatedAt: project.updatedAt,
-        toolLabel: "Project",
-        route: `/projects/${project.id}`,
-        icon: <FileText className="h-4 w-4" />,
-        badgeClassName: "border-primary/20 bg-primary/5 text-primary",
-        actionLabel: "Open",
-        progress,
-      };
-    });
-
-    const reviewItems: DashboardActivityItem[] = reviewActivity.map((item) => ({
-      ...item,
-      actionLabel: "Resume",
-    }));
-
-    return [...projectItems, ...reviewItems]
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 8);
-  }, [recentProjects, reviewActivity]);
+  const [checks, setChecks] = useState<StoredAnalysisRecord[]>([]);
+  const [checksLoading, setChecksLoading] = useState(true);
+  const [checksError, setChecksError] = useState(false);
+  const [historyAttempt, setHistoryAttempt] = useState(0);
+  const sortedProjects = useMemo(() => [...projects].sort((a, b) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()), [projects]);
+  const activeProject = sortedProjects.find((project) => projectProgress(project) < 100) || sortedProjects[0];
+  const hasTopic = Boolean(user?.researchTopic?.trim());
+  const completed = activeProject && projectProgress(activeProject) === 100;
 
   useEffect(() => {
     let cancelled = false;
+    setChecks([]);
+    setChecksLoading(true);
+    setChecksError(false);
+    if (!user?.id) {
+      setChecksLoading(false);
+      return;
+    }
+    listAnalysisRecords(user.id, 4)
+      .then((records) => { if (!cancelled) setChecks(records); })
+      .catch(() => { if (!cancelled) setChecksError(true); })
+      .finally(() => { if (!cancelled) setChecksLoading(false); });
+    return () => { cancelled = true; };
+  }, [user?.id, historyAttempt]);
 
-    const loadReviewHistory = async () => {
-      setReviewHistoryLoading(true);
-      try {
-        const [analyses, improvements, humanReviews, originalityChecks] = await Promise.all([
-          listAnalysisRecords(userId, 6),
-          listToolResultRecords(userId, "content-improvement", 6),
-          listToolResultRecords(userId, "humanizer", 6),
-          listToolResultRecords(userId, "plagiarism-checker", 6),
-        ]);
+  const nextAction = activeProject
+    ? { label: completed ? 'Open my project' : 'Continue writing', route: `/projects/${activeProject.id}${completed ? '' : '/edit'}` }
+    : hasTopic
+      ? { label: 'Start my proposal', route: '/projects/new?type=proposal' }
+      : { label: 'Find my research topic', route: '/research-topic-generator' };
 
-        if (cancelled) return;
-        setAnalysisHistory(analyses);
-        setImprovementHistory(improvements);
-        setHumanReviewHistory(humanReviews);
-        setOriginalityHistory(originalityChecks);
-      } catch (error) {
-        console.warn("Unable to load saved review history.", error);
-        if (!cancelled) {
-          setAnalysisHistory([]);
-          setImprovementHistory([]);
-          setHumanReviewHistory([]);
-          setOriginalityHistory([]);
-        }
-      } finally {
-        if (!cancelled) setReviewHistoryLoading(false);
-      }
-    };
-
-    void loadReviewHistory();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  const openDashboardActivity = (item: DashboardActivityItem) => {
-    navigate(item.route, item.routeState ? { state: item.routeState } : undefined);
-  };
-
-  const firstName = user?.name?.split(" ")[0] || "Researcher";
+  const openNextAction = () => navigate(nextAction.route, !activeProject && hasTopic
+    ? { state: { prefillTitle: user?.researchTopic } } : undefined);
+  const currentStage = activeProject ? completed ? 2 : 1 : hasTopic ? 1 : 0;
+  const journey = [
+    { title: activeProject || hasTopic ? 'Your topic' : 'Find your topic', detail: activeProject || hasTopic ? 'Topic saved' : 'Start with an idea', route: activeProject ? `/projects/${activeProject.id}` : hasTopic ? '/projects/new?type=proposal' : '/research-topic-generator' },
+    { title: 'Write your research', detail: activeProject ? `${activeProject.type === 'report' ? 'Report' : 'Proposal'} workspace` : 'Build your proposal', route: activeProject ? `/projects/${activeProject.id}/edit` : '/projects/new?type=proposal' },
+    { title: 'Check and revise', detail: 'Before submission', route: '/document-analysis' },
+  ];
 
   return (
     <DashboardLayout>
-      <WorkspacePage width="wide" className="grid gap-6">
-        <WorkspacePageHeader
-          eyebrow="Command center"
-          tone="info"
-          icon={<Calendar size={14} />}
-          title={`Welcome, ${firstName}`}
-          description="Choose the next useful action for your research work: write, correct, check marks, or verify originality."
-          actions={
-            <>
-              <Button className="gap-2" onClick={() => navigate("/projects/new")}>
-                <Plus size={16} />
-                Create project
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={() => navigate("/document-analysis")}>
-                <FileSearch size={16} />
-                Check document
-              </Button>
-            </>
-          }
-          aside={
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Workspace status</p>
-                  <p className="mt-1 text-2xl font-bold">{accessLabel}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{planName} plan overview</p>
-                </div>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Sparkles size={18} />
-                </span>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-lg border bg-card p-3">
-                  <p className="text-xs font-medium text-muted-foreground">Research projects</p>
-                  <p className="mt-1 text-xl font-bold">{projects.length}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {projects.length === 1 ? "1 active workspace" : `${projects.length} active workspaces`}
+      <WorkspacePage className="research-dashboard space-y-7 sm:space-y-8">
+        <header className="research-arrive flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase text-muted-foreground">Your research workspace</p>
+            <h1 className="text-2xl font-semibold sm:text-3xl">My research</h1>
+            <p className="mt-2 text-sm text-muted-foreground">A clear path from your first idea to your final submission.</p>
+          </div>
+          <Button variant="ghost" size="sm" asChild className="gap-2">
+            <Link to="/getting-started"><HelpCircle size={16} />Start here</Link>
+          </Button>
+        </header>
+
+        <nav aria-label="Your research journey" className="research-arrive research-arrive-later">
+          <ol className="research-journey grid grid-cols-3 gap-2 sm:gap-5">
+            {journey.map((step, index) => (
+              <li key={step.title} aria-current={!isLoading && currentStage === index ? 'step' : undefined} className="min-w-0">
+                <Link to={step.route} state={index < 2 && !activeProject && hasTopic ? { prefillTitle: user?.researchTopic } : undefined} className="journey-step group block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-stage={isLoading ? 'future' : index < currentStage ? 'done' : index === currentStage ? 'current' : 'future'}>
+                  <div className="journey-track flex items-center gap-2 pb-2.5">
+                    <span className="journey-number flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold sm:h-8 sm:w-8">
+                      {!isLoading && index < currentStage ? <Check size={15} aria-label="Completed step" /> : `0${index + 1}`}
+                    </span>
+                    <span className="journey-line h-px flex-1" aria-hidden="true" />
+                  </div>
+                  <span className="block text-xs font-semibold leading-5 group-hover:text-primary sm:text-sm">{step.title}</span>
+                  <span className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{step.detail}</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        <section aria-labelledby="next-step-heading" className="research-next-step research-arrive research-arrive-later relative border-y px-4 py-6 sm:px-6 sm:py-7">
+          {isLoading ? (
+            <div role="status" className="min-h-40 animate-pulse motion-reduce:animate-none">
+              <p className="text-sm text-muted-foreground">Loading your research...</p>
+            </div>
+          ) : (
+            <div className="grid min-h-44 gap-5 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-center lg:grid-cols-[minmax(0,1fr)_190px]">
+              <div className="min-w-0">
+                <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase text-teal-800 dark:text-teal-200">
+                  {activeProject ? <PenLine size={15} /> : <Lightbulb size={15} />}
+                  {activeProject ? completed ? 'Your latest project' : 'Continue your research' : 'Your next step'}
+                </p>
+                <h2 id="next-step-heading" className="max-w-2xl break-words text-xl font-semibold leading-snug sm:text-2xl">
+                  {activeProject ? activeProject.title : hasTopic ? 'Your topic is ready. Start your proposal.' : 'A good research project starts with a topic.'}
+                </h2>
+                {activeProject ? (
+                  <div className="mt-4 max-w-md">
+                    <div className="mb-2 flex justify-between gap-3 text-xs text-muted-foreground">
+                      <span className="capitalize">{activeProject.type} - Updated {dateLabel(activeProject.updatedAt)}</span>
+                      <span>{projectProgress(activeProject)}% complete</span>
+                    </div>
+                    <Progress value={projectProgress(activeProject)} className="research-progress h-1.5" aria-label="Project progress" />
+                  </div>
+                ) : (
+                  <p className="mt-3 max-w-lg break-words text-sm leading-6 text-muted-foreground">
+                    {hasTopic ? user?.researchTopic : 'Choose a health issue, who you want to study and where the study will take place.'}
                   </p>
+                )}
+                <div className="mt-5 flex flex-col items-stretch gap-1 sm:items-start">
+                <Button onClick={openNextAction} className="research-primary min-h-11 gap-2 shadow-sm">
+                  {activeProject ? <PenLine size={17} /> : hasTopic ? <Plus size={17} /> : <Lightbulb size={17} />}
+                  {nextAction.label}<ArrowRight size={16} />
+                </Button>
+                {!activeProject && !hasTopic && (
+                  <Button variant="ghost" size="sm" asChild><Link to="/projects/new?type=proposal">I already have a topic</Link></Button>
+                )}
                 </div>
-                <div className="rounded-lg border bg-card p-3">
-                  <p className="text-xs font-medium text-muted-foreground">Saved reviews</p>
-                  <p className="mt-1 text-xl font-bold">{reviewActivity.length}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Recent checks in archive</p>
-                </div>
-                <div className="rounded-lg border bg-card p-3">
-                  <p className="text-xs font-medium text-muted-foreground">Sources / references</p>
-                  <p className="mt-1 text-xl font-bold">{totalSources}/{totalReferences}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Saved / listed</p>
-                </div>
-                <div className="rounded-lg border bg-card p-3">
-                  <p className="text-xs font-medium text-muted-foreground">Tables and charts</p>
-                  <p className="mt-1 text-xl font-bold">{totalTablesFigures}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Report result items</p>
-                </div>
+              </div>
+              <div className="pointer-events-none hidden justify-self-end sm:block" aria-hidden="true">
+                {activeProject ? (
+                  <div className="research-paper relative flex aspect-[210/270] w-32 flex-col border bg-white p-4 text-center text-zinc-800 shadow-md lg:w-36">
+                    <span className="mb-4 text-[9px] font-semibold uppercase text-teal-700">Research {activeProject.type}</span>
+                    <span className="line-clamp-6 break-words font-serif text-xs font-bold uppercase leading-5">{activeProject.title}</span>
+                    <span className="mt-auto pt-3 font-serif text-[10px]">UHPAB</span>
+                  </div>
+                ) : <img src="/research-notebook.webp" alt="" width={1536} height={1024} className="h-auto w-40 object-contain lg:w-52" decoding="async" />}
               </div>
             </div>
-          }
-        />
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {quickActions.map((action) => {
-            const tone = actionToneClasses[action.tone];
-            return (
-              <button
-                key={action.title}
-                type="button"
-                className={cn(
-                  "group min-h-48 rounded-lg border p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                  tone.panel
-                )}
-                onClick={() => navigate(action.route)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span className={cn("flex h-11 w-11 items-center justify-center rounded-lg", tone.icon)}>
-                    {action.icon}
-                  </span>
-                  {action.badge && (
-                    <Badge variant="outline" className={cn("shrink-0", tone.badge)}>
-                      {action.badge}
-                    </Badge>
-                  )}
-                </div>
-                <h2 className="mt-5 text-lg font-semibold leading-6">{action.title}</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{action.description}</p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                  {action.buttonLabel}
-                  <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </button>
-            );
-          })}
+          )}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <FileText className="h-5 w-5 text-primary" />
-                {activeProject ? "Continue your project" : "Start a project"}
-              </CardTitle>
-              <CardDescription>
-                {activeProject
-                  ? "Your most recently updated research file is ready to continue."
-                  : "Create a proposal or report workspace before building sections."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isLoading ? (
-                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  Loading projects...
-                </div>
-              ) : activeProject ? (
-                <>
-                  <div className="rounded-lg border bg-muted/30 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <Badge variant="outline" className="capitalize">
-                          {activeProject.type}
-                        </Badge>
-                        <h3 className="mt-3 line-clamp-2 text-lg font-semibold">{activeProject.title}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Last updated {new Date(activeProject.updatedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-card px-3 py-2 text-right shadow-sm">
-                        <p className="text-xs text-muted-foreground">Progress</p>
-                        <p className="text-xl font-bold">{activeProjectProgress}%</p>
-                      </div>
-                    </div>
-                    <Progress value={activeProjectProgress} className="mt-4 h-2" />
-                    <div className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
-                      <div className="rounded-md bg-card p-3">
-                        <p className="text-muted-foreground">Sources</p>
-                        <p className="font-semibold">{countSources(activeProject)}</p>
-                      </div>
-                      <div className="rounded-md bg-card p-3">
-                        <p className="text-muted-foreground">References</p>
-                        <p className="font-semibold">{countReferences(activeProject)}</p>
-                      </div>
-                      <div className="rounded-md bg-card p-3">
-                        <p className="text-muted-foreground">Tables/charts</p>
-                        <p className="font-semibold">{countTablesFigures(activeProject)}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button className="gap-2" onClick={() => navigate(`/projects/${activeProject.id}/edit`)}>
-                      <PenLine size={16} />
-                      Continue writing
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => navigate(`/projects/${activeProject.id}`)}
-                    >
-                      <BookOpen size={16} />
-                      Open workspace
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="rounded-lg border border-dashed p-6 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Plus size={20} />
-                  </div>
-                  <h3 className="mt-4 font-semibold">No projects yet</h3>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                    Start with a proposal or report workspace, then connect sources, sections, and checks.
-                  </p>
-                  <Button className="mt-4 gap-2" onClick={() => navigate("/projects/new")}>
-                    <Plus size={16} />
-                    Create first project
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <History className="h-5 w-5 text-primary" />
-                    Recent activity
-                  </CardTitle>
-                  <CardDescription>
-                    Resume projects and saved review work from one timeline.
-                  </CardDescription>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/projects")}>
-                    <FileText size={15} />
-                    Projects
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/projects?view=archive")}>
-                    <Archive size={15} />
-                    Archive
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading || reviewHistoryLoading ? (
-                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  Loading recent activity...
-                </div>
-              ) : dashboardActivity.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-6">
-                  <h3 className="font-semibold">No recent activity yet</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Create a project or run a document review. Your work will appear here for quick return.
-                  </p>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    <Button variant="outline" className="gap-2" onClick={() => navigate("/projects/new")}>
-                      <Plus size={16} />
-                      Create project
-                    </Button>
-                    <Button variant="outline" className="gap-2" onClick={() => navigate("/document-analysis")}>
-                      <FileSearch size={16} />
-                      Check document
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {dashboardActivity.map((item, index) => (
-                    <div key={item.id}>
-                      <div className="flex flex-col gap-3 rounded-lg p-3 transition-colors hover:bg-accent/45 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div className="mt-0.5 rounded-md bg-primary/10 p-2 text-primary">{item.icon}</div>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="max-w-full truncate text-sm font-semibold">{item.title}</h3>
-                              <Badge variant="outline" className={item.badgeClassName}>
-                                {item.toolLabel}
-                              </Badge>
-                            </div>
-                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
-                            {typeof item.progress === "number" && (
-                              <Progress value={item.progress} className="mt-2 h-1.5 max-w-xs" />
-                            )}
-                            <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="shrink-0 gap-2 sm:self-center"
-                          onClick={() => openDashboardActivity(item)}
-                        >
-                          {item.actionLabel}
-                          <ArrowRight size={14} />
-                        </Button>
-                      </div>
-                      {index < dashboardActivity.length - 1 && <Separator />}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <section aria-label="Research tasks" className="research-arrive research-arrive-last grid gap-3 sm:grid-cols-2">
+          <Link to="/document-analysis" className="research-task group flex min-w-0 items-start gap-3 rounded-lg border bg-card p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><FileSearch size={21} /></span>
+            <div className="min-w-0 flex-1"><h2 className="font-semibold">Check my document</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Upload an existing proposal or report for practice marking and corrections.</p></div>
+            <ArrowRight size={16} className="mt-1 shrink-0 text-muted-foreground group-hover:text-primary" />
+          </Link>
+          <Link to="/guidelines" className="research-task group flex min-w-0 items-start gap-3 rounded-lg border bg-card p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><BookOpen size={21} /></span>
+            <div className="min-w-0 flex-1"><h2 className="font-semibold">Read the UHPAB guidelines</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">Find the required sections, order and document formatting.</p></div>
+            <ArrowRight size={16} className="mt-1 shrink-0 text-muted-foreground group-hover:text-primary" />
+          </Link>
         </section>
 
+        <div className="research-arrive research-arrive-last grid min-w-0 gap-8 lg:grid-cols-2 lg:gap-10">
+        <section aria-labelledby="projects-heading" className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="projects-heading" className="flex items-center gap-2 text-base font-semibold"><span className="h-4 w-1 rounded-full bg-teal-600" aria-hidden="true" />Recent projects</h2>
+            <Button variant="ghost" size="sm" asChild className="gap-2"><Link to="/projects">All projects<ArrowRight size={15} /></Link></Button>
+          </div>
+          {isLoading ? <p role="status" className="py-4 text-sm text-muted-foreground">Loading projects...</p> : sortedProjects.length ? (
+            <ul className="divide-y border-y">
+              {sortedProjects.slice(0, 3).map((project) => (
+                <li key={project.id}>
+                  <Link to={`/projects/${project.id}`} className="flex min-h-20 items-center gap-3 rounded-sm py-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <FileText size={19} className="shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1"><h3 className="line-clamp-2 break-words text-sm font-medium">{project.title}</h3><p className="mt-1 text-xs capitalize text-muted-foreground">{project.type} - {projectProgress(project)}% complete - {dateLabel(project.updatedAt)}</p></div>
+                    <ArrowRight size={16} className="shrink-0 text-muted-foreground" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : <div className="research-empty border-y py-7"><FileText size={25} className="mb-3 text-muted-foreground/60" aria-hidden="true" /><p className="mb-1 text-sm font-medium">Room for your next idea</p><p className="max-w-xs text-sm leading-6 text-muted-foreground">Your projects will appear here once you start a proposal or report.</p></div>}
+          {sortedProjects.length > 0 && <Button variant="outline" size="sm" asChild className="mt-4 gap-2"><Link to="/projects/new"><Plus size={15} />New project</Link></Button>}
+        </section>
+
+        <section aria-labelledby="checks-heading" className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="checks-heading" className="flex items-center gap-2 text-base font-semibold"><span className="h-4 w-1 rounded-full bg-amber-500" aria-hidden="true" />Saved document checks</h2>
+            <Button variant="ghost" size="sm" asChild className="gap-2"><Link to="/projects?view=archive"><Archive size={15} />All saved reviews</Link></Button>
+          </div>
+          {checksLoading ? <p role="status" className="py-4 text-sm text-muted-foreground">Loading saved checks...</p> : checksError ? (
+            <div role="alert" className="flex flex-wrap items-center gap-3 border-y py-4 text-sm"><span>Saved checks could not be loaded.</span><Button variant="outline" size="sm" onClick={() => setHistoryAttempt((value) => value + 1)}>Retry</Button></div>
+          ) : checks.length ? (
+            <ul className="divide-y border-y">
+              {checks.map((check) => (
+                <li key={check.id}><Link to="/document-analysis" state={{ documentAnalysisRecordId: check.id }} className="flex min-h-20 items-center gap-3 rounded-sm py-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <FileSearch size={19} className="shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-medium">{check.fileName}</h3><p className="mt-1 text-xs text-muted-foreground">{check.result.rubricScore ? `${check.result.rubricScore.awarded}/${check.result.rubricScore.total} practice marks` : 'Structure check'} - {dateLabel(check.updatedAt)}</p></div>
+                  <ArrowRight size={16} className="shrink-0 text-muted-foreground" />
+                </Link></li>
+              ))}
+            </ul>
+          ) : <div className="research-empty border-y py-7"><FileSearch size={25} className="mb-3 text-muted-foreground/60" aria-hidden="true" /><p className="mb-1 text-sm font-medium">Your feedback, kept together</p><p className="max-w-xs text-sm leading-6 text-muted-foreground">No saved checks yet. Completed document checks will appear here.</p></div>}
+        </section>
+        </div>
       </WorkspacePage>
     </DashboardLayout>
   );

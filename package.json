@@ -11,6 +11,7 @@
     "build:dev": "vite build --mode development",
     "qa:real-docs": "node scripts/real-document-qa.mjs",
     "test:formulation": "node scripts/test-research-formulation.mjs",
+    "test:chapters": "node scripts/test-chapter-workspaces.mjs",
     "test:marking": "node scripts/test-strict-marking.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

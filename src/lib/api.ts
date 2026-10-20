@@ -15,6 +15,7 @@ import {
 } from 'docx';
 import { proposalStructure, reportStructure } from '@/data/uhpabGuidelines';
 import { getAppendixSections, preliminaryKeys, legacySectionAliases } from '@/data/researchGuidelineRules';
+import { chapterManuscriptBlocks } from '@/lib/chapterManuscriptDocx';
 
 const getNestedValue = (source: any, path: string[]) => {
   let current = source;
@@ -304,8 +305,27 @@ const addSection = (children: Paragraph[], projectData: any, title: string, path
   children.push(...contentOrPlaceholder(frameworkPlaceholder || rawContent, placeholderText));
 };
 
-export const buildTemplateDocx = async (projectType: 'proposal' | 'report', projectData: any) => {
+export type ChapterExportScope = { chapterKey: 'chapter1' | 'chapter2' | 'chapter3'; sectionIds: string[] };
+
+export const buildTemplateDocx = async (projectType: 'proposal' | 'report', projectData: any, scope?: ChapterExportScope) => {
   const structure = projectType === 'report' ? reportStructure : proposalStructure;
+  if (scope) {
+    const chapter = structure[scope.chapterKey];
+    const selected = Object.entries(chapter?.sections || {}).filter(([id]) => scope.sectionIds.includes(id));
+    if (!selected.length) throw new Error('Choose at least one valid chapter section to download.');
+    const children: Array<Paragraph | import('docx').Table> = [heading(chapter.title)];
+    for (const [id, section] of selected) {
+      if (id === 'generalObjective' && !scope.sectionIds.includes('researchObjectives')) children.push(heading('1.3 Research Objectives', HeadingLevel.HEADING_2));
+      children.push(heading(section.title, HeadingLevel.HEADING_2), ...chapterManuscriptBlocks(getTemplateContent(projectData, [scope.chapterKey, id]), section.description));
+    }
+    const references = getNestedValue(projectData?.chapters, ['references', 'content']);
+    if (references || extractCitationPairs(collectProjectCitationText(projectData)).length) children.push(pageBreak(), heading('REFERENCES'), ...referenceContentOrPlaceholder(references, projectData));
+    return Packer.toBlob(new Document({
+      styles: { default: { document: { run: { font: 'Times New Roman', size: 24 }, paragraph: { spacing: { line: 480, after: 0 } } } } },
+      sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }, pageNumbers: { start: 1, formatType: NumberFormat.DECIMAL } } },
+        footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: [PageNumber.CURRENT], font: 'Times New Roman', size: 24 })] })] }) }, children }],
+    }));
+  }
   const student = projectData?.student || {};
   const title = cleanTitle(projectData?.title || student.researchTopic);
   const name = student.name || '[[Candidate name]]';
