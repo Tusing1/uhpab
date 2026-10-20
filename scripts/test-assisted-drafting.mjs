@@ -13,6 +13,7 @@ async function bundle(entry, name) {
 const draft = await bundle('src/lib/assistedChapterDraft.ts', 'draft');
 const model = await bundle('src/lib/chapterWorkspace.ts', 'model');
 const transport = await bundle('src/integrations/gemini.ts', 'transport');
+const failures = await bundle('src/lib/writingFailure.ts', 'failures');
 const title = 'FACTORS ASSOCIATED WITH HANDWASHING AMONG NURSES AT TEST HEALTH CENTRE IV, KAMPALA';
 const create = (chapter = 'chapter1') => model.newChapterWorkspace('qa', 'proposal', chapter, title, model.chapterSections('proposal', chapter).map(([id]) => id));
 const source = { title: 'Synthetic guidance', authors: 'WHO', year: '2024', citationText: '(WHO, 2024)', apaReference: 'WHO. (2024). Synthetic guidance. https://example.org/guidance', url: 'https://example.org/guidance', notes: 'A generic published recommendation, not facility-specific results.' };
@@ -76,12 +77,42 @@ await check('Inaccessible sources do not prevent a clearly marked editable draft
   assert.ok(result.notices.some(n => n.includes('retrieval was unavailable')));
   assert.throws(() => model.reviewWorkspaceSection({ ...result.workspace, sections: { background: { content: result.text, status: 'drafting' } } }, 'background'), /placeholders/);
 });
-await check('Invalid API keys and quota failures stay visible', async () => {
-  for (const message of ['Invalid API key', '429 quota exhausted']) {
+await check('Invalid API keys and permission failures stay visible', async () => {
+  for (const message of ['Invalid API key', '403 permission denied']) {
     let drafted = false;
     await assert.rejects(draft.assistedChapterDraft(create(), 'background', 'draft', { research: async () => { throw new Error(message); }, generate: async () => { drafted = true; return 'bad'; } }), new RegExp(message));
     assert.equal(drafted, false);
   }
+});
+await check('A source lookup limit allows one text-only draft with explicit evidence gaps', async () => {
+  let drafted = 0;
+  const result = await draft.assistedChapterDraft(create(), 'background', 'draft', {
+    research: async () => { throw Object.assign(new Error('Google request limited'), {status:429,code:'too_many_requests'}); },
+    generate: async prompt => { drafted++; assert.match(prompt, /None yet. Use \[citation needed\]/); return '<p>Draft context. [citation needed]</p>'; },
+  });
+  assert.equal(drafted, 1);
+  assert.equal(result.workspace.sources.length, 0);
+  assert.ok(result.notices.some(n => n.includes('Google limited the source lookup')));
+  assert.throws(() => model.reviewWorkspaceSection({...result.workspace,sections:{background:{content:result.text,status:'drafting'}}},'background'), /placeholders/);
+});
+await check('Text-generation limits still stop the draft without retrying or inventing sources', async () => {
+  let count = 0;
+  await assert.rejects(draft.assistedChapterDraft(create(), 'background', 'draft', {
+    research: async () => { throw new Error('429 quota exhausted'); },
+    generate: async () => { count++; throw Object.assign(new Error('Google request limited'), {status:429,code:'quota_exceeded'}); },
+  }), /Google request limited/);
+  assert.equal(count, 1);
+});
+await check('Quota, outage, authentication, model and billing errors have distinct messages', () => {
+  const error = (status, code, message = 'Google rejected request') => Object.assign(new Error(message), {status,code});
+  assert.equal(failures.writingFailure(error(429,'too_many_requests')).title, 'Google usage limit reached');
+  assert.match(failures.writingFailure(error(429,'quota_exceeded')).message, /same Google project/);
+  assert.match(failures.writingFailure(Object.assign(error(429,'rate_limit_exceeded'),{retryAfter:35})).message, /35 seconds/);
+  assert.equal(failures.writingFailure(error(503,'service_unavailable')).title, 'Research service is temporarily unavailable');
+  assert.doesNotMatch(failures.writingFailure(error(503,'service_unavailable')).message, /usage limit was reached/);
+  assert.equal(failures.writingFailure(error(401,'authentication')).title, 'Check your research key');
+  assert.equal(failures.writingFailure(error(404,'model_not_found')).retryable, false);
+  assert.equal(failures.writingFailure(error(402,'payment_required')).retryable, false);
 });
 await check('Unknown citations still fail validation in draft mode', async () => {
   await assert.rejects(draft.assistedChapterDraft(create(), 'background', 'draft', { research: async () => ({ text: '[]', citations: [] }), generate: async () => '<p>Unsupported (Invented, 2024).</p>' }), /not linked/);
@@ -119,6 +150,15 @@ await check('Transport excludes tool/thought text from the manuscript', async ()
     };
     const result = await transport.generateResearchResponse('Synthetic prompt', ['url_context']);
     assert.equal(result.text, 'Only manuscript.');
+  } finally { globalThis.fetch = previous; }
+});
+await check('Transport preserves status, provider code and retry delay', async () => {
+  const previous = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({error:{message:'Limited',code:'too_many_requests'}}),{status:429,headers:{'retry-after':'35'}});
+    await assert.rejects(transport.generateResearchResponse('Synthetic prompt'), error => {
+      assert.equal(error.status,429); assert.equal(error.code,'too_many_requests'); assert.equal(error.retryAfter,35); return true;
+    });
   } finally { globalThis.fetch = previous; }
 });
 await check('Proxy uses stateless interactions and allowlists retrieval tools', async () => {

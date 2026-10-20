@@ -1,6 +1,7 @@
 import { generateContent, generateResearchResponse, type GroundedResponse } from '@/integrations/gemini';
 import { generationNeeds, inferredStudyContext, workspaceWritingContext, type ChapterWorkspace, type ChapterSource } from './chapterWorkspace';
 import { buildUhpabGenerationPrompt, getUhpabSectionContract, normalizeUhpabGeneratedDraft, type UhpabWritingAction } from './uhpabWritingEngine';
+import { isResearchQuotaError, researchErrorInfo } from './researchServiceError';
 
 export type SupportingDocument = { id: string; name: string; purpose: 'example' | 'evidence'; text: string };
 export function validateSupportingFile(file: Pick<File, 'name' | 'size'>, existing: SupportingDocument[]) {
@@ -77,9 +78,12 @@ Return a JSON array (no markdown) of up to 6 sources actually read, with string 
         if (!sources.length) notices.push('No source could be verified from retrieval. Evidence gaps remain marked in the draft; you can add a link or supporting file.');
         else notices.push(`${sources.length} source drafts added. Check the findings, authors, dates and APA details before submission.`);
       } catch (error) {
-        // Invalid credentials and exhausted quotas must remain visible, not masquerade as successful research.
-        if (/api.key|unauthoriz|permission|quota|rate.limit|resource.exhausted|billing|429|401|403/i.test(error instanceof Error ? error.message : String(error))) throw error;
-        notices.push('Source retrieval was unavailable. The draft will mark evidence gaps instead of inventing citations.');
+        const { status, message } = researchErrorInfo(error);
+        // A source-tool limit must not block an otherwise permitted text-only draft.
+        if (status === 401 || status === 403 || status === 402 || /api.key|unauthoriz|permission|billing|401|403/i.test(message)) throw error;
+        notices.push(isResearchQuotaError(error)
+          ? 'Google limited the source lookup. No new sources were verified. We are preparing a text-only draft with evidence gaps marked; saved sources and your supporting files can still be used.'
+          : 'Source retrieval was unavailable. The draft will mark evidence gaps instead of inventing citations.');
       }
     }
   }

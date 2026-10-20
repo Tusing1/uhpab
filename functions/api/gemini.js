@@ -73,7 +73,8 @@ export async function onRequestPost({ request, env }) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    return json({ error: data.error?.message || "Gemini request failed." }, { status: response.status });
+    const retryAfter = response.headers.get('retry-after');
+    return json({ error: (data.error?.message || "Gemini request failed.").replaceAll(apiKey, '[redacted]'), code: String(data.error?.code || '') }, { status: response.status, ...(retryAfter ? { headers: { 'retry-after': retryAfter } } : {}) });
   }
 
   const text = extractGeminiText(data);

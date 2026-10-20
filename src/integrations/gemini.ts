@@ -1,5 +1,6 @@
 import { getBrowserGeminiApiKey } from "@/lib/aiKeys";
 import { runtimeConfig } from "@/lib/runtimeConfig";
+import { ResearchServiceError } from '@/lib/researchServiceError';
 
 const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
@@ -25,7 +26,9 @@ export interface GeminiResponse {
   }>;
   error?: {
     message: string;
+    code?: string | number;
   } | string;
+  code?: string;
 }
 
 const extractGeminiText = (data: GeminiResponse) => {
@@ -103,12 +106,14 @@ export const generateResearchResponse = async (prompt: string, tools: ResearchTo
     });
 
     const data: GeminiResponse = await response.json().catch(() => {
-      throw new Error(apiKey ? 'The research service returned an unreadable response. Please retry.' : 'No research connection is available in this preview. Add your Gemini key in Settings, then try again.');
+      throw new ResearchServiceError(apiKey ? 'The research service returned an unreadable response. Please retry.' : 'No research connection is available in this preview. Add your Gemini key in Settings, then try again.', response.status, 'unreadable_response');
     });
 
     if (!response.ok) {
       const message = typeof data.error === "string" ? data.error : data.error?.message;
-      throw new Error(message || 'Failed to generate content');
+      const code = typeof data.error === 'object' ? String(data.error?.code || '') : data.code || '';
+      const retryAfter = Number(response.headers?.get('retry-after'));
+      throw new ResearchServiceError(apiKey ? (message || 'Failed to generate content').replaceAll(apiKey, '[redacted]') : message || 'Failed to generate content', response.status, code, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined);
     }
 
     const generatedText = extractGeminiText(data);
