@@ -8,6 +8,7 @@ export interface GeminiResponse {
   output_text?: string;
   outputText?: string;
   steps?: Array<{
+    type?: string;
     output_text?: string;
     outputText?: string;
     content?: Array<{
@@ -34,9 +35,10 @@ const extractGeminiText = (data: GeminiResponse) => {
 
   const stepText = data.steps
     ?.map((step) => {
+      if (step.type && step.type !== 'model_output') return '';
       if (step.output_text) return step.output_text;
       if (step.outputText) return step.outputText;
-      return step.content?.map((part) => part.text).filter(Boolean).join("\n");
+      return step.content?.filter(part => !part.type || part.type === 'text').map((part) => part.text).filter(Boolean).join("\n");
     })
     .filter(Boolean)
     .join("\n\n");
@@ -45,8 +47,36 @@ const extractGeminiText = (data: GeminiResponse) => {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 };
 
-export const generateContent = async (prompt: string): Promise<string> => {
-  try {
+export type ResearchTool = 'url_context' | 'google_search';
+export type GroundedResponse = { text: string; citations: Array<{ url: string; title: string }>; searchSuggestions?: string };
+export function groundingSuggestions(data: unknown): string {
+  if (!data || typeof data !== 'object') return '';
+  if ('searchSuggestions' in data && typeof data.searchSuggestions === 'string') return data.searchSuggestions;
+  if (Array.isArray(data)) return data.map(groundingSuggestions).filter(Boolean).join('');
+  if ('search_suggestions' in data && typeof data.search_suggestions === 'string') return data.search_suggestions;
+  return Object.values(data).map(groundingSuggestions).filter(Boolean).join('');
+}
+
+export function groundingCitations(data: unknown): GroundedResponse['citations'] {
+  const found = new Map<string, { url: string; title: string }>();
+  const visit = (value: unknown) => {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) { value.forEach(visit); return; }
+    const record = value as Record<string, unknown>;
+    if (record.type === 'url_citation' && typeof record.url === 'string' && /^https:\/\//i.test(record.url)) {
+      found.set(record.url, { url: record.url, title: typeof record.title === 'string' ? record.title : record.url });
+    }
+    Object.values(record).forEach(visit);
+  };
+  visit(data);
+  // The proxy returns only provider annotations, never citations parsed from model prose.
+  if (data && typeof data === 'object' && 'citations' in data && Array.isArray(data.citations)) {
+    for (const item of data.citations) if (typeof item?.url === 'string' && /^https:\/\//i.test(item.url)) found.set(item.url, { url: item.url, title: item.title || item.url });
+  }
+  return [...found.values()];
+}
+
+export const generateResearchResponse = async (prompt: string, tools: ResearchTool[] = []): Promise<GroundedResponse> => {
     const apiKey = getBrowserGeminiApiKey();
     const response = await fetch(apiKey ? GEMINI_INTERACTIONS_URL : "/api/gemini", {
       method: 'POST',
@@ -59,6 +89,8 @@ export const generateContent = async (prompt: string): Promise<string> => {
       body: JSON.stringify(apiKey ? {
         model: runtimeConfig.googleAiModel,
         input: prompt,
+        store: false,
+        ...(tools.length ? { tools: tools.map(type => ({ type })) } : {}),
         generation_config: {
           max_output_tokens: 4096,
           thinking_level: "medium",
@@ -66,10 +98,13 @@ export const generateContent = async (prompt: string): Promise<string> => {
       } : {
         model: runtimeConfig.googleAiModel,
         prompt,
+        tools,
       }),
     });
 
-    const data: GeminiResponse = await response.json();
+    const data: GeminiResponse = await response.json().catch(() => {
+      throw new Error(apiKey ? 'The research service returned an unreadable response. Please retry.' : 'No research connection is available in this preview. Add your Gemini key in Settings, then try again.');
+    });
 
     if (!response.ok) {
       const message = typeof data.error === "string" ? data.error : data.error?.message;
@@ -81,9 +116,7 @@ export const generateContent = async (prompt: string): Promise<string> => {
       throw new Error('No content generated');
     }
 
-    return generatedText;
-  } catch (error) {
-    console.error('Error generating content:', error);
-    throw error;
-  }
+    return { text: generatedText, citations: groundingCitations(data), searchSuggestions: groundingSuggestions(data) };
 }; 
+
+export const generateContent = async (prompt: string): Promise<string> => (await generateResearchResponse(prompt)).text;

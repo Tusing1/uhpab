@@ -16,6 +16,7 @@ const extractGeminiText = (data) => {
 
   const stepText = data.steps
     ?.map((step) => {
+      if (step.type && step.type !== 'model_output') return '';
       if (step.output_text) return step.output_text;
       if (step.outputText) return step.outputText;
       return step.content?.map((part) => part.text).filter(Boolean).join("\n");
@@ -45,9 +46,10 @@ export async function onRequestPost({ request, env }) {
   }
 
   const prompt = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
+  const tools = Array.isArray(payload.tools) ? [...new Set(payload.tools)].filter(type => ['url_context', 'google_search'].includes(type)).map(type => ({ type })) : [];
   const model = typeof payload.model === "string" && payload.model.trim() ? payload.model.trim() : "gemini-3.6-flash";
 
-  if (!prompt) {
+  if (!prompt || prompt.length > 180000) {
     return json({ error: "Prompt is required." }, { status: 400 });
   }
 
@@ -60,6 +62,8 @@ export async function onRequestPost({ request, env }) {
     body: JSON.stringify({
       model,
       input: `${researchPolicy}\n\n${prompt}`,
+      store: false,
+      ...(tools.length ? { tools } : {}),
       generation_config: {
         max_output_tokens: 4096,
         thinking_level: "medium",
@@ -77,7 +81,16 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Gemini returned no text." }, { status: 502 });
   }
 
-  return json({ text });
+  const citations = [];
+  let searchSuggestions = '';
+  const visit = value => {
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'url_citation' && typeof value.url === 'string' && /^https:\/\//i.test(value.url)) citations.push({ url: value.url, title: value.title || value.url });
+    if (typeof value.search_suggestions === 'string') searchSuggestions = value.search_suggestions;
+    Object.values(value).forEach(visit);
+  };
+  visit(data.steps);
+  return json({ text, citations, searchSuggestions });
 }
 
 export async function onRequestGet() {

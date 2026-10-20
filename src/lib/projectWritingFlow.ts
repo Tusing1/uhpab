@@ -60,6 +60,7 @@ export function projectChapterWorkspace(data: WritingForm, type: 'proposal' | 'r
   const context = { ...data.chapters._studyContext, objectiveCount: String(data.chapters._objectiveCount === 2 ? 2 : 3) } as Record<string, string>;
   // A changed manuscript objective must not leave an older confirmed copy active.
   if (objectives) {
+    context._manuscriptObjectives = objectives;
     if (sectionReviewed(data, 'chapter1', 'specificObjectives', objectives)) context.objectives = objectives;
     else if (context._confirmedObjectivesFor !== objectiveSignature(data)) delete context.objectives;
   }

@@ -67,8 +67,8 @@ check('Changed facts invalidate review without deleting the draft', () => {
 });
 check('Full-project drafting uses the same evidence and methodology gates', () => {
   assert.equal(flow.projectChapterWorkspace(empty(), 'proposal', 'chapter1').id, flow.projectChapterWorkspace(empty(), 'proposal', 'chapter1').id, 'Study fields must retain their DOM identity while typing');
-  assert.ok(model.generationNeeds(flow.projectChapterWorkspace(empty(), 'proposal', 'chapter2'), 'body').some(s => /objectives/.test(s)));
-  assert.ok(model.generationNeeds(flow.projectChapterWorkspace(empty(), 'proposal', 'chapter1'), 'background').some(s => /source/.test(s)));
+  assert.deepEqual(model.generationNeeds(flow.projectChapterWorkspace(empty(), 'proposal', 'chapter2'), 'body'), []);
+  assert.deepEqual(model.generationNeeds(flow.projectChapterWorkspace(empty(), 'proposal', 'chapter1'), 'background'), []);
   assert.ok(model.generationNeeds(flow.projectChapterWorkspace(empty(), 'proposal', 'chapter3'), 'studyDesign').length);
   const stale = { ...empty(), chapters: { _studyContext: { objectives: 'Old confirmed objectives' }, chapter1: { specificObjectives: 'New unreviewed objectives' } } };
   assert.equal(flow.projectChapterWorkspace(stale, 'proposal', 'chapter2').context.objectives, undefined);
@@ -125,11 +125,11 @@ check('Empty and populated sections have distinguishable primary actions and a s
 });
 check('Required preparation precedes generation, with real required fields and advisory placeholders', () => {
   const w = flow.projectChapterWorkspace(empty(), 'proposal', 'chapter1');
-  const fields = renderToStaticMarkup(React.createElement(details.default, { workspace: w, sectionId: 'background', disabled: false, embedded: true, onChange() {} }));
-  assert.equal((fields.match(/aria-required="true"/g) || []).length, 2);
+  const fields = renderToStaticMarkup(React.createElement(details.default, { workspace: { ...w, chapterKey: 'chapter3' }, sectionId: 'studyDesign', disabled: false, embedded: true, onChange() {} }));
+  assert.equal((fields.match(/aria-required="true"/g) || []).length, 1);
   assert.match(fields, /text-red-600/);
-  assert.match(fields, /Do not guess local case numbers/);
-  assert.match(fields, /leave blank if you have nothing else/);
+  assert.match(fields, /cross-sectional/);
+  assert.equal(renderToStaticMarkup(React.createElement(details.default, { workspace: w, sectionId: 'background', disabled: false, embedded: true, onChange() {} })), '');
   const sourceForm = renderToStaticMarkup(React.createElement(sourcesUI.default, { workspace: w, sectionId: 'background', disabled: false, onChange() {}, onInsert() {} }));
   assert.match(sourceForm, /<details[^>]*open=""/);
   assert.equal((sourceForm.match(/aria-required="true"/g) || []).length, 3);

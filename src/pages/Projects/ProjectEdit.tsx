@@ -69,7 +69,8 @@ import { generateReport } from '@/lib/api';
 import { sanitizeFileName, triggerBrowserDownload } from '@/lib/download';
 import { AIContentGenerator } from '@/components/projects/AIContentGenerator';
 import ChapterStudyDetails from '@/components/research/ChapterStudyDetails';
-import ChapterSources from '@/components/research/ChapterSources';
+import ChapterSupportingMaterial from '@/components/research/ChapterSupportingMaterial';
+import { assistedChapterDraft } from '@/lib/assistedChapterDraft';
 import { generationNeeds, workspaceWritingContext, reviewWorkspaceSection, sanitizeChapterHtml } from '@/lib/chapterWorkspace';
 import { mergeActiveWriting, projectChapterWorkspace, recalculateWritingProgress, sectionReviewed, writingSections, updateProjectStudyWorkspace } from '@/lib/projectWritingFlow';
 import { writingFailure } from '@/lib/writingFailure';
@@ -766,7 +767,9 @@ const ProjectEdit = () => {
   const [reviewed, setReviewed] = useState(false);
   const [roadmapOpen, setRoadmapOpen] = useState(true);
   const [roadmapVisible, setRoadmapVisible] = useState(false);
-  const [preparationExpanded, setPreparationExpanded] = useState(true);
+  const [preparationExpanded, setPreparationExpanded] = useState(false);
+  const [readingSupport, setReadingSupport] = useState(false);
+  const [draftNotices, setDraftNotices] = useState<string[]>([]);
   const [showPreparationErrors, setShowPreparationErrors] = useState(false);
   const [roadmapSection, setRoadmapSection] = useState('preliminaryPages');
   const loadedProject = React.useRef('');
@@ -847,8 +850,9 @@ const ProjectEdit = () => {
 
   useEffect(() => {
     setSupportPanelOpen(false);
-    setPreparationExpanded(true);
+    setPreparationExpanded(false);
     setShowPreparationErrors(false);
+    setDraftNotices([]);
   }, [selectedSection, selectedComponent]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -962,18 +966,29 @@ const ProjectEdit = () => {
   };
 
   const handleImproveWithAI = async (action = 'draft') => {
-    if (isGenerating || saveLock.current || isCurrentComponentAutoFilled) return;
+    if (isGenerating || readingSupport || saveLock.current || isCurrentComponentAutoFilled) return;
     if (action === 'draftWithBackground' || action === 'humanize') {
       setGenerationError({ ...writingFailure(new Error('Use the section-specific draft action. Automated rewriting is not a human review.')), action: 'draft' });
       return;
     }
     if (writingWorkspace && generationNeeds(writingWorkspace, selectedComponent).length) {
-      setGenerationError({ ...writingFailure(new Error('Add the required study details and supporting source findings below first.')), action });
+      setGenerationError({ ...writingFailure(new Error('Choose the required methodology decisions below first.')), action });
       return;
     }
     const token = ++generationRequest.current;
-    setIsGenerating(true); setGenerationError(null);
+    setIsGenerating(true); setGenerationError(null); setDraftNotices([]);
     try {
+      if (writingWorkspace) {
+        const snapshot = { ...writingWorkspace, sections: { ...writingWorkspace.sections, [selectedComponent]: { ...writingWorkspace.sections[selectedComponent], content: isEditing ? temporaryContent : selectedContent } } };
+        const result = await assistedChapterDraft(snapshot, selectedComponent, action as UhpabWritingAction);
+        if (token !== generationRequest.current) return;
+        updateStudyWorkspace(result.workspace);
+        setDraftNotices(result.notices);
+        setTemporaryContent(sanitizeChapterHtml(result.text));
+        setReviewed(false); setIsEditing(true);
+        toast.success('Draft ready for your review');
+        return;
+      }
       const writingContext: UhpabWritingContext = writingWorkspace
         ? workspaceWritingContext(writingWorkspace, selectedComponent)
         : { projectTitle: formData.title, projectType: projectData?.type || 'proposal', sectionKey: selectedSection,
@@ -2798,7 +2813,7 @@ const ProjectEdit = () => {
                     }}
                     temporaryContent={temporaryContent}
                     setTemporaryContent={value => { if (value !== temporaryContent) { setTemporaryContent(value); setReviewed(false); } }}
-                    busy={isSaving}
+                    busy={isSaving || readingSupport}
                     generationBlocked={!!currentNeeds.length}
                     generationRequirements={currentNeeds}
                     onResolveRequirements={() => { setPreparationExpanded(true); setShowPreparationErrors(true); }}
@@ -2806,17 +2821,20 @@ const ProjectEdit = () => {
                     reviewed={reviewed}
                     onReview={setReviewed}
                     nextLabel={workflowSteps[currentStepIndex + 1]?.label}
-                    preparation={writingWorkspace && (!fixedSection || currentNeeds.length > 0) ? (
-                      <Accordion key={`${selectedSection}-${selectedComponent}`} type="single" collapsible value={preparationExpanded ? 'prepare' : ''} onValueChange={value => setPreparationExpanded(value === 'prepare')}>
+                    preparation={writingWorkspace && (!fixedSection || selectedComponent === 'researchQuestions' || currentNeeds.length > 0) ? (
+                      <div className="space-y-4">
+                      <ChapterSupportingMaterial key={projectId} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} onReading={setReadingSupport} />
+                      {(currentNeeds.length > 0 || ['studyDesign', 'sampleSize', 'samplingMethod', 'specificObjectives', 'researchQuestions'].includes(selectedComponent)) && <Accordion key={`${selectedSection}-${selectedComponent}`} type="single" collapsible value={preparationExpanded || currentNeeds.length > 0 ? 'prepare' : ''} onValueChange={value => setPreparationExpanded(value === 'prepare')}>
                         <AccordionItem value="prepare" className="border-y">
-                          <AccordionTrigger className="min-h-12 text-left">Study details and evidence{currentNeeds.length ? ` · ${currentNeeds.length} needed` : ''}</AccordionTrigger>
+                          <AccordionTrigger className="min-h-12 text-left">{['specificObjectives', 'researchQuestions'].includes(selectedComponent) ? 'Number of objectives' : 'Your methodology decisions'}{currentNeeds.length ? ` · ${currentNeeds.length} needed` : ''}</AccordionTrigger>
                           <AccordionContent className="space-y-4">
-                            <p className="text-xs text-muted-foreground"><span className="font-semibold text-red-600 dark:text-red-400">*</span> Required for draft generation</p>
+                            {!['specificObjectives', 'researchQuestions'].includes(selectedComponent) && <p className="text-xs text-muted-foreground"><span className="font-semibold text-red-600 dark:text-red-400">*</span> Required for draft generation</p>}
                             <ChapterStudyDetails embedded showErrors={showPreparationErrors} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} />
-                            {(selectedSection === 'chapter2' || ['background', 'statementOfProblem'].includes(selectedComponent)) && <ChapterSources key={projectId} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} onInsert={citation => { setTemporaryContent(`${isEditing ? temporaryContent : selectedContent}<p>${sanitizeChapterHtml(citation)}</p>`); setIsEditing(true); setReviewed(false); }} />}
                           </AccordionContent>
                         </AccordionItem>
-                      </Accordion>
+                      </Accordion>}
+                      {draftNotices.length > 0 && <div role="status" className="border-l-2 border-amber-500 pl-3 text-sm text-muted-foreground">{draftNotices.map(notice => <p key={notice} className="mb-2">{notice}</p>)}</div>}
+                      </div>
                     ) : undefined}
                     improveWithAI={isCurrentComponentAutoFilled ? () => toast.info('This page is prefilled from your profile and the DOCX template.') : handleImproveWithAI}
                     label={selectedComponentMeta?.label || ''}

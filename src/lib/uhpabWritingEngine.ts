@@ -521,6 +521,10 @@ Rules:
 - Only use in-text citations from the saved sources list above. If no saved source matches, write [citation needed].
 - If a claim needs evidence and no verified source is provided, write [citation needed] or [verify local statistic].
 - If a required factual input is unknown, use an explicit placeholder such as [insert sample size]. Never add supervisor identity fields to a title page.
+- Reuse the study location and respondent group from the topic; do not ask the student to enter them again.
+- Uploaded example reports are style references only. Do not transfer their statistics, results, participant details or citations into this study.
+- Uploaded local evidence can support this study only where its facility, population and dates actually match. Identify it descriptively by filename/date if no saved author-year citation exists. Never invent an APA identity for a private statement.
+- For a proposal, clearly distinguish suggested procedures from confirmed decisions. For a report, never turn suggested methods into claims that procedures or approvals actually occurred.
 ${context.requireEvidence ? `Strict evidence mode overrides the placeholder guidance above:
 - Use only confirmed study facts and the actual supporting findings supplied with saved sources. Metadata alone does not substantiate a claim.
 - Do not add hospital observations, local prevalence, unreported studies, new outcomes or methodological decisions. Do not broaden the study outcome to related diseases or proxy outcomes.

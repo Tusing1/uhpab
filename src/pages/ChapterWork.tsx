@@ -7,15 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import ChapterSources from '@/components/research/ChapterSources';
+import ChapterSupportingMaterial from '@/components/research/ChapterSupportingMaterial';
+import { assistedChapterDraft } from '@/lib/assistedChapterDraft';
 import ChapterStudyDetails from '@/components/research/ChapterStudyDetails';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
 import { buildTemplateDocx } from '@/lib/api';
 import { triggerBrowserDownload, sanitizeFileName } from '@/lib/download';
-import { generateResearchComponent } from '@/utils/geminiApi';
-import { assertUhpabDraftAllowed } from '@/lib/uhpabWritingEngine';
-import { chapterSections, chapterStructure, changeWorkspaceContext, citedWorkspaceSources, generationNeeds, newChapterWorkspace, plainChapterText, reviewWorkspaceSection, sanitizeChapterHtml, workspaceFingerprint, workspaceWritingContext, type ChapterKey, type ChapterSource, type ChapterWorkspace } from '@/lib/chapterWorkspace';
+import { chapterSections, chapterStructure, changeWorkspaceContext, citedWorkspaceSources, generationNeeds, newChapterWorkspace, plainChapterText, reviewWorkspaceSection, sanitizeChapterHtml, workspaceFingerprint, type ChapterKey, type ChapterSource, type ChapterWorkspace } from '@/lib/chapterWorkspace';
 import { writingFailure } from '@/lib/writingFailure';
 import { focusMissingStudyField } from '@/lib/studyPreparation';
 import { readResearchList } from '@/lib/researchFormulation';
@@ -147,16 +146,14 @@ export default function ChapterWork() {
     if (hasContent && !window.confirm('Replace this section with a new draft? Your current text will be kept for Undo.')) return;
     const token = ++requestNumber.current;
     const snapshot = draft;
-    const context = workspaceWritingContext(snapshot, id);
     setBusy('Generating draft'); setError('');
     try {
-      const result = await generateResearchComponent(section!.title, snapshot.topic, snapshot.documentType, context);
+      const result = await assistedChapterDraft(snapshot, id);
       if (token !== requestNumber.current || current.current?.id !== snapshot.id) return;
-      if (result.error) throw new Error(result.error);
       if (!plainChapterText(result.text)) throw new Error('No usable draft returned. Your previous text has not been changed.');
-      assertUhpabDraftAllowed(result.text, context);
-      const next = { ...snapshot, sections: { ...snapshot.sections, [id]: { content: sanitizeChapterHtml(result.text), previousContent: content, status: 'drafting' as const, contextFingerprint: workspaceFingerprint(snapshot) } } };
+      const next = { ...result.workspace, sections: { ...snapshot.sections, [id]: { content: sanitizeChapterHtml(result.text), previousContent: content, status: 'drafting' as const, contextFingerprint: workspaceFingerprint(result.workspace) } } };
       edit(next);
+      if (result.notices.length) toast.info(result.notices.join(' '), { duration: 12000 });
       toast.success('Draft ready. Read and edit it before marking it reviewed.');
     } catch (e) { if (token === requestNumber.current) { const failure = writingFailure(e); setError(`${failure.title}: ${failure.message}`); } }
     finally { if (token === requestNumber.current) setBusy(''); }
@@ -245,7 +242,7 @@ export default function ChapterWork() {
           <details className="border-b pb-3"><summary className="cursor-pointer text-xs text-muted-foreground">Change research topic</summary><label className="mt-3 block space-y-2 text-sm">Research topic<Textarea disabled={!!busy} value={draft.topic} onChange={e => edit(changeWorkspaceContext(draft, { topic: e.target.value }))} /></label></details>
           <div><h2 className="text-xl font-semibold">{section.title}</h2><p className="mt-2 text-sm text-muted-foreground">{section.description}</p><details className="mt-3 text-sm"><summary className="cursor-pointer font-medium text-teal-700">UHPAB requirements</summary><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">{section.requirements?.map(rule => <li key={rule}>{rule}</li>)}</ul></details></div>
           <ChapterStudyDetails workspace={draft} sectionId={id} disabled={!!busy} onChange={edit} />
-          {(draft.chapterKey === 'chapter2' || ['background', 'statementOfProblem'].includes(id)) && <ChapterSources key={draft.id} workspace={draft} sectionId={id} disabled={!!busy} onChange={edit} onInsert={citation => setContent(`${content}<p>${sanitizeChapterHtml(citation)}</p>`)} />}
+          <ChapterSupportingMaterial key={draft.id} workspace={draft} disabled={!!busy} onChange={edit} onReading={reading => setBusy(reading ? 'Reading supporting file' : '')} />
           {needs.length > 0 && <p className="text-sm text-amber-800" role="status">Before generating: {needs.join('; ')}. You can still write and save below.</p>}
           <div className="flex flex-wrap items-center gap-3"><Button variant="outline" disabled={!!busy} onClick={generate}><Sparkles size={16} className="mr-2" />{hasContent ? 'Regenerate draft' : 'Generate draft'}</Button>{draft.sections[id]?.previousContent && <Button variant="ghost" disabled={!!busy} onClick={() => { const old = draft.sections[id]; edit({ ...draft, sections: { ...draft.sections, [id]: { ...old, content: old.previousContent!, previousContent: old.content, status: 'drafting' } } }); }}><Undo2 size={16} className="mr-2" />Undo replacement</Button>}<span className="text-xs text-muted-foreground">{plainChapterText(content).split(/\s+/).filter(Boolean).length} words</span></div>
           <div className="chapter-manuscript"><h3>{chapterStructure(draft.documentType, draft.chapterKey).title}</h3><h4>{section.title}</h4><RichTextEditor key={id} value={content} onChange={setContent} disabled={!!busy} placeholder="Write your section here" /></div>

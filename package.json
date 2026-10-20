@@ -13,6 +13,7 @@
     "test:formulation": "node scripts/test-research-formulation.mjs",
     "test:chapters": "node scripts/test-chapter-workspaces.mjs",
     "test:writing": "node scripts/test-student-writing.mjs",
+    "test:assisted": "node scripts/test-assisted-drafting.mjs",
     "test:marking": "node scripts/test-strict-marking.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

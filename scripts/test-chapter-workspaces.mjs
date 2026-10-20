@@ -40,32 +40,31 @@ await check('Chapter One introduction uses the short deterministic contract with
   assert.ok(model.plainChapterText(output).split(/\s+/).length <= 45);
   assert.doesNotMatch(output, /citation needed|microvascular/);
 });
-await check('Evidence-intensive sections reject topic-only generation', () => {
-  assert.ok(model.generationNeeds(create(), 'background').length >= 3);
+await check('Narrative drafts can start from a topic without compulsory source forms', () => {
+  assert.equal(model.generationNeeds(create(), 'background').length, 0);
   const w = create('chapter2');
-  assert.ok(model.generationNeeds(w, 'body').some(s => s.includes('objectives')));
-  assert.ok(model.generationNeeds(w, 'body').some(s => s.includes('source')));
+  assert.equal(model.generationNeeds(w, 'body').length, 0);
   w.context.objectives = 'To assess the stated outcome.';
   w.sources = [{ ...source, notes: '' }];
-  assert.ok(model.generationNeeds(w, 'body').some(s => s.includes('source')));
+  assert.equal(model.workspaceSources(w, 'body').length, 0);
   w.sources = [source];
   assert.equal(model.generationNeeds(w, 'body').length, 0);
 });
-await check('Sources scoped to another section cannot satisfy the evidence gate', () => {
+await check('Sources scoped to another section do not substantiate the current draft', () => {
   const w = create(); w.context = { setting: 'Confirmed setting', rationale: 'Confirmed gap' };
   w.sources = [{ ...source, intendedUse: 'statementOfProblem' }];
-  assert.ok(model.generationNeeds(w, 'background').some(s => s.includes('source')));
+  assert.equal(model.workspaceSources(w, 'background').length, 0);
   w.sources[0].intendedUse = 'background';
   assert.equal(model.generationNeeds(w, 'background').length, 0);
 });
-await check('Methodology asks for actual design, sample assumptions, permissions and procedures', () => {
+await check('Methodology requires actual design, sample justification and sampling choices only', () => {
   const w = create('chapter3');
-  assert.ok(model.generationNeeds(w, 'sampleSize').length >= 3);
+  assert.equal(model.generationNeeds(w, 'sampleSize').length, 1);
   w.context.design = 'quantitative';
   assert.ok(model.generationNeeds(w, 'studyDesign').some(s => s.includes('actual study design')));
   w.context.design = 'Cross-sectional survey because the study measures the current situation.';
   assert.equal(model.generationNeeds(w, 'studyDesign').length, 0);
-  assert.ok(model.generationNeeds(w, 'ethicalConsiderations').length);
+  assert.equal(model.generationNeeds(w, 'ethicalConsiderations').length, 0);
   assert.ok(model.workspaceWritingContext(w, 'sampleSize').studyContext.includes('Never invent numbers'));
 });
 await check('Topic, facts or source changes retain text but invalidate reviewed sections', () => {
