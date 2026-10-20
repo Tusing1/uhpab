@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -32,7 +33,8 @@ import {
   IndentDecrease,
   IndentIncrease,
   ChevronRight,
-  Clock,
+  ChevronDown,
+  ListChecks,
   CheckCircle2,
   Loader2,
   Plus,
@@ -62,7 +64,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { OperationProgress } from '@/components/ui/operation-progress';
-import { GlassmorphismCard } from '@/components/ui/glassmorphism-card';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateReport } from '@/lib/api';
 import { sanitizeFileName, triggerBrowserDownload } from '@/lib/download';
@@ -80,7 +81,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { SectionNavigation } from "./SectionNavigation";
 import { ProjectEditorContent } from "./ProjectEditorContent";
 import { cn } from '@/lib/utils';
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { generateContent } from '@/integrations/gemini';
 import { legacySectionAliases } from '@/data/researchGuidelineRules';
@@ -765,6 +765,8 @@ const ProjectEdit = () => {
   const [generationError, setGenerationError] = useState<ReturnType<typeof writingFailure> & { action: string } | null>(null);
   const [reviewed, setReviewed] = useState(false);
   const [roadmapOpen, setRoadmapOpen] = useState(true);
+  const [roadmapVisible, setRoadmapVisible] = useState(false);
+  const [roadmapSection, setRoadmapSection] = useState('preliminaryPages');
   const loadedProject = React.useRef('');
   const saveLock = React.useRef(false);
   const generationRequest = React.useRef(0);
@@ -1240,6 +1242,7 @@ const ProjectEdit = () => {
     setSelectedSection(section);
     setSelectedComponent(component);
     setRoadmapOpen(true);
+    setRoadmapVisible(false);
     setIsEditing(false);
     setTemporaryContent('');
     requestAnimationFrame(() => {
@@ -1248,21 +1251,21 @@ const ProjectEdit = () => {
   };
 
   const renderSectionCard = (section: string, components: any[]) => {
-    const expanded = selectedSection === section && roadmapOpen;
+    const expanded = roadmapSection === section && roadmapOpen;
     const completed = components.filter(comp => isComponentDone(section, comp.id)).length;
     return <section key={section} className="border-b py-2">
-      <button type="button" className="w-full py-3 text-left" aria-expanded={expanded} aria-controls={`roadmap-${section}`}
+      <button type="button" className="flex min-h-12 w-full items-center justify-between gap-3 py-3 text-left" aria-expanded={expanded} aria-controls={`roadmap-${section}`}
         disabled={isSaving || isGenerating}
         onClick={() => {
-          if (selectedSection === section) { setRoadmapOpen(value => !value); return; }
-          const target = components.find(comp => !isFinalPageDeferred(section, comp.id) && !isComponentDone(section, comp.id)) || components[0];
-          if (target) selectComponent(section, target.id);
+          if (roadmapSection === section) setRoadmapOpen(value => !value);
+          else { setRoadmapSection(section); setRoadmapOpen(true); }
         }}>
-        <span className="block text-sm font-semibold">{getSectionLabel(section)}</span>
-        <span className="text-xs text-muted-foreground">{completed}/{components.length} reviewed</span>
+        <span className="min-w-0"><span className="block text-sm font-semibold">{getSectionLabel(section)}</span>
+        <span className="text-xs text-muted-foreground">{completed}/{components.length} reviewed</span></span>
+        <ChevronDown aria-hidden="true" className={cn('h-4 w-4 shrink-0 transition-transform motion-reduce:transition-none', expanded && 'rotate-180')} />
       </button>
       {expanded && <div id={`roadmap-${section}`} className="space-y-1 pb-3">
-        {components.map(comp => <Button key={comp.id} variant={selectedComponent === comp.id ? 'secondary' : 'ghost'}
+        {components.map(comp => <Button key={comp.id} variant={selectedSection === section && selectedComponent === comp.id ? 'secondary' : 'ghost'} aria-current={selectedSection === section && selectedComponent === comp.id ? 'step' : undefined}
           className="h-auto min-h-11 w-full justify-start whitespace-normal py-2 text-left text-xs"
           disabled={isSaving || isGenerating} onClick={() => selectComponent(section, comp.id)}>
           <span><span className="block">{comp.label}</span><span className="block text-[11px] text-muted-foreground">{getComponentStatus(section, comp.id)}</span></span>
@@ -2064,7 +2067,7 @@ const ProjectEdit = () => {
             </div>
           </div>
           
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:justify-end">
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             {!isEditing && (documentArtifactCount > 0 || missingReferenceKeys.length > 0) && (
               <Button variant="outline" onClick={handleRepairDocument} disabled={isSaving || isDownloading || isGenerating} className="gap-2 bg-white">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand className="h-4 w-4" />}
@@ -2085,7 +2088,7 @@ const ProjectEdit = () => {
               )}
             </Button>
             
-            {!isEditing && <Button onClick={handleSave} disabled={isSaving || isGenerating} variant="outline" className="gap-2">
+            {!isEditing && pendingChanges && <Button onClick={handleSave} disabled={isSaving || isGenerating} variant="outline" className="gap-2">
               {isSaving ? 'Saving...' : 'Save project'}
               <Save className="h-4 w-4" />
             </Button>}
@@ -2123,7 +2126,7 @@ const ProjectEdit = () => {
           </Alert>
         )}
 
-        {documentArtifactCount > 0 && (
+        {documentArtifactCount > 0 && !isEditing && ['references', 'appendices'].includes(selectedSection) && (
           <Alert>
             <Wand className="h-4 w-4" />
             <AlertTitle>Document cleanup needed</AlertTitle>
@@ -2141,7 +2144,7 @@ const ProjectEdit = () => {
           </Alert>
         )}
 
-        {(selectedSection === 'references' || missingReferenceKeys.length > 0) && (
+        {selectedSection === 'references' && (
           <Alert>
             <BookText className="h-4 w-4" />
             <AlertTitle>Reference tracker</AlertTitle>
@@ -2189,11 +2192,10 @@ const ProjectEdit = () => {
         )}
 
         <div className={cn(
-          "grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]",
+          "mx-auto w-full max-w-5xl space-y-4",
           !shouldShowSupportPanel && "hidden",
           selectedSection === 'chapter4' && projectData?.type !== 'report' && "hidden"
         )}>
-          <div className="hidden xl:block" />
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
               {selectedSection === 'references'
@@ -2205,13 +2207,7 @@ const ProjectEdit = () => {
           <Accordion
             type="multiple"
             key={selectedSection}
-            defaultValue={
-              selectedSection === 'references'
-                ? ['sources-library', 'references-manager']
-                : selectedSection === 'chapter4'
-                  ? ['results-helper', 'table-figure-manager']
-                  : ['evidence-search']
-            }
+            defaultValue={[]}
             className="space-y-3"
           >
           <AccordionItem value="evidence-search" className={cn("rounded-lg border bg-card px-4", !showEvidenceTools && "hidden")}>
@@ -2747,98 +2743,35 @@ const ProjectEdit = () => {
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          {/* Left Sidebar - Section Navigation */}
-          <div className="xl:sticky xl:top-24 xl:self-start">
-            <ScrollArea className="h-auto xl:h-[calc(100vh-8rem)]">
-              <div className="space-y-5 pr-1 xl:pr-4">
-                <GlassmorphismCard>
-                  <div className="space-y-2 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <h2 className="font-semibold">Research roadmap</h2>
-                        <p className="text-xs text-muted-foreground">
-                          Follow the document from the first page. Some preliminary lists are reviewed now and finished later.
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                        {getAverageProgress()}%
-                      </span>
-                    </div>
-                  </div>
-                </GlassmorphismCard>
-
-                {/* Recently Edited */}
-                {recentSections.length > 0 && (
-                  <GlassmorphismCard>
-                    <div className="p-4">
-                      <h3 className="font-medium flex items-center gap-2 mb-3">
-                        <Clock className="h-4 w-4" />
-                        Recently Edited
-                      </h3>
-                      <div className="space-y-1">
-                        {recentSections.map((item, index) => (
-                          <Button
-                            key={index}
-                            variant="ghost"
-                            className="w-full justify-start text-sm"
-                            onClick={() => {
-                              selectComponent(item.section, item.component);
-                            }}
-                          >
-                            <div className="truncate">
-                              <div className="font-medium">{item.label}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {getSectionLabel(item.section)}
-                              </div>
-                            </div>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </GlassmorphismCard>
-                )}
-
-                {/* Section Navigation */}
-                <div className="space-y-3">
-                  {getWorkflowOrder(projectData?.type || 'proposal')
-                    .filter((section) => structure[section as keyof typeof structure])
-                    .map((section) => {
-                    const data = structure[section as keyof typeof structure] as any;
-                    const components = getComponentsForSection(data);
-                    return renderSectionCard(section, components);
-                  })}
-                </div>
-              </div>
-            </ScrollArea>
+        <div className="mx-auto w-full max-w-5xl space-y-4">
+          <div className="sticky top-14 z-30 flex items-center justify-between gap-3 border-y bg-background px-3 py-3">
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="truncate font-medium" title={getSectionLabel(selectedSection)}>{getSectionLabel(selectedSection)}</p>
+              <p className="text-xs text-muted-foreground">Step {currentStepIndex + 1} of {workflowSteps.length} · {getAverageProgress()}% reviewed</p>
+            </div>
+            <Button variant="outline" className="min-h-11 gap-2" disabled={isSaving || isGenerating}
+              onClick={() => { setRoadmapSection(selectedSection); setRoadmapOpen(true); setRoadmapVisible(true); }}>
+              <ListChecks className="h-4 w-4" aria-hidden="true" />Roadmap
+            </Button>
           </div>
+          <Sheet open={roadmapVisible} onOpenChange={setRoadmapVisible}>
+            <SheetContent className="flex w-full flex-col sm:max-w-md">
+              <SheetHeader className="shrink-0 pr-6 text-left">
+                <SheetTitle>Research roadmap</SheetTitle>
+                <SheetDescription>{getAverageProgress()}% reviewed · {currentStepIndex + 1} of {workflowSteps.length} sections</SheetDescription>
+              </SheetHeader>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+                {getWorkflowOrder(projectData?.type || 'proposal')
+                  .filter(section => structure[section as keyof typeof structure])
+                  .map(section => renderSectionCard(section, getComponentsForSection(structure[section as keyof typeof structure])))}
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {/* Main Content Area */}
-          <div ref={editorPanelRef} className="min-w-0 scroll-mt-24">
-            <GlassmorphismCard className="overflow-hidden">
-              <div className="border-b p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{getSectionLabel(selectedSection)}</span>
-                  <ChevronRight className="h-4 w-4" />
-                  <span>{sectionComponents.find(c => c.id === selectedComponent)?.label}</span>
-                </div>
-                {selectedSection === 'chapter1' && ['specificObjectives', 'researchQuestions'].includes(selectedComponent) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <Label htmlFor="objective-count">Specific objectives</Label>
-                    <Select
-                      value={String(formData.chapters._objectiveCount === 2 ? 2 : 3)}
-                      onValueChange={(value) => setFormData(previous => ({ ...previous, chapters: { ...previous.chapters, _objectiveCount: value === '2' ? 2 : 3 } }))}
-                    >
-                      <SelectTrigger id="objective-count" className="w-44"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="3">3 objectives</SelectItem><SelectItem value="2">2 objectives</SelectItem></SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              <div className="p-6 relative min-h-[400px]">
-                {writingWorkspace && (!fixedSection || currentNeeds.length > 0) && <ChapterStudyDetails workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} />}
-                {writingWorkspace && (selectedSection === 'chapter2' || ['background', 'statementOfProblem'].includes(selectedComponent)) && <ChapterSources key={projectId} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} onInsert={citation => { setTemporaryContent(`${isEditing ? temporaryContent : selectedContent}<p>${sanitizeChapterHtml(citation)}</p>`); setIsEditing(true); setReviewed(false); }} />}
-                {!!currentNeeds.length && <p className="my-3 text-sm text-amber-800">Before generating: {currentNeeds.join('; ')}. Manual writing remains available.</p>}
+          <div ref={editorPanelRef} className="min-w-0 scroll-mt-56 sm:scroll-mt-40">
+            <section aria-label="Current section" className="min-w-0">
+              <div className="relative min-h-[400px] py-2">
                 {generationError && <Alert variant="destructive" className="my-3"><AlertTitle>{generationError.title}</AlertTitle><AlertDescription>{generationError.message}{generationError.retryable && <Button variant="outline" size="sm" disabled={isGenerating || isSaving || !!currentNeeds.length} onClick={() => handleImproveWithAI(generationError.action)} className="ml-2">Retry generation</Button>}</AlertDescription></Alert>}
                 {isGenerating ? (
                   <div role="status" className="flex flex-col items-center justify-center gap-4 py-16">
@@ -2866,6 +2799,19 @@ const ProjectEdit = () => {
                     fixedSection={fixedSection}
                     reviewed={reviewed}
                     onReview={setReviewed}
+                    nextLabel={workflowSteps[currentStepIndex + 1]?.label}
+                    preparation={writingWorkspace && (!fixedSection || currentNeeds.length > 0) ? (
+                      <Accordion key={`${selectedSection}-${selectedComponent}`} type="single" collapsible defaultValue={currentNeeds.length ? 'prepare' : undefined}>
+                        <AccordionItem value="prepare" className="border-y">
+                          <AccordionTrigger className="min-h-12 text-left">Study details and evidence{currentNeeds.length ? ` · ${currentNeeds.length} needed` : ''}</AccordionTrigger>
+                          <AccordionContent className="space-y-4">
+                            {!!currentNeeds.length && <div className="border-l-2 border-teal-600 pl-4 text-sm"><p className="mb-2 font-medium">Needed for a supported draft</p><ul className="list-disc space-y-1 pl-4">{currentNeeds.map(need => <li key={need}>{need}</li>)}</ul></div>}
+                            <ChapterStudyDetails embedded workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} />
+                            {(selectedSection === 'chapter2' || ['background', 'statementOfProblem'].includes(selectedComponent)) && <ChapterSources key={projectId} workspace={writingWorkspace} sectionId={selectedComponent} disabled={isSaving || isGenerating} onChange={updateStudyWorkspace} onInsert={citation => { setTemporaryContent(`${isEditing ? temporaryContent : selectedContent}<p>${sanitizeChapterHtml(citation)}</p>`); setIsEditing(true); setReviewed(false); }} />}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    ) : undefined}
                     improveWithAI={isCurrentComponentAutoFilled ? () => toast.info('This page is prefilled from your profile and the DOCX template.') : handleImproveWithAI}
                     label={selectedComponentMeta?.label || ''}
                     description={
@@ -2918,7 +2864,7 @@ const ProjectEdit = () => {
                   />
                 )}
               </div>
-            </GlassmorphismCard>
+            </section>
           </div>
         </div>
       </WorkspacePage>

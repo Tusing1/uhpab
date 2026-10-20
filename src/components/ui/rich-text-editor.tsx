@@ -11,6 +11,7 @@ import {
   Italic,
   List,
   ListOrdered,
+  MoreHorizontal,
   Pilcrow,
   Table2,
   Underline
@@ -88,30 +89,43 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   ];
 
   return (
-    <div className="rounded-md border bg-white">
-      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b bg-white/95 p-2 backdrop-blur">
+    <div className="min-w-0 rounded-md border bg-white">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b bg-white/95 p-2 backdrop-blur" role="toolbar" aria-label="Text formatting">
         {tools.map((tool, index) => {
           const Icon = tool.icon;
           return (
             <React.Fragment key={tool.label}>
               {index === 3 || index === 6 || index === 9 ? (
-                <Separator orientation="vertical" className="mx-1 h-7" />
+                <Separator orientation="vertical" className="mx-1 hidden h-7 sm:block" />
               ) : null}
               <Button
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8"
+                className={cn("h-11 w-11 shrink-0 sm:h-8 sm:w-8", index >= 3 && "hidden sm:inline-flex")}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={tool.action}
                 disabled={disabled}
                 title={tool.label}
+                aria-label={tool.label}
               >
                 <Icon className="h-4 w-4" />
               </Button>
             </React.Fragment>
           );
         })}
+        <details className="sm:hidden">
+          <summary aria-label="More formatting" title="More formatting" className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-md text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 [&::-webkit-details-marker]:hidden" onMouseDown={event => event.preventDefault()}>
+            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+          </summary>
+          <div className="absolute left-0 right-0 top-full z-40 flex flex-wrap gap-1 rounded-b-md border bg-white p-2 shadow-lg">
+            {tools.slice(3).map(tool => {
+              const Icon = tool.icon;
+              return <Button key={tool.label} type="button" size="icon" variant="ghost" className="h-11 w-11" disabled={disabled} aria-label={tool.label} title={tool.label}
+                onMouseDown={event => event.preventDefault()} onClick={event => { tool.action(); event.currentTarget.closest('details')?.removeAttribute('open'); }}><Icon className="h-4 w-4" /></Button>;
+            })}
+          </div>
+        </details>
       </div>
       <div
         ref={editorRef}
@@ -124,7 +138,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onInput={updateValue}
         onBlur={updateValue}
         className={cn(
-          "prose prose-sm min-h-[620px] max-w-none px-1 py-2 text-[12pt] leading-[2] outline-none",
+          "prose prose-sm min-h-[320px] max-w-none break-words px-1 py-2 text-[12pt] leading-[2] outline-none sm:min-h-[620px] [overflow-wrap:anywhere] [&_table]:max-w-full",
           "font-['Times_New_Roman',Times,serif] text-justify [&_h1]:text-[12pt] [&_h2]:text-[12pt] [&_h3]:text-[12pt] [&_h1]:text-left [&_h2]:text-left [&_h3]:text-left",
           "empty:before:pointer-events-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]",
           disabled && "cursor-not-allowed opacity-60"

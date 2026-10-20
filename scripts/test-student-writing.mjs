@@ -3,6 +3,8 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 mkdirSync('tmp/writing-qa', { recursive: true });
 async function bundle(entry, name) {
@@ -14,6 +16,7 @@ const engine = await bundle('src/lib/uhpabWritingEngine.ts', 'engine');
 const flow = await bundle('src/lib/projectWritingFlow.ts', 'flow');
 const model = await bundle('src/lib/chapterWorkspace.ts', 'model');
 const failures = await bundle('src/lib/writingFailure.ts', 'failure');
+const editor = await bundle('src/pages/Projects/ProjectEditorContent.tsx', 'editor');
 let checks = 0;
 function check(label, run) { run(); checks++; console.log(`PASS ${label}`); }
 const topic = 'PREDICTORS OF TREATMENT DEFAULT AMONG DRUG-SENSITIVE TUBERCULOSIS PATIENTS AT KIYUMBA HEALTH CENTRE IV, KAMPALA';
@@ -92,5 +95,30 @@ check('Save/navigation UI uses the unified persistence path and accessible colla
   assert.match(content, /<details/);
   assert.match(content, /<fieldset disabled=\{busy\}/);
   assert.doesNotMatch(content, /Writing box:|Human review|Generate intro \+ background/);
+});
+check('Focused editor keeps the roadmap in a closed drawer and section preparation collapsible', () => {
+  const page = readFileSync('src/pages/Projects/ProjectEdit.tsx', 'utf8');
+  assert.match(page, /\[roadmapVisible, setRoadmapVisible\] = useState\(false\)/);
+  assert.match(page, /<Sheet open=\{roadmapVisible\}/);
+  assert.match(page, /setRoadmapVisible\(false\)/);
+  assert.doesNotMatch(page, /xl:grid-cols-\[360px_minmax/);
+  assert.match(page, /key=\{`\$\{selectedSection\}-\$\{selectedComponent\}`\} type="single" collapsible/);
+});
+check('Empty and populated sections have distinguishable primary actions and a single save footer', () => {
+  const base = { isEditing: false, startEditing() {}, cancelEditing() {}, saveContent() {}, temporaryContent: '', setTemporaryContent() {}, improveWithAI() {}, label: 'Introduction', description: 'Brief chapter preview.', currentValue: '', canNext: true, nextLabel: 'Background', onReview() {} };
+  const render = props => renderToStaticMarkup(React.createElement(editor.ProjectEditorContent, { ...base, ...props }));
+  const empty = render({});
+  assert.match(empty, /Generate draft/);
+  assert.match(empty, /Write myself/);
+  assert.match(empty, /Finish later/);
+  assert.match(empty, /Next: Background/);
+  const populated = render({ currentValue: '<p>Existing draft.</p>' });
+  assert.doesNotMatch(populated, /Generate draft/);
+  assert.match(populated, /Edit section/);
+  assert.equal((populated.match(/Save and Next/g) || []).length, 1);
+  const editing = render({ isEditing: true, temporaryContent: '<p>Current edit.</p>' });
+  assert.match(editing, /Cancel editing/);
+  assert.equal((editing.match(/Save and Next/g) || []).length, 1);
+  assert.match(editing, /fixed inset-x-0 bottom-0/);
 });
 console.log(`\n${checks} student-writing checks passed. No student documents or external API calls used.`);

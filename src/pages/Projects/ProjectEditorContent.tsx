@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Quote, Save, Wand } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Pencil, Quote, Save, Wand, X } from "lucide-react";
 import parse from "html-react-parser";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
@@ -31,6 +31,8 @@ interface ProjectEditorContentProps {
   fixedSection?: boolean;
   reviewed?: boolean;
   onReview?: (reviewed: boolean) => void;
+  preparation?: React.ReactNode;
+  nextLabel?: string;
   pageMeta?: {
     pageNumber?: string;
     pageNumberKind: 'none' | 'roman' | 'arabic';
@@ -72,10 +74,18 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
     { id: 'uhpab', label: 'Check UHPAB' }
   ],
   pageMeta,
+  preparation, nextLabel,
   busy = false, generationBlocked = false, fixedSection = false, reviewed = false, onReview,
 }) => {
+  const writingRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!isEditing) return;
+    const frame = requestAnimationFrame(() => writingRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }));
+    return () => cancelAnimationFrame(frame);
+  }, [isEditing]);
   const hasContent = currentValue?.trim().length > 0;
   const isAbstract = /\babstract\b/i.test(label);
+  const activeHasContent = !!(isEditing ? temporaryContent : currentValue)?.replace(/<[^>]*>/g, '').trim();
   const showDraftAction = allowAI && !isAutoFilled && !isDeferredFinalPage;
   const showPolishActions = allowAI && hasContent && !isAutoFilled && !isDeferredFinalPage && !fixedSection;
   const polishActions = aiActions.filter((action) => !['draft', 'draftWithBackground'].includes(action.id));
@@ -86,8 +96,15 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
       : pageMeta?.pageNumber;
 
   return (
-    <fieldset disabled={busy} className="min-w-0 w-full space-y-5 border-0 p-0">
-      {stepLabel && <p className="text-xs text-muted-foreground">{stepLabel}</p>}
+    <fieldset disabled={busy} className="min-w-0 w-full space-y-5 border-0 p-0 pb-44 sm:pb-0">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+        {stepLabel && <span>{stepLabel}</span>}
+        <ol aria-label="Section workflow" className="flex flex-wrap items-center gap-2">
+          <li className={!activeHasContent ? 'font-semibold text-foreground' : ''}>1. Prepare</li><li aria-hidden="true">/</li>
+          <li className={isEditing ? 'font-semibold text-foreground' : ''}>2. Write</li><li aria-hidden="true">/</li>
+          <li className={activeHasContent && !isEditing ? 'font-semibold text-foreground' : ''}>3. Review{reviewed && <Check className="ml-1 inline h-3 w-3 text-teal-700" aria-label="Reviewed" />}</li>
+        </ol>
+      </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
@@ -97,20 +114,20 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           {!isEditing ? (
             <>
-              {showDraftAction && (
-                <Button disabled={generationBlocked || hasContent} onClick={() => improveWithAI('draft')} variant="outline" className="gap-2">
+              {showDraftAction && !hasContent && (
+                <Button disabled={generationBlocked} variant={generationBlocked ? 'outline' : 'default'} onClick={() => improveWithAI('draft')} className="min-h-11 gap-2">
                   <Wand className="h-4 w-4" />
                   Generate draft
                 </Button>
               )}
-              <Button onClick={startEditing} variant={hasContent ? "default" : "outline"} className="gap-2">
-                Edit section
+              <Button onClick={startEditing} variant={hasContent || generationBlocked || !showDraftAction ? "default" : "outline"} className="min-h-11 gap-2">
+                <Pencil className="h-4 w-4" />{hasContent ? 'Edit section' : 'Write myself'}
               </Button>
             </>
           ) : (
             <>
-              <Button onClick={cancelEditing} variant="outline">
-                Cancel
+              <Button onClick={cancelEditing} variant="outline" className="min-h-11 gap-2">
+                <X className="h-4 w-4" />Cancel editing
               </Button>
               {onInsertCitation && !fixedSection && (
                 <Button onClick={onInsertCitation} variant="outline" className="gap-2">
@@ -118,17 +135,12 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
                   Insert citation
                 </Button>
               )}
-              <Button
-                onClick={canNext ? onSaveAndNext : saveContent}
-                className="gap-2 shadow-sm"
-              >
-                {canNext ? "Save and Next" : "Finish section"}
-                {canNext ? <ArrowRight className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-              </Button>
             </>
           )}
         </div>
       </div>
+
+      {preparation}
 
       {(isEditing || showPolishActions) && (
         <details className="border-y py-3">
@@ -148,9 +160,9 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         </details>
       )}
 
-      <div className="rounded-lg bg-slate-100/80 p-3 ring-1 ring-border/70 sm:p-5 dark:bg-slate-950/30">
+      <div ref={writingRef} className="scroll-mt-56 rounded-lg bg-slate-100/80 p-3 ring-1 ring-border/70 sm:scroll-mt-40 sm:p-5 dark:bg-slate-950/30">
         <div
-          className="mx-auto flex min-h-[760px] max-w-[794px] flex-col bg-white px-6 py-8 text-[12pt] leading-[2] text-slate-950 shadow-xl ring-1 ring-slate-200 sm:min-h-[980px] sm:px-12 sm:py-14"
+          className="mx-auto flex min-h-[480px] max-w-[794px] flex-col bg-white px-4 py-8 text-[12pt] leading-[2] text-slate-950 shadow-xl ring-1 ring-slate-200 sm:min-h-[980px] sm:px-12 sm:py-14"
           style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: 2 }}
         >
           <div className="min-h-[64px]">
@@ -180,18 +192,13 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
             </div>
           ) : (
             <div
-              className="prose prose-sm max-w-none text-justify text-[12pt] leading-[2]"
+              className="prose prose-sm max-w-none break-words text-justify text-[12pt] leading-[2] [overflow-wrap:anywhere] [&_table]:max-w-full"
               style={{ fontFamily: '"Times New Roman", Times, serif', lineHeight: isAbstract ? 1 : 2 }}
             >
               {hasContent ? (
                 parse(currentValue)
               ) : (
-                <div className="min-h-[520px] border-t border-dashed border-slate-200 pt-5 text-sm text-slate-500">
-                  <div>
-                    <p className="font-medium text-slate-700">Space reserved in the template.</p>
-                    <p>Use Edit to write under this heading, or Generate draft to insert a safe outline you can correct.</p>
-                  </div>
-                </div>
+                <div className="min-h-[240px] border-t border-dashed border-slate-200" aria-label="Empty section" />
               )}
             </div>
           )}
@@ -204,20 +211,20 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         </div>
       </div>
 
-      {onReview && <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1" checked={reviewed} disabled={!((isEditing ? temporaryContent : currentValue)?.replace(/<[^>]*>/g, '').trim())} onChange={event => onReview(event.target.checked)} />I have reviewed the wording, facts and sources in this section.</label>}
-
-      {!isEditing && (
-        <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <Button onClick={onPrevious} variant="ghost" className="gap-2" disabled={!canPrevious}>
+      <div className="fixed inset-x-0 bottom-0 z-40 space-y-3 border-t bg-background px-4 py-3 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))] sm:sticky sm:inset-x-auto sm:z-20 sm:px-0">
+        {onReview && <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 shrink-0 accent-primary" checked={reviewed} disabled={!activeHasContent} onChange={event => onReview(event.target.checked)} />I have checked this section's wording, facts and sources.</label>}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button onClick={onPrevious} variant="ghost" className="min-h-11 gap-2" disabled={!canPrevious}>
             <ArrowLeft className="h-4 w-4" />
-            Previous section
+            Previous
           </Button>
-          <Button onClick={canNext ? onNext : saveContent} className="gap-2">
-            {canNext ? 'Save and Next' : 'Save section'}
-            <ArrowRight className="h-4 w-4" />
+          <Button onClick={canNext ? (isEditing ? onSaveAndNext : onNext) : saveContent} variant={activeHasContent ? 'default' : 'outline'} className="min-h-11 gap-2">
+            {busy ? 'Saving...' : activeHasContent ? (canNext ? 'Save and Next' : 'Save section') : 'Finish later'}
+            {canNext ? <ArrowRight className="h-4 w-4" /> : <Save className="h-4 w-4" />}
           </Button>
         </div>
-      )}
+        {canNext && nextLabel && <p className="break-words text-right text-xs text-muted-foreground">Next: {nextLabel}</p>}
+      </div>
     </fieldset>
   );
 };

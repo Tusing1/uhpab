@@ -60,3 +60,12 @@ Verification: 9 student-writing regression checks, 16 chapter-workspace checks a
 Browser verification used a synthetic local demo project only: deterministic introduction generation, editing, review, Save and Next, refresh/resume, source gating, collapsed roadmap accessibility and a 390px mobile viewport. The edited introduction survived refresh and the next section resumed correctly. No further production student document was modified and no live Gemini request was made in this implementation pass. Screenshots remain private under tmp/screenshots.
 
 Limits: source-identity validation does not prove a paper supports every generated claim. A student must still verify evidence. Page counts remain estimates until Word lays out the DOCX. Native back-navigation confirmation depends on browser Navigation API support; refresh/close and link warnings remain available. Database outages were not injected during the browser walkthrough.
+
+## Focused Editor UI Follow-Up
+
+- Removed the always-visible chapter sidebar. Roadmap is a closed-by-default, keyboard-accessible drawer; browsing chapter accordions does not navigate until a section is selected. Selection saves pending work and closes the drawer.
+- Current-section workspace is full width with a compact sticky chapter/roadmap strip. Study details and evidence share a collapsible preparation area. Global reference warnings no longer interrupt unrelated sections; specialist panels start collapsed.
+- Empty sections offer Generate draft or Write myself; existing sections offer Edit section. Blocked generation is visually secondary, and optional transformations remain under More tools. Save and Next has one persistent mobile footer with review and next-section context.
+- Mobile formatting has bold/italic/underline plus an expandable menu for other tools. Touch controls are 44px; text and tables are width constrained. Starting editing scrolls directly to the writing surface, respecting reduced motion.
+- Browser checks passed on a synthetic local project: desktop, 390px and 320px; drawer fit, chapter browsing/selection, manual editing, Save and Next, compact formatting expansion and no horizontal overflow. Production student work was not changed. Screenshots stay under tmp/screenshots and are excluded from Git.
+- Writing regressions now total 11 checks, including rendered empty/populated/editing states and focused navigation. The 16 chapter and 15 formulation checks still pass. Build and targeted UI lint pass; existing unrelated TypeScript errors remain.
