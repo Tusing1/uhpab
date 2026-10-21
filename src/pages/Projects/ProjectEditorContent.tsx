@@ -28,6 +28,7 @@ interface ProjectEditorContentProps {
   onInsertCitation?: () => void;
   aiActions?: Array<{ id: string; label: string }>;
   busy?: boolean;
+  toolsOpen?: boolean;
   generationBlocked?: boolean;
   generationRequirements?: string[];
   onResolveRequirements?: () => void;
@@ -77,7 +78,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
     { id: 'uhpab', label: 'Check UHPAB' }
   ],
   pageMeta,
-  preparation, nextLabel,
+  preparation, nextLabel, toolsOpen = false,
   busy = false, generationBlocked = false, generationRequirements = [], onResolveRequirements, fixedSection = false, reviewed = false, onReview,
 }) => {
   const writingRef = React.useRef<HTMLDivElement>(null);
@@ -232,7 +233,7 @@ export const ProjectEditorContent: React.FC<ProjectEditorContentProps> = ({
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 space-y-3 border-t bg-background px-4 py-3 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))] sm:sticky sm:inset-x-auto sm:z-20 sm:px-0">
+      <div hidden={toolsOpen} className="fixed inset-x-0 bottom-0 z-40 space-y-3 border-t bg-background px-4 py-3 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))] sm:sticky sm:inset-x-auto sm:z-20 sm:px-0">
         {onReview && <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 shrink-0 accent-primary" checked={reviewed} disabled={!activeHasContent} onChange={event => onReview(event.target.checked)} />I have checked this section's wording, facts and sources.</label>}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button onClick={onPrevious} variant="ghost" className="min-h-11 gap-2" disabled={!canPrevious}>

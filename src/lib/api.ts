@@ -370,6 +370,7 @@ export const buildTemplateDocx = async (projectType: 'proposal' | 'report', proj
   main.push(pageBreak(), heading('REFERENCES'), ...referenceContentOrPlaceholder(getNestedValue(projectData?.chapters, ['references', 'content']), projectData), pageBreak(), heading('APPENDICES'));
   for (const [key, section] of Object.entries(getAppendixSections(projectType))) {
     let saved = getTemplateContent(projectData, ['appendices', key]);
+    if(key === 'tools' && !saved) saved = projectData?.chapters?._studyContext?._toolsAppendix || '';
     if (key === 'ethicalRequirements' && !saved) saved = ['consentForm', 'approvalLetters', 'introductionLetter', 'schoolApprovals'].map(field => getNestedValue(projectData?.chapters, ['appendices', field])).filter(Boolean).join('\n\n');
     main.push(heading(section.title, HeadingLevel.HEADING_2), ...contentOrPlaceholder(saved, section.description));
   }

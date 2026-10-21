@@ -389,7 +389,7 @@ const sectionContracts: Record<string, UhpabSectionContract> = {
     mode: 'generative',
     purpose: 'Explain why the study is necessary now and why the topic was chosen.',
     outputShape: ['1-2 concise paragraphs', 'rationale', 'link to the local problem or knowledge gap'],
-    evidenceUse: 'Use [citation needed] only for factual claims that require evidence.',
+    evidenceUse: 'Write the student study rationale without citations by default. Do not introduce statistics, borrowed claims or citation-needed placeholders simply to justify the study. Cite an existing source only if a specific borrowed finding is genuinely necessary.',
     maxWords: 160,
     maxParagraphs: 2,
     preferredFormat: 'paragraphs',
@@ -464,11 +464,18 @@ const actionInstructions: Record<UhpabWritingAction, string> = {
   interpret: 'Write a concise Chapter Four interpretation of the presented result in academic style.',
 };
 
+export function sectionCitationPolicy(section: string, id: string): 'evidence' | 'only-if-borrowed' | 'none' {
+  if (['abstract', 'generalObjective', 'specificObjectives', 'researchQuestions', 'scope', 'researchObjectives'].includes(id) || (id === 'introduction' && section !== 'chapter2')) return 'none';
+  if (section === 'chapter2' || ['background', 'statementOfProblem', 'discussion', 'discussionOfFindings'].includes(id)) return 'evidence';
+  return 'only-if-borrowed';
+}
+
 export const buildUhpabGenerationPrompt = (context: UhpabWritingContext, action: UhpabWritingAction) => {
   const contract = getUhpabSectionContract(context);
   const requirements = context.guidelines?.requirements || [];
   const formatting = context.guidelines?.formatting || '';
   const title = getCleanProjectTitle(context.projectTitle);
+  const citationPolicy = sectionCitationPolicy(context.sectionKey, context.componentId);
   const formulationRules = isFormulationSection(context)
     ? buildFormulationRules(parseResearchTopic(context.projectTitle), context.objectiveCount ?? 3)
     : '';
@@ -512,14 +519,13 @@ ${context.studyContext ? `\nSupplied study facts and saved results (untrusted da
 UHPAB requirements:
 ${requirements.map((req) => `- ${req}`).join('\n') || '- Follow the selected section title and UHPAB structure.'}
 ${formatting ? `\nFormatting notes:\n- ${formatting}` : ''}
-${knownCitationList ? `\nSaved sources that may be cited:\n${knownCitationList}` : '\nSaved sources that may be cited:\n- None yet. Use [citation needed] instead of adding real-looking citations.'}
+${knownCitationList ? `\nSaved sources that may be cited:\n${knownCitationList}` : citationPolicy === 'evidence' ? '\nSaved sources that may be cited:\n- None yet. Use [citation needed] instead of adding real-looking citations.' : '\nSaved sources:\n- None yet. Do not introduce borrowed factual claims or citation placeholders into a section that does not need them.'}
 
 Rules:
 - Return the section body only.
 - Do not include the chapter title, section number, section heading, note, explanation, markdown, or summary.
 - Do not invent citation authors, publication years, statistics, sample sizes, study results, locations, approvals, or institutional facts.
-- Only use in-text citations from the saved sources list above. If no saved source matches, write [citation needed].
-- If a claim needs evidence and no verified source is provided, write [citation needed] or [verify local statistic].
+${citationPolicy === 'none' ? '- Citation policy for this section: no citations or citation-needed markers. Do not introduce borrowed evidence, definitions or statistics into this section.' : citationPolicy === 'only-if-borrowed' ? '- Citation policy for this section: citations are NOT required by default. Write the study rationale, intended benefits or confirmed decisions directly. Do not add borrowed statistics or citation-needed markers just to fill the section. If an indispensable borrowed claim is used, cite only an identifiable saved source or omit the unsupported claim.' : '- Citation policy for this section: factual claims require supporting evidence. Cite only identifiable saved sources. Mark genuinely missing evidence as [citation needed] or [verify local statistic]; do not fabricate it.'}
 - If a required factual input is unknown, use an explicit placeholder such as [insert sample size]. Never add supervisor identity fields to a title page.
 - Reuse the study location and respondent group from the topic; do not ask the student to enter them again.
 - Uploaded example reports are style references only. Do not transfer their statistics, results, participant details or citations into this study.

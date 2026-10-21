@@ -71,6 +71,11 @@ import { AIContentGenerator } from '@/components/projects/AIContentGenerator';
 import ChapterStudyDetails from '@/components/research/ChapterStudyDetails';
 import ChapterSupportingMaterial from '@/components/research/ChapterSupportingMaterial';
 import { assistedChapterDraft } from '@/lib/assistedChapterDraft';
+import ResearchProjectTools from '@/components/research/ResearchProjectTools';
+import SectionExplanation from '@/components/research/SectionExplanation';
+import DraftComparison from '@/components/research/DraftComparison';
+import { studyProfile } from '@/lib/researchStudyTools';
+import type { ChapterWorkspace } from '@/lib/chapterWorkspace';
 import { generationNeeds, workspaceWritingContext, reviewWorkspaceSection, sanitizeChapterHtml } from '@/lib/chapterWorkspace';
 import { mergeActiveWriting, projectChapterWorkspace, recalculateWritingProgress, sectionReviewed, writingSections, updateProjectStudyWorkspace } from '@/lib/projectWritingFlow';
 import { writingFailure } from '@/lib/writingFailure';
@@ -298,7 +303,8 @@ const escapeHtml = (value = '') =>
     .replace(/'/g, '&#39;');
 
 const hasDocumentArtifacts = (content = '') => {
-  const text = stripHtmlWithBreaks(content);
+  // Long answer lines in questionnaires are not Markdown emphasis.
+  const text = stripHtmlWithBreaks(content).replace(/_{4,}/g, '');
   if (!text) return false;
 
   if (/(^|\s)#{1,6}\s+/m.test(text)) return true;
@@ -317,6 +323,7 @@ const hasDocumentArtifacts = (content = '') => {
 
 const cleanSavedResearchContent = (content = '') => {
   if (!content || typeof content !== 'string') return content;
+  if (!hasDocumentArtifacts(content)) return content;
 
   const originalText = stripHtmlWithBreaks(content);
   const markdownCleaned = originalText
@@ -770,9 +777,13 @@ const ProjectEdit = () => {
   const [preparationExpanded, setPreparationExpanded] = useState(false);
   const [readingSupport, setReadingSupport] = useState(false);
   const [draftNotices, setDraftNotices] = useState<string[]>([]);
+  const [toolsBusy, setToolsBusy] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<{project:string;section:string;component:string;current:string;proposed:string;workspace?:ChapterWorkspace;notices:string[];fingerprint:string} | null>(null);
   const [showPreparationErrors, setShowPreparationErrors] = useState(false);
   const [roadmapSection, setRoadmapSection] = useState('preliminaryPages');
   const loadedProject = React.useRef('');
+  const loadedProjectRevision = React.useRef('');
   const saveLock = React.useRef(false);
   const generationRequest = React.useRef(0);
   const savedSnapshot = React.useRef('');
@@ -786,7 +797,8 @@ const ProjectEdit = () => {
     progress: buildDefaultProgress('proposal')
   });
   const pendingChanges = Boolean(savedSnapshot.current && JSON.stringify(formData) !== savedSnapshot.current) || isEditing || reviewed !== sectionReviewed(formData, selectedSection, selectedComponent);
-  useWritingNavigationGuard(pendingChanges || isGenerating);
+  const latestWritingForm = React.useRef(formData); latestWritingForm.current = formData;
+  useWritingNavigationGuard(pendingChanges || isGenerating || toolsBusy || !!pendingDraft);
 
   // Track recently edited sections
   const [recentSections, setRecentSections] = useState<Array<{
@@ -801,6 +813,10 @@ const ProjectEdit = () => {
       const project = projects.find(p => p.id === projectId) || getProject(projectId);
       
       if (project) {
+        const revision = `${project.id}:${project.updatedAt}`;
+        // Unrelated context refreshes must not replace unsaved profile/tool edits.
+        if (loadedProjectRevision.current === revision) return;
+        loadedProjectRevision.current = revision;
         setProjectData(project);
 
         const fullStructure = buildDefaultChapters(project.type);
@@ -853,6 +869,7 @@ const ProjectEdit = () => {
     setPreparationExpanded(false);
     setShowPreparationErrors(false);
     setDraftNotices([]);
+    setPendingDraft(null);
   }, [selectedSection, selectedComponent]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -892,7 +909,7 @@ const ProjectEdit = () => {
   };
 
   const saveWriting = async (resume = { section: selectedSection, component: selectedComponent }) => {
-    if (saveLock.current || isGenerating) return false;
+    if (saveLock.current || isGenerating || toolsBusy || pendingDraft) return false;
     saveLock.current = true; setIsSaving(true); setError('');
     try {
       const value = isEditing ? sanitizeChapterHtml(temporaryContent) : selectedContent;
@@ -966,7 +983,7 @@ const ProjectEdit = () => {
   };
 
   const handleImproveWithAI = async (action = 'draft') => {
-    if (isGenerating || readingSupport || saveLock.current || isCurrentComponentAutoFilled) return;
+    if (isGenerating || toolsBusy || pendingDraft || readingSupport || saveLock.current || isCurrentComponentAutoFilled) return;
     if (action === 'draftWithBackground' || action === 'humanize') {
       setGenerationError({ ...writingFailure(new Error('Use the section-specific draft action. Automated rewriting is not a human review.')), action: 'draft' });
       return;
@@ -976,12 +993,19 @@ const ProjectEdit = () => {
       return;
     }
     const token = ++generationRequest.current;
+    const before = isEditing ? temporaryContent : selectedContent;
+    const formSignature = JSON.stringify(formData);
     setIsGenerating(true); setGenerationError(null); setDraftNotices([]);
     try {
       if (writingWorkspace) {
         const snapshot = { ...writingWorkspace, sections: { ...writingWorkspace.sections, [selectedComponent]: { ...writingWorkspace.sections[selectedComponent], content: isEditing ? temporaryContent : selectedContent } } };
         const result = await assistedChapterDraft(snapshot, selectedComponent, action as UhpabWritingAction);
         if (token !== generationRequest.current) return;
+        if (JSON.stringify(latestWritingForm.current) !== formSignature) throw new Error('Study details changed while generating. Your writing is unchanged; generate again using the updated details.');
+        if (before.replace(/<[^>]*>/g,'').trim()) {
+          setPendingDraft({project:projectId!,section:selectedSection,component:selectedComponent,current:before,proposed:sanitizeChapterHtml(result.text),workspace:result.workspace,notices:result.notices,fingerprint:formSignature});
+          return;
+        }
         updateStudyWorkspace(result.workspace);
         setDraftNotices(result.notices);
         setTemporaryContent(sanitizeChapterHtml(result.text));
@@ -996,14 +1020,17 @@ const ProjectEdit = () => {
             guidelines: getGuidelineForComponent(selectedComponent), currentDraft: selectedContent,
             knownSources: Array.isArray(formData.chapters._sourcesLibrary) ? formData.chapters._sourcesLibrary : [],
             requireEvidence: true,
-            studyContext: JSON.stringify({ methodology: formData.chapters.chapter3, findings: formData.chapters.chapter4, registeredResults: formData.chapters._tableFigureRegister }) };
+            studyContext: JSON.stringify({ studyProfile: studyProfile(formData,projectData?.type || 'proposal'), methodology: formData.chapters.chapter3, findings: formData.chapters.chapter4, registeredResults: formData.chapters._tableFigureRegister }) };
       const contract = getUhpabSectionContract(writingContext);
       const generated = contract.mode === 'deterministic'
         ? contract.fallback(writingContext)
         : await generateContent(buildUhpabGenerationPrompt(writingContext, action as UhpabWritingAction));
       if (token !== generationRequest.current) return;
       if (!hasUsableGeneratedContent(generated)) throw new Error('No usable draft returned. Add missing evidence or facts; your previous text is safe.');
-      setTemporaryContent(sanitizeChapterHtml(normalizeUhpabGeneratedDraft(generated, writingContext)));
+      const proposed = sanitizeChapterHtml(normalizeUhpabGeneratedDraft(generated, writingContext));
+      if (JSON.stringify(latestWritingForm.current) !== formSignature) throw new Error('Study details changed while generating. Your writing is unchanged; generate again.');
+      if (before.replace(/<[^>]*>/g,'').trim()) { setPendingDraft({project:projectId!,section:selectedSection,component:selectedComponent,current:before,proposed,notices:[],fingerprint:formSignature}); return; }
+      setTemporaryContent(proposed);
       setReviewed(false); setIsEditing(true);
       toast.success('Draft ready for your review');
     } catch (cause) {
@@ -1255,7 +1282,7 @@ const ProjectEdit = () => {
   };
 
   const selectComponent = async (section: string, component: string) => {
-    if (isGenerating || isSaving) return;
+    if (isGenerating || isSaving || toolsBusy || pendingDraft) return;
     if (pendingChanges && !await saveWriting({ section, component })) return;
     if (/commitment|authorization|copyright/i.test(component)) { toast.info('This page is no longer part of the student document.'); return; }
     setSelectedSection(section);
@@ -2788,9 +2815,20 @@ const ProjectEdit = () => {
           </Sheet>
 
           {/* Main Content Area */}
+          <ResearchProjectTools form={isEditing?{...formData,chapters:{...formData.chapters,[selectedSection]:{...formData.chapters[selectedSection],[selectedComponent]:temporaryContent}}}:formData} type={projectData?.type || 'proposal'} disabled={isSaving || isGenerating || readingSupport || !!pendingDraft} onBusy={setToolsBusy} onOpenChange={setToolsOpen}
+            onChange={next => { setFormData(next); if(isEditing)setTemporaryContent(getComponentContent(next.chapters,selectedSection,selectedComponent)); setReviewed(false); setGenerationError(null); }}
+            onNavigate={(section,id) => { const available = writingSections(projectData?.type || 'proposal',section); const target = available.find(([key])=>key===id || (legacySectionAliases[id]||[]).includes(String(key)) || (section==='chapter4'&&id==='results'&&key==='objectiveFindings')); if(target) {void selectComponent(section,String(target[0])); editorPanelRef.current?.scrollIntoView({behavior:'smooth',block:'start'});} else toast.info('Open this page from the research roadmap to check its current version.'); }} />
           <div ref={editorPanelRef} className="min-w-0 scroll-mt-56 sm:scroll-mt-40">
             <section aria-label="Current section" className="min-w-0">
               <div className="relative min-h-[400px] py-2">
+                <SectionExplanation context={writingWorkspace ? workspaceWritingContext(writingWorkspace,selectedComponent) : {projectTitle:formData.title,projectType:projectData?.type || 'proposal',sectionKey:selectedSection,componentId:selectedComponent,componentLabel:selectedComponentMeta?.label || '',guidelines:getGuidelineForComponent(selectedComponent)}} />
+                {formData.chapters._writingUndo?.[`${selectedSection}.${selectedComponent}`] && <Button variant="outline" size="sm" className="mb-3" disabled={isSaving || isGenerating || toolsBusy || !!pendingDraft} onClick={()=>{if(window.confirm('Restore the previous generated version? Your current version will be kept for another undo.')){const previous=formData.chapters._writingUndo[`${selectedSection}.${selectedComponent}`];setFormData((prev:typeof formData)=>({...prev,chapters:{...prev.chapters,_writingUndo:{...prev.chapters._writingUndo,[`${selectedSection}.${selectedComponent}`]:isEditing?temporaryContent:selectedContent}}}));setTemporaryContent(previous);setIsEditing(true);setReviewed(false);}}}>Undo generated replacement</Button>}
+                {pendingDraft && <DraftComparison open title="Compare section drafts" current={pendingDraft.current} proposed={pendingDraft.proposed} onDismiss={()=>setPendingDraft(null)} onAccept={()=>{
+                  if(pendingDraft.project!==projectId || pendingDraft.section!==selectedSection || pendingDraft.component!==selectedComponent || (isEditing?temporaryContent:selectedContent)!==pendingDraft.current || JSON.stringify(latestWritingForm.current)!==pendingDraft.fingerprint){setPendingDraft(null);toast.error('The section or study details changed. Generate another draft to compare with your latest text.');return;}
+                  const proposal=pendingDraft;
+                  setFormData((prev:typeof formData)=>{const next=proposal.workspace?updateProjectStudyWorkspace(prev,proposal.workspace):prev;return {...next,chapters:{...next.chapters,_writingUndo:{...next.chapters._writingUndo,[`${selectedSection}.${selectedComponent}`]:proposal.current}}};});
+                  setTemporaryContent(proposal.proposed);setDraftNotices(proposal.notices);setReviewed(false);setIsEditing(true);setPendingDraft(null);
+                }} />}
                 {generationError && <Alert variant="destructive" className="my-3"><AlertTitle>{generationError.title}</AlertTitle><AlertDescription>{generationError.message}{generationError.retryable && <Button variant="outline" size="sm" disabled={isGenerating || isSaving || !!currentNeeds.length} onClick={() => handleImproveWithAI(generationError.action)} className="ml-2">Retry generation</Button>}</AlertDescription></Alert>}
                 {isGenerating ? (
                   <div role="status" className="flex flex-col items-center justify-center gap-4 py-16">
@@ -2800,6 +2838,7 @@ const ProjectEdit = () => {
                   </div>
                 ) : (
                   <ProjectEditorContent
+                    toolsOpen={toolsOpen}
                     isEditing={isEditing}
                     startEditing={handleStartEditing}
                     cancelEditing={handleCancelEditing}
@@ -2813,7 +2852,7 @@ const ProjectEdit = () => {
                     }}
                     temporaryContent={temporaryContent}
                     setTemporaryContent={value => { if (value !== temporaryContent) { setTemporaryContent(value); setReviewed(false); } }}
-                    busy={isSaving || readingSupport}
+                    busy={isSaving || readingSupport || toolsBusy || !!pendingDraft}
                     generationBlocked={!!currentNeeds.length}
                     generationRequirements={currentNeeds}
                     onResolveRequirements={() => { setPreparationExpanded(true); setShowPreparationErrors(true); }}

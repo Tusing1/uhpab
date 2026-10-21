@@ -113,7 +113,7 @@ export const generateResearchResponse = async (prompt: string, tools: ResearchTo
       const message = typeof data.error === "string" ? data.error : data.error?.message;
       const code = typeof data.error === 'object' ? String(data.error?.code || '') : data.code || '';
       const retryAfter = Number(response.headers?.get('retry-after'));
-      throw new ResearchServiceError(apiKey ? (message || 'Failed to generate content').replaceAll(apiKey, '[redacted]') : message || 'Failed to generate content', response.status, code, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined);
+      throw new ResearchServiceError(apiKey ? (message || 'Failed to generate content').split(apiKey).join('[redacted]') : message || 'Failed to generate content', response.status, code, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined);
     }
 
     const generatedText = extractGeminiText(data);

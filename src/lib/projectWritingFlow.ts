@@ -8,7 +8,7 @@ type Chapters = Record<string, unknown> & {
 const sectionData = (chapters: Chapters, key: string): Record<string, string> =>
   chapters[key] && typeof chapters[key] === 'object' && !Array.isArray(chapters[key]) ? chapters[key] as Record<string, string> : {};
 export type WritingForm = { title: string; chapters: Chapters; progress: Record<string, number> };
-const objectiveSignature = (data: WritingForm) => JSON.stringify([data.title, sectionData(data.chapters, 'chapter1').specificObjectives || '', data.chapters._objectiveCount === 2 ? 2 : 3]);
+export const objectiveSignature = (data: WritingForm) => JSON.stringify([data.title, sectionData(data.chapters, 'chapter1').specificObjectives || '', data.chapters._objectiveCount === 2 ? 2 : 3]);
 
 export function updateProjectStudyWorkspace(data: WritingForm, next: ChapterWorkspace): WritingForm {
   const chapters = { ...data.chapters, _studyContext: { ...next.context }, _objectiveCount: next.context.objectiveCount === '2' ? 2 : 3, _sourcesLibrary: next.sources };
