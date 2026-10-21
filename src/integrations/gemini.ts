@@ -1,8 +1,6 @@
-import { getBrowserGeminiApiKey } from "@/lib/aiKeys";
+import { getKeyRevision, getResearchKeys } from "@/lib/aiKeys";
 import { runtimeConfig } from "@/lib/runtimeConfig";
 import { ResearchServiceError } from '@/lib/researchServiceError';
-
-const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
 export interface GeminiResponse {
   text?: string;
@@ -80,33 +78,25 @@ export function groundingCitations(data: unknown): GroundedResponse['citations']
 }
 
 export const generateResearchResponse = async (prompt: string, tools: ResearchTool[] = []): Promise<GroundedResponse> => {
-    const apiKey = getBrowserGeminiApiKey();
-    const response = await fetch(apiKey ? GEMINI_INTERACTIONS_URL : "/api/gemini", {
+    const keys = getResearchKeys();
+    const revision = getKeyRevision();
+    if (!keys.length) throw new ResearchServiceError('Add your Gemini key in Settings before generating.', 401, 'missing_key');
+    const request = async (apiKey: string): Promise<GroundedResponse> => {
+    if (getKeyRevision() !== revision) throw new ResearchServiceError('Your research key selection changed. Please retry.',401,'key_session_changed');
+    const response = await fetch('/api/gemini', {
       method: 'POST',
-      headers: apiKey ? {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      } : {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(apiKey ? {
-        model: runtimeConfig.googleAiModel,
-        input: prompt,
-        store: false,
-        ...(tools.length ? { tools: tools.map(type => ({ type })) } : {}),
-        generation_config: {
-          max_output_tokens: 4096,
-          thinking_level: "medium",
-        },
-      } : {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey,
         model: runtimeConfig.googleAiModel,
         prompt,
         tools,
       }),
+      signal: AbortSignal.timeout(45000),
     });
 
     const data: GeminiResponse = await response.json().catch(() => {
-      throw new ResearchServiceError(apiKey ? 'The research service returned an unreadable response. Please retry.' : 'No research connection is available in this preview. Add your Gemini key in Settings, then try again.', response.status, 'unreadable_response');
+      throw new ResearchServiceError('The research endpoint returned an unreadable response. Restart the local server or contact support.', response.status, 'unreadable_response');
     });
 
     if (!response.ok) {
@@ -122,6 +112,15 @@ export const generateResearchResponse = async (prompt: string, tools: ResearchTo
     }
 
     return { text: generatedText, citations: groundingCitations(data), searchSuggestions: groundingSuggestions(data) };
+    };
+    try { return await request(keys[0].value); }
+    catch (error) {
+      const failure = error as ResearchServiceError;
+      // A backup repairs key-specific authentication, never quota, billing or provider limits.
+      const rejectedKey = failure.status === 401 || failure.status === 400 && /API_KEY_INVALID|API_KEY_EXPIRED|api key (?:not valid|expired|invalid)/i.test(`${failure.code} ${failure.message}`);
+      if (keys[1] && rejectedKey && getKeyRevision() === revision) return request(keys[1].value);
+      throw error;
+    }
 }; 
 
 export const generateContent = async (prompt: string): Promise<string> => (await generateResearchResponse(prompt)).text;

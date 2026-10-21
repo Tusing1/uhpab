@@ -24,15 +24,17 @@ export const verifyGeminiApiKey = async (value: string) => {
   const formatIssue = getGeminiApiKeyIssue(apiKey);
   if (formatIssue) throw new Error(formatIssue);
 
-  const response = await fetch("/api/validate-gemini-key", {
+  let response: Response;
+  try { response = await fetch("/api/validate-gemini-key", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ apiKey }),
-  });
+    signal: AbortSignal.timeout(20000),
+  }); } catch { throw new Error('The key check could not reach the server. Check your connection, then retry.'); }
   const result = (await response.json().catch(() => ({}))) as { valid?: boolean; error?: string };
 
   if (!response.ok || !result.valid) {
-    throw new Error(result.error || "Google did not accept this key. Check it in Google AI Studio and try again.");
+    throw new Error(result.error || (response.status === 404 ? 'The key-check endpoint is missing. Restart the local server or contact support.' : "Google did not accept this key. Check it in Google AI Studio and try again."));
   }
 
   return apiKey;

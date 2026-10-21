@@ -13,6 +13,8 @@ async function bundle(entry, name) {
 const draft = await bundle('src/lib/assistedChapterDraft.ts', 'draft');
 const model = await bundle('src/lib/chapterWorkspace.ts', 'model');
 const transport = await bundle('src/integrations/gemini.ts', 'transport');
+// Synthetic key fixture, used only by mocked transport requests below.
+globalThis.window = { localStorage: { getItem: () => 'AIza' + 'S'.repeat(35) } };
 const failures = await bundle('src/lib/writingFailure.ts', 'failures');
 const title = 'FACTORS ASSOCIATED WITH HANDWASHING AMONG NURSES AT TEST HEALTH CENTRE IV, KAMPALA';
 const create = (chapter = 'chapter1') => model.newChapterWorkspace('qa', 'proposal', chapter, title, model.chapterSections('proposal', chapter).map(([id]) => id));
@@ -175,11 +177,11 @@ await check('Proxy uses stateless interactions and allowlists retrieval tools', 
     assert.equal((await result.json()).text, 'Synthetic reply.');
   } finally { globalThis.fetch = previous; }
 });
-await check('An unconfigured local endpoint gives usable Settings advice, not a JSON parser error', async () => {
+await check('An unreadable endpoint gives connection advice, not a JSON parser error', async () => {
   const previous = globalThis.fetch;
   try {
     globalThis.fetch = async () => ({ json: async () => { throw new Error('Unexpected end of JSON input'); } });
-    await assert.rejects(transport.generateResearchResponse('Synthetic prompt'), /Gemini key in Settings/);
+    await assert.rejects(transport.generateResearchResponse('Synthetic prompt'), /endpoint returned an unreadable response/);
   } finally { globalThis.fetch = previous; }
 });
 console.log(`\n${checked} assisted-drafting checks passed. Mocked providers only; no student data or credentials used.`);

@@ -3,7 +3,8 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import { findSchoolById } from "@/data/schools";
 import { supabase } from "@/integrations/supabase/client";
-import { setBrowserGeminiApiKey } from "@/lib/aiKeys";
+import { getKeyRevision, setBrowserGeminiApiKey } from "@/lib/aiKeys";
+import { loadResearchKeys } from '@/lib/researchKeys';
 import { isDemoAuthEnabled, isSupabaseConfigured } from "@/lib/runtimeConfig";
 import { School, User, UserRole } from "@/types";
 
@@ -183,6 +184,8 @@ const toAppUser = (supabaseUser: SupabaseUser): User => {
 
 const toAppUserWithProfile = async (supabaseUser: SupabaseUser): Promise<User> => {
   const fallbackUser = toAppUser(supabaseUser);
+  setBrowserGeminiApiKey('');
+  const keyRevision = getKeyRevision();
 
   if (!supabase) return fallbackUser;
 
@@ -192,13 +195,19 @@ const toAppUserWithProfile = async (supabaseUser: SupabaseUser): Promise<User> =
     .eq("id", supabaseUser.id)
     .maybeSingle();
 
-  if (error || !data) return fallbackUser;
+  if (getKeyRevision() !== keyRevision) return fallbackUser;
+  if (error || !data) {
+    try { await loadResearchKeys(supabaseUser.id); } catch { /* No prior account's key is retained. */ }
+    return fallbackUser;
+  }
 
   if (data.gemini_api_key) {
     setBrowserGeminiApiKey(data.gemini_api_key);
   } else {
     setBrowserGeminiApiKey("");
   }
+  try { await loadResearchKeys(supabaseUser.id, data.gemini_api_key || ''); }
+  catch { /* Keep the existing signup key available if cloud key loading fails. */ }
 
   const role = isUserRole(data.role) ? data.role : fallbackUser.role;
 

@@ -9,6 +9,12 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      research_keyrings: {
+        Row: { user_id: string; keys: Json; updated_at: string }
+        Insert: { user_id: string; keys: Json; updated_at?: string }
+        Update: { keys?: Json; updated_at?: string }
+        Relationships: []
+      }
       projects: {
         Row: {
           chapters: Json

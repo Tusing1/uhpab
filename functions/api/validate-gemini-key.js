@@ -19,6 +19,7 @@ export async function onRequestPost({ request }) {
   } catch {
     return json({ valid: false, error: "Invalid key check request." }, { status: 400 });
   }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return json({valid:false,error:'Invalid key check request.'},{status:400});
 
   const apiKey = typeof payload.apiKey === "string" ? payload.apiKey.trim() : "";
   if (!LEGACY_GEMINI_API_KEY_PATTERN.test(apiKey) && !AUTHORIZATION_GEMINI_API_KEY_PATTERN.test(apiKey)) {
@@ -32,20 +33,19 @@ export async function onRequestPost({ request }) {
     const response = await fetch(GOOGLE_MODELS_URL, {
       method: "GET",
       headers: { "x-goog-api-key": apiKey },
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      const upstreamMessage = data?.error?.message;
       return json(
         {
           valid: false,
           error:
             response.status === 400 || response.status === 401 || response.status === 403
               ? "Google did not accept this key. Copy it again from Google AI Studio and check its API restrictions."
-              : upstreamMessage || "The key could not be verified right now. Please try again.",
+              : response.status === 429 ? "Google has limited key verification. Wait before trying again; another key in the same project does not reset limits." : "Google could not verify the key right now. Please try again later.",
         },
-        { status: response.status >= 500 ? 502 : 400 }
+        { status: response.status >= 500 ? 502 : response.status }
       );
     }
 

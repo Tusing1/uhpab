@@ -2,14 +2,30 @@ import { runtimeConfig } from "@/lib/runtimeConfig";
 
 const geminiStorageKey = "gemini_api_key";
 let sessionGeminiApiKey = "";
+let sessionInitialized = false;
+let keyRevision = 0;
+export const getKeyRevision = () => keyRevision;
+export type ResearchKey = { id: string; label: string; value: string };
+let researchKeys: ResearchKey[] = [];
+export const getResearchKeys = () => researchKeys.length ? researchKeys.map(key => ({ ...key })) : !sessionInitialized && getLocalStorageValue(geminiStorageKey) ? [{id:'legacy',label:'Primary key',value:getLocalStorageValue(geminiStorageKey)}] : [];
+export const setResearchKeys = (keys: ResearchKey[]) => {
+  keyRevision++;
+  researchKeys = keys.map(key => ({ ...key }));
+  sessionInitialized = true;
+  sessionGeminiApiKey = researchKeys[0]?.value || '';
+};
 
 const getLocalStorageValue = (key: string) => {
   if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(key)?.trim() || "";
+  try { return window.localStorage.getItem(key)?.trim() || ""; }
+  catch { return ''; }
 };
 
 export const setBrowserGeminiApiKey = (apiKey: string, options: { persist?: boolean } = {}) => {
+  keyRevision++;
   sessionGeminiApiKey = apiKey.trim();
+  sessionInitialized = true;
+  researchKeys = sessionGeminiApiKey ? [{ id: 'legacy', label: 'Primary key', value: sessionGeminiApiKey }] : [];
   if (typeof window !== "undefined" && options.persist) {
     if (sessionGeminiApiKey) {
       window.localStorage.setItem(geminiStorageKey, sessionGeminiApiKey);
@@ -20,7 +36,7 @@ export const setBrowserGeminiApiKey = (apiKey: string, options: { persist?: bool
 };
 
 export const getBrowserGeminiApiKey = () =>
-  sessionGeminiApiKey || getLocalStorageValue(geminiStorageKey);
+  sessionGeminiApiKey || (!sessionInitialized ? getLocalStorageValue(geminiStorageKey) : '');
 
 export const getBrowserOpenAiApiKey = () =>
   runtimeConfig.allowBrowserOpenAi ? runtimeConfig.openAiApiKey : "";

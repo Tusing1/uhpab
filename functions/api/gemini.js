@@ -6,6 +6,7 @@ const json = (body, init = {}) =>
     ...init,
     headers: {
       "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
       ...(init.headers || {}),
     },
   });
@@ -19,7 +20,7 @@ const extractGeminiText = (data) => {
       if (step.type && step.type !== 'model_output') return '';
       if (step.output_text) return step.output_text;
       if (step.outputText) return step.outputText;
-      return step.content?.map((part) => part.text).filter(Boolean).join("\n");
+      return step.content?.filter(part => !part.type || part.type === 'text').map((part) => part.text).filter(Boolean).join("\n");
     })
     .filter(Boolean)
     .join("\n\n");
@@ -29,21 +30,18 @@ const extractGeminiText = (data) => {
 };
 
 export async function onRequestPost({ request, env }) {
-  const apiKey = env.GEMINI_API_KEY || env.GOOGLE_AI_API_KEY || "";
-
-  if (!apiKey) {
-    return json(
-      { error: "Gemini is not configured on the server yet. Add GEMINI_API_KEY in Cloudflare Pages settings." },
-      { status: 503 }
-    );
-  }
-
   let payload;
   try {
     payload = await request.json();
   } catch {
     return json({ error: "Invalid JSON request." }, { status: 400 });
   }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return json({error:'Invalid request.'},{status:400});
+
+  const suppliedKey = typeof payload.apiKey === 'string' ? payload.apiKey.trim() : '';
+  const apiKey = suppliedKey || env.GEMINI_API_KEY || env.GOOGLE_AI_API_KEY || '';
+  if (!apiKey) return json({error:'Add your Gemini key in Settings before generating.',code:'missing_key'}, {status:401});
+  if (suppliedKey && !/^(?:AIza[A-Za-z0-9_-]{35}|AQ\.[A-Za-z0-9._-]{20,509})$/.test(suppliedKey)) return json({error:'The Gemini key format is invalid. Check Settings.',code:'API_KEY_INVALID'}, {status:400});
 
   const prompt = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
   const tools = Array.isArray(payload.tools) ? [...new Set(payload.tools)].filter(type => ['url_context', 'google_search'].includes(type)).map(type => ({ type })) : [];
@@ -53,7 +51,8 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Prompt is required." }, { status: 400 });
   }
 
-  const response = await fetch(GEMINI_INTERACTIONS_URL, {
+  let response;
+  try { response = await fetch(GEMINI_INTERACTIONS_URL, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -69,12 +68,15 @@ export async function onRequestPost({ request, env }) {
         thinking_level: "medium",
       },
     }),
-  });
+    signal: AbortSignal.timeout(35000),
+  }); } catch {
+    return json({error:'The server could not reach Google before the connection timed out. Your writing is unchanged.',code:'upstream_connection_failed'}, {status:502});
+  }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const retryAfter = response.headers.get('retry-after');
-    return json({ error: (data.error?.message || "Gemini request failed.").replaceAll(apiKey, '[redacted]'), code: String(data.error?.code || '') }, { status: response.status, ...(retryAfter ? { headers: { 'retry-after': retryAfter } } : {}) });
+    return json({ error: (data.error?.message || "Gemini request failed.").split(apiKey).join('[redacted]'), code: String(data.error?.status || data.error?.code || '') }, { status: response.status, ...(retryAfter ? { headers: { 'retry-after': retryAfter } } : {}) });
   }
 
   const text = extractGeminiText(data);

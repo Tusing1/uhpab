@@ -42,9 +42,7 @@ import {
   WorkspaceStatusNote,
 } from "@/components/workspace/WorkspaceWorkflow";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { setBrowserGeminiApiKey } from "@/lib/aiKeys";
-import { getGeminiApiKeyIssue, verifyGeminiApiKey } from "@/lib/geminiApiKey";
+import ResearchKeySettings from '@/components/research/ResearchKeySettings';
 import {
   downloadWorkspaceBackup,
   getStoredReviewCount,
@@ -133,9 +131,7 @@ const Settings = () => {
   const [storageSummary, setStorageSummary] = useState<WorkspaceStorageSummary | null>(null);
   const [isCheckingStorage, setIsCheckingStorage] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [geminiApiKeyDraft, setGeminiApiKeyDraft] = useState("");
   const [hasSavedGeminiApiKey, setHasSavedGeminiApiKey] = useState(false);
-  const [isSavingGeminiApiKey, setIsSavingGeminiApiKey] = useState(false);
 
   const htin = user?.htin || user?.studentId || "";
   const schoolName = user?.schoolName || school?.name || "";
@@ -167,22 +163,6 @@ const Settings = () => {
     void refreshStorageSummary();
   }, [refreshStorageSummary]);
 
-  useEffect(() => {
-    if (!supabase || !user?.id) return;
-
-    supabase
-      .from("profiles")
-      .select("gemini_api_key")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Could not load Gemini key status", error);
-          return;
-        }
-        setHasSavedGeminiApiKey(Boolean(data?.gemini_api_key));
-      });
-  }, [user?.id]);
 
   const handleFontSizeChange = (value: string) => {
     const nextValue = value as FontSize;
@@ -226,40 +206,6 @@ const Settings = () => {
     }
   };
 
-  const saveGeminiApiKey = async () => {
-    const cleanedKey = geminiApiKeyDraft.trim();
-    const keyIssue = getGeminiApiKeyIssue(cleanedKey);
-    if (keyIssue) {
-      toast.error(keyIssue);
-      return;
-    }
-
-    setIsSavingGeminiApiKey(true);
-    try {
-      const verifiedKey = await verifyGeminiApiKey(cleanedKey);
-      setBrowserGeminiApiKey(verifiedKey);
-
-      if (supabase && user?.id) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ gemini_api_key: verifiedKey })
-          .eq("id", user.id);
-
-        if (error) throw error;
-      } else {
-        setBrowserGeminiApiKey(verifiedKey, { persist: true });
-      }
-
-      setGeminiApiKeyDraft("");
-      setHasSavedGeminiApiKey(true);
-      toast.success("Advanced Researcher key saved");
-    } catch (error) {
-      console.error("Could not save Gemini key", error);
-      toast.error("Advanced Researcher key could not be saved");
-    } finally {
-      setIsSavingGeminiApiKey(false);
-    }
-  };
 
   const reviewCount = storageSummary ? getStoredReviewCount(storageSummary) : 0;
   const settingsLinks = [
@@ -500,41 +446,10 @@ const Settings = () => {
         <SettingsSection
           id="ai"
           icon={<KeyRound className="h-5 w-5" />}
-          title="Advanced Researcher key"
+          title="Advanced Researcher keys"
           description="This key powers topic generation, writing help, document checks, and other research support tools."
         >
-          <div className="space-y-4">
-            <WorkspaceStatusNote
-              tone={hasSavedGeminiApiKey ? "success" : "warning"}
-              title={hasSavedGeminiApiKey ? "Advanced Researcher key saved" : "Advanced Researcher key needed"}
-              description={
-                hasSavedGeminiApiKey
-                  ? "A research engine key is saved on your profile. Paste a new key below only if you want to replace it."
-                  : "Paste your Google AI Studio key so the research support features can work under your own quota."
-              }
-            />
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-              <div className="grid gap-2">
-                <Label htmlFor="settingsGeminiApiKey">Advanced Researcher key</Label>
-                <Input
-                  id="settingsGeminiApiKey"
-                  name="geminiApiKey"
-                  type="password"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  placeholder={hasSavedGeminiApiKey ? "Paste a new key to replace the saved one" : "Paste your Google AI Studio key"}
-                  value={geminiApiKeyDraft}
-                  onChange={(event) => setGeminiApiKeyDraft(event.target.value)}
-                />
-              </div>
-              <Button onClick={saveGeminiApiKey} disabled={isSavingGeminiApiKey} className="gap-2">
-                {isSavingGeminiApiKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                Save key
-              </Button>
-            </div>
-          </div>
+          <ResearchKeySettings userId={userId} onStatus={setHasSavedGeminiApiKey}/>
         </SettingsSection>
 
         <SettingsSection

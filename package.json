@@ -15,6 +15,7 @@
     "test:writing": "node scripts/test-student-writing.mjs",
     "test:assisted": "node scripts/test-assisted-drafting.mjs",
     "test:study-tools": "node scripts/test-study-tools.mjs",
+    "test:keys": "node scripts/test-research-keys.mjs",
     "test:marking": "node scripts/test-strict-marking.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
