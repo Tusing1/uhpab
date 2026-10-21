@@ -15,6 +15,10 @@ export function parseResearchKeys(value: unknown): ResearchKey[] {
 export async function loadResearchKeys(userId: string, legacy = '') {
   if (!supabase || !/^[0-9a-f-]{36}$/i.test(userId)) return getResearchKeys();
   const revision = getKeyRevision();
+  if (!legacy) {
+    const { data: profile } = await supabase.from('profiles').select('gemini_api_key').eq('id',userId).maybeSingle();
+    legacy = profile?.gemini_api_key || '';
+  }
   const { data, error } = await supabase.from('research_keyrings').select('keys').eq('user_id', userId).maybeSingle();
   if (error) {
     if (['42P01', 'PGRST205'].includes(error.code)) {

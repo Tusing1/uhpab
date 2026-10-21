@@ -3,7 +3,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import { findSchoolById } from "@/data/schools";
 import { supabase } from "@/integrations/supabase/client";
-import { getKeyRevision, setBrowserGeminiApiKey } from "@/lib/aiKeys";
+import { getKeyOwner, setKeyOwner, setBrowserGeminiApiKey } from "@/lib/aiKeys";
 import { loadResearchKeys } from '@/lib/researchKeys';
 import { isDemoAuthEnabled, isSupabaseConfigured } from "@/lib/runtimeConfig";
 import { School, User, UserRole } from "@/types";
@@ -184,8 +184,7 @@ const toAppUser = (supabaseUser: SupabaseUser): User => {
 
 const toAppUserWithProfile = async (supabaseUser: SupabaseUser): Promise<User> => {
   const fallbackUser = toAppUser(supabaseUser);
-  setBrowserGeminiApiKey('');
-  const keyRevision = getKeyRevision();
+  setKeyOwner(supabaseUser.id);
 
   if (!supabase) return fallbackUser;
 
@@ -195,17 +194,12 @@ const toAppUserWithProfile = async (supabaseUser: SupabaseUser): Promise<User> =
     .eq("id", supabaseUser.id)
     .maybeSingle();
 
-  if (getKeyRevision() !== keyRevision) return fallbackUser;
+  if (getKeyOwner() !== supabaseUser.id) return fallbackUser;
   if (error || !data) {
     try { await loadResearchKeys(supabaseUser.id); } catch { /* No prior account's key is retained. */ }
     return fallbackUser;
   }
 
-  if (data.gemini_api_key) {
-    setBrowserGeminiApiKey(data.gemini_api_key);
-  } else {
-    setBrowserGeminiApiKey("");
-  }
   try { await loadResearchKeys(supabaseUser.id, data.gemini_api_key || ''); }
   catch { /* Keep the existing signup key available if cloud key loading fails. */ }
 
@@ -283,6 +277,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
           if (!isMounted) return;
           if (!session?.user) {
+            setKeyOwner(null);
             setBrowserGeminiApiKey("");
             applyUser(null);
             return;
@@ -496,6 +491,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     setIsLoading(true);
+    setKeyOwner(null);
+    setBrowserGeminiApiKey('');
     try {
       if (supabase) {
         await supabase.auth.signOut();

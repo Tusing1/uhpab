@@ -93,4 +93,11 @@ await check('A late cloud load cannot restore keys after sign out',async()=>{
   globalThis.testDb={from(){return {select(){return {eq(){return {maybeSingle:()=>new Promise(resolve=>{deliver=resolve;})};}};}};}};
   api.setResearchKeys(ring());const pending=api.loadResearchKeys(owner,first);api.setBrowserGeminiApiKey('');deliver({data:{keys:ring()},error:null});await pending;assert.equal(api.getBrowserGeminiApiKey(),'');
 });
+await check('Same-owner auth refresh preserves the ring; switching accounts clears it',()=>{
+  api.setKeyOwner(owner);api.setResearchKeys(ring());api.setKeyOwner(owner);assert.equal(api.getResearchKeys().length,2);api.setKeyOwner('other-owner');assert.deepEqual(api.getResearchKeys(),[]);
+});
+await check('Settings can recover the signup key before auth hydration finishes',async()=>{
+  globalThis.testDb={from(name){return {select(){return {eq(){return {maybeSingle:async()=>name==='profiles'?{data:{gemini_api_key:first},error:null}:{data:null,error:null}};}};}};}};
+  api.setKeyOwner(owner);assert.equal((await api.loadResearchKeys(owner))[0].value,first);
+});
 console.log(`\n${passed} research-key checks passed. Mocked Google only; no real credentials.`);

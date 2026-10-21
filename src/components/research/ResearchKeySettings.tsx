@@ -17,7 +17,7 @@ export default function ResearchKeySettings({ userId, onStatus }: { userId: stri
   const [reload, setReload] = useState(0);
   useEffect(() => {
     let active = true;
-    setLoaded(false); setError('');
+    setLoaded(false); setError(''); setKeys(getResearchKeys());
     loadResearchKeys(userId, getBrowserGeminiApiKey()).then(values => {
       if (active) { setKeys(values); setLoaded(true); onStatus(values.length > 0); }
     }).catch(() => { if (active) setError('Saved keys could not be loaded. Retry before making changes.'); });

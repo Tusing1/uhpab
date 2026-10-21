@@ -4,6 +4,13 @@ const geminiStorageKey = "gemini_api_key";
 let sessionGeminiApiKey = "";
 let sessionInitialized = false;
 let keyRevision = 0;
+let keyOwner: string | null = null;
+export const getKeyOwner = () => keyOwner;
+export const setKeyOwner = (owner: string | null) => {
+  if (owner === keyOwner) return;
+  keyOwner = owner;
+  setResearchKeys([]);
+};
 export const getKeyRevision = () => keyRevision;
 export type ResearchKey = { id: string; label: string; value: string };
 let researchKeys: ResearchKey[] = [];

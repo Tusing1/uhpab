@@ -30,7 +30,7 @@ Rollback-only live SQL tests passed for owner CRUD, denied foreign CRUD,
 denied ownership changes and denied anonymous access. No test keys remain.
 The repeatable test is scripts/research-keyring-privacy-qa.sql.
 
-Six suites pass: 16 key tests, 20 assisted drafting, 19 study tools, 14 writing,
+Six suites pass: 18 key tests, 20 assisted drafting, 19 study tools, 14 writing,
 16 chapter workspaces and 15 formulation checks. Provider responses are mocked
 in automated tests. Targeted lint and production build pass. Existing unrelated
 repository-wide TypeScript errors remain.
@@ -41,6 +41,10 @@ Settings and actionable format errors were inspected. Live generation must be
 checked after deployment using the existing separate synthetic chapter, not a
 student project. Do not interpret a successful models-list check as proof of
 generation quota or supported model access.
+
+The first live Settings check exposed a legacy-key hydration race. Owner changes
+now clear session credentials, while same-owner auth refresh does not clear them.
+Settings can fetch the existing signup key if profile hydration has not finished.
 
 Google documentation reviewed:
 - https://ai.google.dev/api/interactions-api
