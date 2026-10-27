@@ -1,0 +1,380 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Download, FileText, Loader2, Pause, Play, Presentation, RotateCcw, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { WorkspacePage } from '@/components/workspace/WorkspacePage';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectContext';
+import { cn } from '@/lib/utils';
+import { sanitizeFileName, triggerBrowserDownload } from '@/lib/download';
+import { DEFENCE_FACT_FIELDS, buildDefenceSlide, createDefenceDeck, emptyDefenceFacts, extractProjectDefenceFacts, extractTextDefenceFacts, missingDefenceFacts, validateDefenceDeck, type DefenceDeck, type DefenceFactKey, type DefenceFacts, type DefenceSlide } from '@/lib/defenceSlides';
+import { listDefenceDecks, saveDefenceDeck } from '@/lib/defenceSlidesStore';
+import { DEFENCE_LOGO_DATA, DEFENCE_SLIDE_LAYOUT, buildDefenceHandout, buildDefencePptx, defenceDeckIsWorkingDraft, defenceSlideLayout, defenceSlideLayoutIssues } from '@/lib/defenceSlidesExport';
+import { DEFENCE_RULES_VERSION, getDefenceSectionRule, reviewDefenceRules, type DefenceRuleFinding } from '@/lib/defenceSectionRules';
+
+type SourceMode = 'project' | 'upload' | 'topic';
+type Step = 'source' | 'facts' | 'slides';
+
+function RuleFindings({ findings, onSuggestion }: { findings: DefenceRuleFinding[]; onSuggestion?: (finding: DefenceRuleFinding) => void }) {
+  if (!findings.length) return null;
+  return <section className="space-y-3 border-l-4 border-amber-500 bg-amber-50 p-4 text-amber-950" aria-label="Section rule findings">
+    <h2 className="font-semibold">Section rules need attention</h2>
+    <ul className="space-y-4">{findings.map((finding, i) => <li key={`${finding.key}-${i}`}>
+      <p className="text-sm font-semibold">{finding.title}</p><p className="mt-1 text-sm leading-6">{finding.detail}</p>
+      {finding.suggestion && onSuggestion && <div className="mt-2 space-y-2"><p className="whitespace-pre-wrap text-sm leading-6">{finding.suggestion}</p><Button size="sm" variant="outline" onClick={() => onSuggestion(finding)}>Use suggested wording</Button></div>}
+    </li>)}</ul>
+  </section>;
+}
+
+function SlidePreview({ slide, index, draft, testData }: { slide: DefenceSlide; index: number; draft: boolean; testData?: boolean }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+  const layout = defenceSlideLayout(slide, index);
+  const geometry = DEFENCE_SLIDE_LAYOUT;
+  const textStyle = (item: typeof layout.title): React.CSSProperties => ({
+    position: 'absolute', left: item.x * 96, top: item.y * 96,
+    width: item.w * 96, height: item.h * 96,
+    fontSize: item.fontSize * 96 / 72, lineHeight: `${item.lineSpacing * 96 / 72}px`,
+    fontWeight: item.bold ? 700 : 400, whiteSpace: 'pre-wrap',
+    paddingLeft: item.bullet ? geometry.bulletIndent * 96 / 72 : 0,
+  });
+  useEffect(() => {
+    const observer = new ResizeObserver(entries => setScale(entries[0].contentRect.width / 1280));
+    if (container.current) observer.observe(container.current);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={container} className="relative aspect-video w-full overflow-hidden border bg-white text-black shadow-sm" aria-label={`Slide ${index + 1} preview`}>
+    <div className="absolute left-0 top-0 h-[720px] w-[1280px] origin-top-left bg-white font-[Arial] text-black" style={{ transform: `scale(${scale})` }}>
+      <h2 style={textStyle(layout.title)} className="m-0">{slide.title}</h2>
+      <img src={DEFENCE_LOGO_DATA} alt="UHPAB Study logo" className="absolute object-contain" style={{ left: layout.logo.x * 96, top: layout.logo.y * 96, width: layout.logo.w * 96, height: layout.logo.h * 96 }} />
+      <div className="absolute h-px bg-teal-700" style={{ left: layout.divider.x * 96, top: layout.divider.y * 96, width: layout.divider.w * 96 }} />
+      {layout.bullets.map((item, i) => <div key={i} style={textStyle(item)}>{item.bullet && <span aria-hidden="true" className="absolute left-0">{'\u2022'}</span>}{item.text}</div>)}
+      <div className="absolute flex justify-between" style={{ left: geometry.marginX * 96, top: geometry.footerY * 96, width: (geometry.width - 2 * geometry.marginX) * 96, fontSize: geometry.footerFontSize * 96 / 72 }}><span>UHPAB Study{testData ? ' | TEST VERSION' : ''}{draft ? ' | WORKING DRAFT' : ''}</span><span>{index + 1} / 10</span></div>
+    </div>
+  </div>;
+}
+
+const timeLabel = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+const factSourceLabel = (source: string, label: string) => {
+  if (/profile\./.test(source)) return 'Saved student profile';
+  const chapter = source.match(/chapters\.(chapter[123]|references)/)?.[1];
+  if (chapter) return `${({ chapter1: 'Chapter One', chapter2: 'Chapter Two', chapter3: 'Chapter Three', references: 'References' })[chapter]} / ${label}`;
+  if (/Project [^:]+: title/.test(source)) return 'Saved proposal title';
+  if (/chapters\._studyContext/.test(source)) return 'Saved study details';
+  return source;
+};
+
+export default function DefenceSlides() {
+  const { user } = useAuth();
+  const { projects, isLoading } = useProjects();
+  const location = useLocation();
+  const [mode, setMode] = useState<SourceMode>('project');
+  const [step, setStep] = useState<Step>('source');
+  const [projectId, setProjectId] = useState('');
+  const [topic, setTopic] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [facts, setFacts] = useState<DefenceFacts>(() => emptyDefenceFacts());
+  const [source, setSource] = useState({ name: '', projectId: undefined as string | undefined, version: undefined as string | undefined });
+  const [duration, setDuration] = useState(10);
+  const [testData, setTestData] = useState(false);
+  const [deck, setDeck] = useState<DefenceDeck | null>(null);
+  const [saved, setSaved] = useState<DefenceDeck[]>([]);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [undo, setUndo] = useState<{ index: number; slide: DefenceSlide } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState('');
+  const [saveStatus, setSaveStatus] = useState('');
+  const [rehearsing, setRehearsing] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const elapsedSeconds = useRef(0);
+  elapsedSeconds.current = seconds;
+  const [editorTab, setEditorTab] = useState('content');
+  const [ruleSuggestion, setRuleSuggestion] = useState<DefenceSlide | null>(null);
+  const handledRoute = useRef('');
+  const latestDeck = useRef<DefenceDeck | null>(null);
+  latestDeck.current = deck;
+  const proposals = useMemo(() => projects.filter(p => p.type === 'proposal'), [projects]);
+  const missing = missingDefenceFacts(facts);
+  const selectedSlide = deck?.slides[slideIndex];
+  const incomplete = deck ? defenceDeckIsWorkingDraft(deck) : true;
+  const layoutIssues = useMemo(() => deck?.slides.flatMap((slide, i) => defenceSlideLayoutIssues(slide, i)) || [], [deck]);
+  const contentIssues = useMemo(() => deck ? validateDefenceDeck(deck, { allowDraft: true, allowEditedNotes: true }) : [], [deck]);
+  const visibleContentIssues = [...new Set([...contentIssues, ...layoutIssues])];
+  const factFindings = useMemo(() => reviewDefenceRules(facts), [facts]);
+  const deckFindings = useMemo(() => deck ? reviewDefenceRules(deck.facts, deck.slides) : [], [deck]);
+  const blockingRuleFindings = deckFindings.filter(finding => finding.target === 'slide');
+  const slidesNeedingRules = deck?.slides.map((slide, index) => ({ slide, index }))
+    .filter(({ slide }) => blockingRuleFindings.some(finding => slide.sourceKeys.includes(finding.key))) || [];
+  const selectedRules = selectedSlide?.sourceKeys.flatMap(key => {
+    const rule = getDefenceSectionRule(key, deck!.facts);
+    return rule ? [{ key, rule }] : [];
+  }) || [];
+  const projectChanged = deck?.projectId && projects.some(p => p.id === deck.projectId && p.updatedAt !== deck.sourceVersion);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSaved([]); setDeck(null); setStep('source'); setSaveStatus('');
+    if (user?.id) listDefenceDecks(user.id).then(items => { if (!cancelled) setSaved(items); }).catch(e => { if (!cancelled) setError(e.message); });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (isLoading || !user?.id) return;
+    const routeProject = new URLSearchParams(location.search).get('project');
+    const incoming = (location.state as { defenceSource?: { text?: string; name?: string } } | null)?.defenceSource;
+    const routeKey = `${user.id}:${location.key}`;
+    if (handledRoute.current === routeKey) return;
+    if (routeProject) {
+      const project = proposals.find(p => p.id === routeProject);
+      if (!project) { setError('This proposal is unavailable. Choose one of your saved proposals below.'); handledRoute.current = routeKey; return; }
+      setFacts(extractProjectDefenceFacts(project, user));
+      setSource({ name: project.title, projectId: project.id, version: project.updatedAt });
+      setProjectId(project.id); setStep('facts');
+    } else if (incoming?.text) {
+      setFacts(extractTextDefenceFacts(incoming.text, incoming.name || 'Reviewed proposal'));
+      setSource({ name: incoming.name || 'Reviewed proposal', projectId: undefined, version: undefined });
+      setStep('facts');
+    }
+    handledRoute.current = routeKey;
+  }, [isLoading, proposals, user, location.key, location.search, location.state]);
+
+  useEffect(() => {
+    if (!deck || !user?.id) return;
+    let active = true;
+    setSaveStatus('Saving changes...');
+    const timer = window.setTimeout(() => {
+      saveDefenceDeck(user.id, deck).then(() => {
+        if (!active) return;
+        setSaveStatus('Saved on this device');
+        setSaved(current => [deck, ...current.filter(d => d.id !== deck.id)]);
+      }).catch(e => { if (active) { setSaveStatus('Changes not saved'); setError(e.message); } });
+    }, 500);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [deck, user?.id]);
+
+  useEffect(() => () => {
+    if (latestDeck.current && user?.id) saveDefenceDeck(user.id, latestDeck.current).catch(() => toast.error('The presentation could not be saved before leaving. Return to the slides and download a copy.'));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!running || !rehearsing) return;
+    const start = Date.now() - elapsedSeconds.current * 1000;
+    const interval = window.setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => window.clearInterval(interval);
+  }, [running, rehearsing]);
+
+  useEffect(() => {
+    const protect = (e: BeforeUnloadEvent) => { if (saveStatus === 'Saving changes...' || saveStatus === 'Changes not saved') { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, [saveStatus]);
+
+  const changeFact = (key: DefenceFactKey, value: string) => {
+    setFacts(current => ({ ...current, [key]: { value, source: 'Entered by student', status: value.trim() ? 'confirmed' : 'missing' } }));
+  };
+
+  const readSource = async () => {
+    setError(''); setBusy(true);
+    try {
+      if (mode === 'project') {
+        const project = proposals.find(p => p.id === projectId);
+        if (!project) throw new Error('Choose a proposal first.');
+        setFacts(extractProjectDefenceFacts(project, user));
+        setSource({ name: project.title, projectId: project.id, version: project.updatedAt });
+      } else if (mode === 'upload') {
+        if (!file) throw new Error('Choose a PDF, DOCX or TXT proposal.');
+        if (file.size > 25 * 1024 * 1024) throw new Error('Choose a document smaller than 25 MB.');
+        const { extractDocumentText } = await import('@/lib/documentTextExtraction');
+        const extracted = await extractDocumentText(file);
+        if (extracted.wordCount < 30) throw new Error('Very little readable text was found. Use a text-based PDF, DOCX or TXT document.');
+        if ((extracted.pageCount || 0) > 100) throw new Error('Choose a proposal with no more than 100 pages.');
+        setFacts(extractTextDefenceFacts(extracted.text, file.name));
+        setSource({ name: file.name, projectId: undefined, version: undefined });
+      } else {
+        if (topic.trim().length < 12) throw new Error('Enter your full research topic first.');
+        const next = emptyDefenceFacts();
+        next.topic = { value: topic.trim(), status: 'confirmed', source: 'Entered by student' };
+        if (user && !['school-admin', 'school-supervisor'].includes(user.role)) {
+          const identity: Partial<Record<DefenceFactKey, string>> = { candidate: user.name, htin: user.htin || user.studentId, school: user.schoolName, course: user.className, supervisor: user.supervisorName };
+          Object.entries(identity).forEach(([key, value]) => { if (value?.trim()) next[key as DefenceFactKey] = { value, source: `profile.${key}`, status: 'found' }; });
+        }
+        setFacts(next);
+        setSource({ name: topic.trim(), projectId: undefined, version: undefined });
+      }
+      setStep('facts');
+    } catch (e) { setError(e instanceof Error ? e.message : 'The proposal could not be opened. Please retry.'); }
+    finally { setBusy(false); }
+  };
+
+  const generate = () => {
+    if (!facts.topic.value.trim()) { setError('Add the research topic before creating your slides.'); return; }
+    const next = createDefenceDeck(facts, { sourceName: source.name || facts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData });
+    setDeck(next); setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
+    toast.success('Ten defence slides created', { description: missing.length ? 'Your working draft includes the missing details for you to complete.' : 'Review the slide content and speaker notes before presenting.' });
+  };
+
+  const editSlide = (patch: Partial<DefenceSlide>) => {
+    setDeck(current => current ? { ...current, updatedAt: new Date().toISOString(), slides: current.slides.map((slide, i) => i === slideIndex ? { ...slide, ...patch } : slide) } : null);
+  };
+
+  const resetSlide = () => {
+    if (!selectedSlide || !deck || !window.confirm('Replace this slide with content from the reviewed study details? Your other nine slides will stay as they are.')) return;
+    setUndo({ index: slideIndex, slide: selectedSlide });
+    editSlide(buildDefenceSlide(slideIndex, deck.facts));
+    toast.success('Slide restored from study details');
+  };
+
+  const applyRuleUpdate = () => {
+    if (!ruleSuggestion || !selectedSlide || !deck) return;
+    setUndo({ index: slideIndex, slide: selectedSlide });
+    editSlide(ruleSuggestion);
+    setRuleSuggestion(null);
+    toast.success('Slide updated against the section rules');
+  };
+
+  const exportFile = async (kind: 'pptx' | 'notes') => {
+    if (!deck || exporting) return;
+    setExporting(true); setError('');
+    const notice = toast.loading(kind === 'pptx' ? 'Preparing PowerPoint' : 'Preparing speaker notes');
+    try {
+      const issues = kind === 'pptx' ? validateDefenceDeck(deck, { allowDraft: true, allowEditedNotes: true }) : [];
+      if (issues.length) throw new Error(issues[0]);
+      if (kind === 'pptx' && blockingRuleFindings.length) throw new Error(blockingRuleFindings[0].detail);
+      const blob = kind === 'pptx' ? await buildDefencePptx(deck) : new Blob([buildDefenceHandout(deck)], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const name = `${sanitizeFileName(deck.facts.topic.value).slice(0, 80)}${deck.testData ? '-TEST' : ''}${incomplete ? '-DRAFT' : ''}-defence.${kind === 'pptx' ? 'pptx' : 'txt'}`;
+      triggerBrowserDownload(url, name, { notify: false });
+      window.setTimeout(() => URL.revokeObjectURL(url), 300000);
+      toast.success('Download started', { id: notice, description: name });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'The export could not be prepared. Please retry.';
+      setError(message); toast.error('Download could not start', { id: notice, description: message });
+    } finally { setExporting(false); }
+  };
+
+  const resume = (id: string) => {
+    const existing = saved.find(d => d.id === id);
+    if (!existing) return;
+    setDeck(existing); setFacts(existing.facts); setDuration(existing.durationMinutes); setTestData(Boolean(existing.testData));
+    setSource({ name: existing.sourceName, projectId: existing.projectId, version: existing.sourceVersion });
+    setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
+  };
+
+  return <DashboardLayout><WorkspacePage width="wide" className="space-y-6 pb-28">
+    <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
+      <div><p className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><Presentation size={16} />Proposal presentation</p><h1 className="text-2xl font-bold sm:text-3xl">Defence slides</h1></div>
+      {deck && <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground" role="status">{saveStatus}</span><Button variant="outline" onClick={() => { setStep('source'); setError(''); }}><FileText size={16} className="mr-2" />New presentation</Button></div>}
+    </header>
+    <nav aria-label="Presentation steps" className="flex flex-wrap gap-1 border-b pb-3">
+      {(['source', 'facts', 'slides'] as Step[]).map((item, i) => <Button key={item} variant={step === item ? 'secondary' : 'ghost'} disabled={busy || (item === 'facts' && !source.name) || (item === 'slides' && !deck)} onClick={() => { setStep(item); setError(''); }} className="gap-2"><span className="text-xs text-muted-foreground">{i + 1}.</span>{['Choose proposal', 'Review study details', 'Edit slides'][i]}</Button>)}
+    </nav>
+    {error && <Alert variant="destructive"><AlertTitle>Something needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+
+    {step === 'source' && <section className="max-w-3xl space-y-6">
+      {saved.length > 0 && <div className="space-y-2 border-b pb-6"><Label htmlFor="saved-defence">Continue a saved presentation</Label><select id="saved-defence" className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value="" onChange={e => resume(e.target.value)}><option value="">Choose a presentation</option>{saved.map(d => <option key={d.id} value={d.id}>{d.testData ? 'Test: ' : ''}{d.facts.topic.value} - {new Date(d.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</option>)}</select></div>}
+      <Tabs value={mode} onValueChange={v => { setMode(v as SourceMode); setError(''); }}><TabsList className="grid h-auto w-full grid-cols-3"><TabsTrigger value="project" className="min-h-10 whitespace-normal">Saved proposal</TabsTrigger><TabsTrigger value="upload" className="min-h-10">Upload</TabsTrigger><TabsTrigger value="topic" className="min-h-10">Topic only</TabsTrigger></TabsList></Tabs>
+      {mode === 'project' && <div className="space-y-3"><Label htmlFor="defence-project">Your research proposal</Label><select id="defence-project" className="flex h-12 w-full rounded-md border border-input bg-background px-3 text-sm" value={projectId} onChange={e => setProjectId(e.target.value)} disabled={isLoading}><option value="">{isLoading ? 'Loading proposals...' : 'Choose a saved proposal'}</option>{proposals.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select>{!isLoading && !proposals.length && <p className="text-sm text-muted-foreground">No saved proposals yet. <Link className="font-medium text-primary underline" to="/projects/new?type=proposal">Start a proposal</Link>, upload an existing one, or use a topic.</p>}</div>}
+      {mode === 'upload' && <div className="space-y-3"><Label htmlFor="defence-upload">Proposal document</Label><div className="rounded-md border border-dashed p-5"><Upload size={22} className="mb-3 text-muted-foreground" /><Input id="defence-upload" type="file" accept=".pdf,.docx,.txt" onChange={e => setFile(e.target.files?.[0] || null)} className="h-auto py-3" /><p className="mt-3 text-xs text-muted-foreground">PDF, DOCX or TXT. Up to 25 MB and 100 pages. Your document is read on this device.</p></div></div>}
+      {mode === 'topic' && <div className="space-y-3"><Label htmlFor="defence-topic">Research topic</Label><Textarea id="defence-topic" rows={5} value={topic} onChange={e => setTopic(e.target.value)} placeholder="Enter your full research topic" /><p className="text-sm text-muted-foreground">You can add your objectives and planned methods in the next step.</p></div>}
+      <Button onClick={readSource} disabled={busy || isLoading || (mode === 'project' && !projectId) || (mode === 'upload' && !file) || (mode === 'topic' && !topic.trim())} className="gap-2">{busy ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}{busy ? 'Reading proposal...' : 'Review study details'}</Button>
+      <p className="border-t pt-4 text-sm leading-6 text-muted-foreground">Ten slides for a proposal defence. Follow your school's required format where it differs.</p>
+    </section>}
+
+    {step === 'facts' && <section className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h2 className="text-xl font-semibold">Review your study details</h2><p className="mt-1 max-w-3xl break-words text-sm text-muted-foreground">{source.name}</p></div><div className="flex items-center gap-3"><Label htmlFor="defence-duration">Duration</Label><select id="defence-duration" className="h-10 rounded-md border bg-background px-3 text-sm" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[5, 8, 10, 12, 15, 20].map(n => <option key={n} value={n}>{n} minutes</option>)}</select></div></div>
+      <div className="flex items-center gap-3 border-b pb-4"><Checkbox id="defence-test-data" checked={testData} onCheckedChange={value => setTestData(value === true)} /><Label htmlFor="defence-test-data">Test presentation</Label></div>
+      {missing.length > 0 && <Alert className="border-amber-300 bg-amber-50 text-amber-950"><AlertTitle>{missing.length} details still needed</AlertTitle><AlertDescription>{missing.map(f => f.label).join(', ')}. You can continue with a working draft.</AlertDescription></Alert>}
+      <RuleFindings findings={factFindings} onSuggestion={finding => { if (finding.suggestion) changeFact(finding.key, finding.suggestion); }} />
+      <div className="space-y-7">
+        {(['Identity', 'Study focus', 'Methods', 'Sources'] as const).map(group => <section key={group} className="border-b pb-6">
+          <h3 className="mb-4 text-base font-semibold">{group}</h3>
+          <div className="grid min-w-0 gap-x-6 gap-y-5 md:grid-cols-2">
+            {DEFENCE_FACT_FIELDS.filter(f => f.group === group).map(field => <div key={field.key} className={cn('min-w-0 space-y-2', ['topic', 'objectives', 'questions', 'references'].includes(field.key) && 'md:col-span-2')}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor={`fact-${field.key}`}>{field.label}{field.required && <span className="ml-1 text-amber-700">*</span>}</Label>
+                <span className={cn('text-xs', facts[field.key].status === 'missing' ? 'text-amber-800' : 'text-muted-foreground')}>
+                  {facts[field.key].status === 'missing' ? facts[field.key].value.trim() ? 'Needs completion' : 'Not supplied' : facts[field.key].status === 'confirmed' ? 'Your entry' : 'From proposal'}
+                </span>
+              </div>
+              {field.multiline ? <Textarea id={`fact-${field.key}`} rows={field.key === 'references' ? 6 : 4} value={facts[field.key].value} onChange={e => changeFact(field.key, e.target.value)} /> : <Input id={`fact-${field.key}`} value={facts[field.key].value} onChange={e => changeFact(field.key, e.target.value)} />}
+              {facts[field.key].source && <p className="break-words text-xs text-muted-foreground">{factSourceLabel(facts[field.key].source, field.label)}</p>}
+            </div>)}
+          </div>
+        </section>)}
+      </div>
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><p className="text-sm text-muted-foreground">{missing.length ? 'Working draft with missing details' : 'Study details ready'}<span className="block text-xs">Saved on this device when slides are created.</span></p><Button className="gap-2" onClick={generate}><Presentation size={16} />{deck ? 'Create new version' : 'Create 10 slides'}</Button></div>
+    </section>}
+
+    {step === 'slides' && deck && selectedSlide && <section className="space-y-5">
+      {deck.testData && <p className="border-l-4 border-sky-500 bg-sky-50 px-4 py-3 text-sm text-sky-950">Test version. Demonstration details are not for academic submission.</p>}
+      {selectedSlide.rulesVersion !== DEFENCE_RULES_VERSION && <Alert className="border-sky-300 bg-sky-50 text-sky-950"><AlertTitle>This slide uses earlier wording</AlertTitle><AlertDescription className="space-y-3"><p>Review the updated wording against the current section requirements.</p><Button variant="outline" size="sm" onClick={() => setRuleSuggestion(buildDefenceSlide(slideIndex, deck.facts))}>Review updated wording</Button></AlertDescription></Alert>}
+      {projectChanged && <Alert className="border-amber-300"><AlertTitle>The saved proposal has changed</AlertTitle><AlertDescription>This presentation uses an earlier proposal version. <Link className="underline" to={`/defence-slides?project=${deck.projectId}`}>Review the latest proposal</Link> before preparing another version.</AlertDescription></Alert>}
+      {incomplete && <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span>{missingDefenceFacts(deck.facts).length ? `Working draft: ${missingDefenceFacts(deck.facts).length} study details need completion.` : 'Working draft: complete the placeholders in your slides.'}</span><Button size="sm" variant="outline" onClick={() => { setFacts(deck.facts); setStep('facts'); }}>Complete details</Button></div>}
+      {visibleContentIssues.length > 0 && <Alert className="border-amber-300"><AlertTitle>Review these slides before downloading</AlertTitle><AlertDescription><ul className="list-disc pl-4">{visibleContentIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>Keep key points on the slide and move supporting detail to speaker notes.</AlertDescription></Alert>}
+      <RuleFindings findings={deckFindings.filter(finding => selectedSlide.sourceKeys.includes(finding.key))} />
+      {slidesNeedingRules.some(({ index }) => index !== slideIndex) && <div className="flex flex-wrap items-center gap-3 border-b pb-4 text-sm"><span>Before downloading, review:</span>{slidesNeedingRules.filter(({ index }) => index !== slideIndex).map(({ slide, index }) => <Button key={slide.id} size="sm" variant="outline" className="gap-2" onClick={() => { setSlideIndex(index); setEditorTab('content'); }}>Slide {index + 1}: {slide.title}<ArrowRight size={14} /></Button>)}</div>}
+      <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Button size="icon" variant="outline" aria-label="Previous slide" title="Previous slide" disabled={!slideIndex} onClick={() => setSlideIndex(i => i - 1)}><ChevronLeft size={18} /></Button><span className="w-24 text-center text-sm">Slide {slideIndex + 1} of 10</span><Button size="icon" variant="outline" aria-label="Next slide" title="Next slide" disabled={slideIndex === 9} onClick={() => setSlideIndex(i => i + 1)}><ChevronRight size={18} /></Button></div><Button variant="outline" onClick={() => { setRehearsing(true); setRunning(false); }} className="gap-2"><Play size={16} />Rehearse</Button></div>
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[190px_minmax(0,1fr)]">
+        <nav aria-label="Slides" className="flex gap-2 overflow-x-auto pb-2 xl:flex-col xl:overflow-visible">{deck.slides.map((slide, i) => <button key={slide.id} aria-current={i === slideIndex ? 'step' : undefined} onClick={() => { setSlideIndex(i); setEditorTab('content'); }} className={cn('flex min-h-12 w-40 shrink-0 items-start gap-3 rounded-md border px-3 py-3 text-left text-sm xl:w-full', i === slideIndex ? 'border-primary bg-primary/5 font-medium' : 'border-transparent hover:bg-muted')}><span className="mt-0.5 w-5 shrink-0 text-xs text-muted-foreground">{String(i + 1).padStart(2, '0')}</span><span className="min-w-0 break-words">{i === 0 ? 'Title and candidate' : slide.title}</span></button>)}</nav>
+        <div className="min-w-0 space-y-5"><SlidePreview slide={selectedSlide} index={slideIndex} draft={incomplete} testData={deck.testData} />
+          <div className="flex items-center justify-end gap-3"><Label htmlFor="defence-text-size">Text size</Label><select id="defence-text-size" className="h-10 rounded-md border bg-background px-3 text-sm" value={selectedSlide.bodyFontSize || 'auto'} onChange={e => editSlide({ bodyFontSize: e.target.value === 'auto' ? undefined : Number(e.target.value) as DefenceSlide['bodyFontSize'] })}><option value="auto">Auto ({defenceSlideLayout(selectedSlide, slideIndex).bodyFontSize} pt)</option>{[24, 22, 20, 18].map(size => <option key={size} value={size}>{size} pt</option>)}</select></div>
+          {selectedRules.length > 0 && <details className="border-y py-4"><summary className="cursor-pointer text-sm font-semibold">Section requirements</summary><div className="mt-4 space-y-5">{selectedRules.map(({ key, rule }) => <section key={key}><h3 className="text-sm font-semibold">{DEFENCE_FACT_FIELDS.find(field => field.key === key)?.label}</h3><p className="mt-1 text-sm leading-6">{rule.purpose}</p><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">{rule.requirements.map((requirement, i) => <li key={i}>{requirement}</li>)}</ul></section>)}</div></details>}
+          <section className="min-w-0 border-y py-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><Tabs value={editorTab} onValueChange={setEditorTab}><TabsList><TabsTrigger value="content">Slide content</TabsTrigger><TabsTrigger value="notes">Speaker notes</TabsTrigger><TabsTrigger value="source">Source text</TabsTrigger></TabsList></Tabs><div className="flex gap-2">{undo?.index === slideIndex && <Button size="sm" variant="ghost" onClick={() => { editSlide(undo.slide); setUndo(null); }}>Undo slide change</Button>}<Button size="sm" variant="outline" onClick={resetSlide} className="gap-2"><RotateCcw size={14} />Restore slide</Button></div></div>
+            {editorTab === 'content' && <div className="space-y-4">
+              <div className="space-y-2"><Label htmlFor="defence-slide-title">Slide title</Label><Textarea id="defence-slide-title" rows={slideIndex === 0 ? 3 : 2} value={selectedSlide.title} onChange={e => editSlide({ title: e.target.value })} /></div>
+              {['objectives', 'questions-scope'].includes(selectedSlide.role) && <div className="flex items-start gap-3 rounded-md border p-3">
+                <Checkbox id="defence-concise-approval" checked={Boolean(selectedSlide.approvedShortening)} onCheckedChange={value => editSlide({ approvedShortening: value === true })} />
+                <div><Label htmlFor="defence-concise-approval">Use my shorter presentation wording</Label><p className="mt-1 text-xs leading-5 text-muted-foreground">Each objective and question must still retain the exact study issue, population, ages and setting. Full source wording stays in PowerPoint notes.</p></div>
+              </div>}
+              <div className="space-y-2"><Label htmlFor="defence-slide-bullets">Key points</Label><Textarea id="defence-slide-bullets" rows={8} value={selectedSlide.bullets.join('\n')} onChange={e => editSlide({ bullets: e.target.value.split('\n') })} /><p className="text-xs text-muted-foreground">One point per line</p></div>
+            </div>}
+            {editorTab === 'notes' && <div className="space-y-2"><Label htmlFor="defence-slide-notes">Speaker notes</Label><Textarea id="defence-slide-notes" rows={13} value={selectedSlide.notes} onChange={e => editSlide({ notes: e.target.value })} /></div>}
+            {editorTab === 'source' && <div className="space-y-4">{selectedSlide.sourceKeys.map(key => <div key={key}><h3 className="text-sm font-semibold">{DEFENCE_FACT_FIELDS.find(f => f.key === key)?.label}</h3><p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">{deck.facts[key].value || 'Not supplied'}</p><p className="mt-1 text-xs text-muted-foreground">{factSourceLabel(deck.facts[key].source, key)}</p></div>)}</div>}
+          </section>
+        </div>
+      </div>
+      <section className="border-b py-4"><h2 className="text-base font-semibold">Prepare for questions</h2><ul className="mt-3 grid gap-3 text-sm leading-6 md:grid-cols-2"><li>Why is this problem worth studying in your chosen setting?</li><li>How does each objective connect to your questions and data collection tools?</li><li>Why do the design, sample size and sampling method fit this study?</li><li>How will you protect participants and handle limitations?</li></ul></section>
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><div className="text-sm"><span className="font-medium">{incomplete ? 'Working draft' : 'Ten-slide presentation'}</span><span className="block text-xs text-muted-foreground">{deck.durationMinutes} minutes | {saveStatus || 'Saving...'}</span></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={exporting} onClick={() => exportFile('notes')} className="gap-2"><FileText size={16} />Speaker notes</Button><Button disabled={exporting || layoutIssues.length > 0 || contentIssues.length > 0 || blockingRuleFindings.length > 0} onClick={() => exportFile('pptx')} className="gap-2">{exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}{incomplete ? 'Download draft PPTX' : 'Download PowerPoint'}</Button></div></div>
+    </section>}
+
+    <Dialog open={rehearsing} onOpenChange={value => { setRehearsing(value); if (!value) setRunning(false); }}>
+      <DialogContent className="max-h-[95dvh] w-[calc(100%-1rem)] max-w-6xl overflow-y-auto p-4 sm:p-6">
+        <DialogHeader><DialogTitle>Defence rehearsal</DialogTitle></DialogHeader>
+        {deck && selectedSlide && <div className="min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span role="timer" className={cn('w-28 font-mono text-lg tabular-nums', seconds >= duration * 60 && 'text-red-700')}>{timeLabel(seconds)}</span>
+            <Button size="icon" variant="outline" title={running ? 'Pause timer' : 'Start timer'} aria-label={running ? 'Pause timer' : 'Start timer'} onClick={() => setRunning(v => !v)}>{running ? <Pause size={16} /> : <Play size={16} />}</Button>
+            <Button size="icon" variant="ghost" title="Reset timer" aria-label="Reset timer" onClick={() => { setRunning(false); setSeconds(0); }}><RotateCcw size={16} /></Button>
+            <span className="text-sm text-muted-foreground">{duration}-minute presentation</span>
+          </div>
+          <SlidePreview slide={selectedSlide} index={slideIndex} draft={incomplete} testData={deck.testData} />
+          <div className="flex items-center justify-between gap-3"><Button variant="outline" disabled={!slideIndex} onClick={() => setSlideIndex(i => i - 1)}><ArrowLeft size={16} className="mr-2" />Previous</Button><span className="text-sm">{slideIndex + 1} / 10</span><Button variant="outline" disabled={slideIndex === 9} onClick={() => setSlideIndex(i => i + 1)}>Next<ArrowRight size={16} className="ml-2" /></Button></div>
+          <div className="border-t pt-4"><h3 className="mb-2 font-semibold">Speaker notes</h3><p className="whitespace-pre-wrap break-words text-sm leading-6">{selectedSlide.notes}</p></div>
+        </div>}
+      </DialogContent>
+    </Dialog>
+    <Dialog open={Boolean(ruleSuggestion)} onOpenChange={value => { if (!value) setRuleSuggestion(null); }}>
+      <DialogContent className="max-h-[90dvh] max-w-5xl overflow-y-auto">
+        <DialogHeader><DialogTitle>Review the updated slide wording</DialogTitle></DialogHeader>
+        {ruleSuggestion && selectedSlide && <>
+          <div className="grid gap-6 md:grid-cols-2">
+            <section><h3 className="mb-3 font-semibold">Current wording</h3><ul className="list-disc space-y-3 pl-5 text-sm leading-6">{selectedSlide.bullets.map((point, i) => <li key={i}>{point}</li>)}</ul></section>
+            <section><h3 className="mb-3 font-semibold">Against the section rules</h3><ul className="list-disc space-y-3 pl-5 text-sm leading-6">{ruleSuggestion.bullets.map((point, i) => <li key={i}>{point}</li>)}</ul></section>
+          </div>
+          <div className="flex flex-wrap justify-end gap-3 border-t pt-4"><Button variant="outline" onClick={() => setRuleSuggestion(null)}>Keep current wording</Button><Button onClick={applyRuleUpdate}>Apply updated wording</Button></div>
+        </>}
+      </DialogContent>
+    </Dialog>
+  </WorkspacePage></DashboardLayout>;
+}

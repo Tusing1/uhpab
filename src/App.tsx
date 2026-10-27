@@ -33,6 +33,7 @@ const PlagiarismChecker = lazy(() => import("./pages/PlagiarismChecker"));
 const ResearchTopicGenerator = lazy(() => import("./pages/ResearchTopicGenerator"));
 const Settings = lazy(() => import("./pages/Settings"));
 const DocumentAnalysis = lazy(() => import("./pages/DocumentAnalysis"));
+const DefenceSlides = lazy(() => import("./pages/DefenceSlides"));
 const ContentImprovement = lazy(() => import("./pages/ContentImprovement"));
 const Humanizer = lazy(() => import("./pages/Humanizer"));
 const GettingStarted = lazy(() => import("./pages/GettingStarted"));
@@ -95,6 +96,7 @@ const AppRoutes = () => (
       <Route path="/guidelines" element={privateRoute(<Guidelines />)} />
       <Route path="/marking-guide" element={privateRoute(<MarkingGuide />)} />
       <Route path="/document-analysis" element={privateRoute(<DocumentAnalysis />)} />
+      <Route path="/defence-slides" element={privateRoute(<DefenceSlides />)} />
       <Route path="/plagiarism-checker" element={privateRoute(<PlagiarismChecker />)} />
       <Route path="/research-topic-generator" element={privateRoute(<ResearchTopicGenerator />)} />
       <Route path="/settings" element={privateRoute(<Settings />)} />

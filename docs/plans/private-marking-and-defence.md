@@ -1,6 +1,6 @@
 # Private Research Marking and Proposal Defence Slides
 
-Status: marking foundation approved and implemented locally; deployment verification outstanding. Defence slides remain a subsequent phase.
+Status: marking foundation and the local ten-slide proposal defence workspace are implemented; public deployment verification remains outstanding. See `docs/defence-slides-release.md` for the implemented slide workflow, local retention, export behaviour and remaining cloud/template work.
 Prepared: 17 October 2026.
 Audience: nursing, midwifery and allied health students, including students with basic browser skills.
 

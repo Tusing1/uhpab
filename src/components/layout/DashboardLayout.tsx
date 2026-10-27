@@ -20,7 +20,8 @@ import {
   GraduationCap,
   UserCheck,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Presentation
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -125,6 +126,7 @@ const getPageLabel = (pathname: string) => {
     '/guidelines': 'UHPAB guidelines',
     '/marking-guide': 'Marking guide',
     '/document-analysis': 'Check my document',
+    '/defence-slides': 'Defence slides',
     '/content-improvement': 'Improve my writing',
     '/humanizer': 'Polish wording',
     '/plagiarism-checker': 'Check originality',
@@ -405,6 +407,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         { to: '/research-topic-generator', icon: <Lightbulb size={18} />, label: 'Find a topic' },
         { to: '/chapter-work', icon: <BookOpen size={18} />, label: 'Work on a chapter' },
         { to: '/document-analysis', icon: <FileSearch size={18} />, label: 'Check my document' },
+        { to: '/defence-slides', icon: <Presentation size={18} />, label: 'Defence slides' },
       ],
     },
     {

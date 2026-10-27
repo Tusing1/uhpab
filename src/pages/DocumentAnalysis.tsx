@@ -58,6 +58,7 @@ import {
   Download,
   RotateCcw,
   Upload,
+  Presentation,
 } from "lucide-react";
 
 const reportSections = [
@@ -163,6 +164,7 @@ const DocumentAnalysis = () => {
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [activeRecord, setActiveRecord] = useState<StoredAnalysisRecord | null>(null);
+  const [preparingSlides, setPreparingSlides] = useState(false);
   const [recentRecords, setRecentRecords] = useState<StoredAnalysisRecord[]>([]);
   const [cacheNotes, setCacheNotes] = useState<string[]>([]);
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -959,6 +961,21 @@ const DocumentAnalysis = () => {
               icon: <Download size={16} />,
               onClick: exportMarkingGuideReport,
             }}
+            secondaryActions={documentType === 'proposal' && component === 'full' ? [{
+              label: preparingSlides ? 'Reading proposal...' : 'Create defence slides',
+              icon: preparingSlides ? <Loader2 size={16} className="animate-spin" /> : <Presentation size={16} />,
+              disabled: preparingSlides,
+              onClick: async () => {
+                setPreparingSlides(true);
+                try {
+                  const { extractDocumentText } = await import('@/lib/documentTextExtraction');
+                  const text = file ? (await extractDocumentText(file)).text : manualText;
+                  if (!text.trim()) throw new Error('Open or upload the original proposal before creating slides.');
+                  navigate('/defence-slides', { state: { defenceSource: { text, name: activeRecord?.fileName || file?.name || manualFileName } } });
+                } catch (e) { toast.error(e instanceof Error ? e.message : 'The proposal could not be opened.'); }
+                finally { setPreparingSlides(false); }
+              },
+            }] : []}
           />
         )}
       </WorkspacePage>

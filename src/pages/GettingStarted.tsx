@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Lightbulb,
   MessageSquareText,
+  Presentation,
   SearchCheck,
   ShieldCheck,
   Sparkles,
@@ -44,6 +45,14 @@ const studentSteps = [
     href: "/projects/new?type=proposal",
     action: "Create proposal",
     color: "bg-blue-50 text-blue-700 border-blue-200",
+  },
+  {
+    title: "Prepare for proposal defence",
+    text: "Turn your proposal into ten slides, review your study details, and practise with speaker notes.",
+    icon: Presentation,
+    href: "/defence-slides",
+    action: "Prepare slides",
+    color: "bg-teal-50 text-teal-700 border-teal-200",
   },
   {
     title: "Start the full report",

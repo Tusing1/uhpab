@@ -16,6 +16,7 @@ import {
   AlertCircle, 
   ArrowLeft, 
   ArrowRight,
+  Presentation,
   Save, 
   Download, 
   Sparkles, 
@@ -2114,6 +2115,7 @@ const ProjectEdit = () => {
           </div>
           
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            {projectData?.type === 'proposal' && <Button variant="outline" disabled={isSaving || pendingChanges || isEditing} title={pendingChanges ? 'Save your project before creating slides' : 'Create slides from your saved proposal'} onClick={() => navigate(`/defence-slides?project=${projectId}`)} className="gap-2"><Presentation size={16} />Defence slides</Button>}
             {!isEditing && (documentArtifactCount > 0 || missingReferenceKeys.length > 0) && (
               <Button variant="outline" onClick={handleRepairDocument} disabled={isSaving || isDownloading || isGenerating} className="gap-2 bg-white">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand className="h-4 w-4" />}
