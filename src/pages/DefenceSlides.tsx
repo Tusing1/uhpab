@@ -23,6 +23,9 @@ import { DEFENCE_LOGO_DATA, DEFENCE_SLIDE_LAYOUT, buildDefenceHandout, buildDefe
 import { DEFENCE_RULES_VERSION, getDefenceSectionRule, reviewDefenceRules, type DefenceRuleFinding } from '@/lib/defenceSectionRules';
 import { defenceWordCount, draftDefenceFacts, missingDefenceDraftKeys, type DefenceDraftProgress, type DefenceDraftResult } from '@/lib/defenceSlidesDraft';
 import { getResearchKeys } from '@/lib/aiKeys';
+import { createDefenceDraftCheckpoint, DEFENCE_DRAFT_STAGE_LABELS, DEFENCE_DRAFT_STAGES, nextDefenceDraftStage } from '@/lib/defenceDraftCheckpoint';
+import { DefenceDraftConflictError, defenceDraftSessionMatches, discardDefenceDraftSession, loadDefenceDraftSession, saveDefenceDraftSession, withDefenceDraftLock, type DefenceDraftSession } from '@/lib/defenceDraftStore';
+import { researchRetryAt } from '@/lib/researchServiceError';
 
 type SourceMode = 'project' | 'upload' | 'topic';
 type Step = 'source' | 'facts' | 'slides';
@@ -80,6 +83,7 @@ export default function DefenceSlides() {
   const { user } = useAuth();
   const { projects, isLoading } = useProjects();
   const location = useLocation();
+  const [workspaceOwner, setWorkspaceOwner] = useState(user?.id);
   const [mode, setMode] = useState<SourceMode>('project');
   const [step, setStep] = useState<Step>('source');
   const [projectId, setProjectId] = useState('');
@@ -107,10 +111,18 @@ export default function DefenceSlides() {
   const [draftMissing, setDraftMissing] = useState(true);
   const [draftProgress, setDraftProgress] = useState<DefenceDraftProgress | null>(null);
   const [pendingDraft, setPendingDraft] = useState<DefenceDraftResult | null>(null);
+  const [storedDraftSession, setDraftSession] = useState<DefenceDraftSession | null>(null);
+  const draftSession = storedDraftSession?.ownerId === user?.id ? storedDraftSession : null;
+  const [recoveringDraft, setRecoveringDraft] = useState(true);
+  const [storageWarning, setStorageWarning] = useState('');
+  const [applyingDraft, setApplyingDraft] = useState(false);
+  const [retryClock, setRetryClock] = useState(Date.now());
+  const ownerId = useRef(user?.id);
+  ownerId.current = user?.id;
   const draftRequest = useRef<AbortController | null>(null);
   const handledRoute = useRef('');
-  const latestDeck = useRef<DefenceDeck | null>(null);
-  latestDeck.current = deck;
+  const latestDeck = useRef<{ ownerId?: string; deck: DefenceDeck | null }>({ ownerId: user?.id, deck: null });
+  if (workspaceOwner === user?.id) latestDeck.current = { ownerId: user?.id, deck };
   const proposals = useMemo(() => projects.filter(p => p.type === 'proposal'), [projects]);
   const missing = missingDefenceFacts(facts);
   const draftable = missingDefenceDraftKeys(facts);
@@ -130,11 +142,19 @@ export default function DefenceSlides() {
     return rule ? [{ key, rule }] : [];
   }) || [];
   const projectChanged = deck?.projectId && projects.some(p => p.id === deck.projectId && p.updatedAt !== deck.sourceVersion);
+  const resumeMatches = Boolean(draftSession && defenceDraftSessionMatches(draftSession, facts, source));
+  const retrySeconds = Math.max(0, Math.ceil(((draftSession?.retryAt || 0) - retryClock) / 1000));
 
   useEffect(() => {
     let cancelled = false;
     setSaved([]); setDeck(null); setStep('source'); setSaveStatus('');
+    setWorkspaceOwner(user?.id);
+    setFacts(emptyDefenceFacts()); setSource({ name: '', projectId: undefined, version: undefined }); setTopic(''); setProjectId(''); setFile(null);
+    setDraftSession(null); setStorageWarning(''); setRecoveringDraft(true); setApplyingDraft(false); setDuration(10); setTestData(false);
     if (user?.id) listDefenceDecks(user.id).then(items => { if (!cancelled) setSaved(items); }).catch(e => { if (!cancelled) setError(e.message); });
+    if (user?.id) loadDefenceDraftSession(user.id).then(session => { if (!cancelled) setDraftSession(session); })
+      .catch(e => { if (!cancelled) setStorageWarning(e.message); }).finally(() => { if (!cancelled) setRecoveringDraft(false); });
+    else setRecoveringDraft(false);
     return () => { cancelled = true; };
   }, [user?.id]);
 
@@ -142,6 +162,13 @@ export default function DefenceSlides() {
     setPendingDraft(null); setDraftProgress(null); setBusy(false);
     return () => { draftRequest.current?.abort(); draftRequest.current = null; };
   }, [user?.id, location.key]);
+
+  useEffect(() => {
+    setRetryClock(Date.now());
+    if (!draftSession?.retryAt || draftSession.retryAt <= Date.now()) return;
+    const timer = window.setInterval(() => setRetryClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [draftSession?.retryAt]);
 
   useEffect(() => {
     if (isLoading || !user?.id) return;
@@ -164,7 +191,7 @@ export default function DefenceSlides() {
   }, [isLoading, proposals, user, location.key, location.search, location.state]);
 
   useEffect(() => {
-    if (!deck || !user?.id) return;
+    if (!deck || !user?.id || workspaceOwner !== user.id) return;
     let active = true;
     setSaveStatus('Saving changes...');
     const timer = window.setTimeout(() => {
@@ -175,10 +202,11 @@ export default function DefenceSlides() {
       }).catch(e => { if (active) { setSaveStatus('Changes not saved'); setError(e.message); } });
     }, 500);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [deck, user?.id]);
+  }, [deck, user?.id, workspaceOwner]);
 
   useEffect(() => () => {
-    if (latestDeck.current && user?.id) saveDefenceDeck(user.id, latestDeck.current).catch(() => toast.error('The presentation could not be saved before leaving. Return to the slides and download a copy.'));
+    const snapshot = latestDeck.current;
+    if (snapshot.deck && snapshot.ownerId === user?.id && user?.id) saveDefenceDeck(user.id, snapshot.deck).catch(() => toast.error('The presentation could not be saved before leaving. Return to the slides and download a copy.'));
   }, [user?.id]);
 
   useEffect(() => {
@@ -231,27 +259,99 @@ export default function DefenceSlides() {
     finally { setBusy(false); }
   };
 
-  const createSlides = (nextFacts: DefenceFacts, warnings?: string[]) => {
-    const next = createDefenceDeck(nextFacts, { sourceName: source.name || nextFacts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData, generationWarnings: warnings });
-    setFacts(nextFacts); setDeck(next); setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
-    toast.success('Ten defence slides created', { description: warnings?.length ? 'Suggested content is labelled as a working draft. Review it with your supervisor.' : 'Review the slide content and speaker notes before presenting.' });
+  const makeDeck = (nextFacts: DefenceFacts, warnings?: string[]) => createDefenceDeck(nextFacts, { sourceName: source.name || nextFacts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData, generationWarnings: warnings });
+  const createSlides = (next: DefenceDeck) => {
+    setFacts(next.facts); setDeck(next); setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
+    toast.success('Ten defence slides created', { description: next.generationWarnings?.length ? 'Suggested content is labelled as a working draft. Review it with your supervisor.' : 'Review the slide content and speaker notes before presenting.' });
   };
 
-  const generate = async () => {
-    if (busy) return;
-    if (!facts.topic.value.trim()) { setError('Add the research topic before creating your slides.'); return; }
-    if (!draftMissing || !draftable.length) { createSlides(facts, deck?.generationWarnings); return; }
-    if (!getResearchKeys().length) { setError('Add your Gemini API key in Settings to generate the missing sections. Your study details are unchanged.'); return; }
+  const discardProgress = async (session = draftSession) => {
+    if (!session || !window.confirm('Discard this saved draft progress? Your original study details and saved presentations will stay unchanged.')) return;
+    try {
+      await withDefenceDraftLock(session.ownerId, () => discardDefenceDraftSession(session.ownerId, session.id));
+      if (ownerId.current === session.ownerId) { setDraftSession(null); setPendingDraft(null); }
+    } catch (e) { setStorageWarning(e instanceof Error ? e.message : 'Saved draft progress could not be cleared.'); }
+  };
+
+  const applyPendingDraft = async () => {
+    if (!pendingDraft || !user?.id || applyingDraft) return;
+    const account = user.id, session = draftSession;
+    setApplyingDraft(true);
+    try {
+      const next = makeDeck(pendingDraft.facts, pendingDraft.warnings);
+      let cleared = !session;
+      await withDefenceDraftLock(account, async () => {
+        try { await saveDefenceDeck(account, next); }
+        catch {
+          if (ownerId.current === account) setStorageWarning('The presentation is available in this page but could not be saved on this device. Download a copy before leaving. Draft recovery has been kept.');
+          return;
+        }
+        if (session) {
+          try { await discardDefenceDraftSession(account, session.id); cleared = true; }
+          catch { if (ownerId.current === account) setStorageWarning('The presentation is saved, but earlier recovery progress could not be cleared.'); }
+        }
+      });
+      if (ownerId.current !== account) return;
+      createSlides(next); setPendingDraft(null);
+      if (cleared) setDraftSession(null);
+    } catch (e) { toast.error('Draft progress has been kept', { description: e instanceof Error ? e.message : 'The presentation could not be saved.' }); }
+    finally { if (ownerId.current === account) setApplyingDraft(false); }
+  };
+
+  const generate = async (savedSession?: DefenceDraftSession) => {
+    if (busy || recoveringDraft || !user?.id || draftRequest.current) return;
+    const input = savedSession?.checkpoint.inputFacts || facts;
+    if (!input.topic.value.trim()) { setError('Add the research topic before creating your slides.'); return; }
+    if (!savedSession && (!draftMissing || !draftable.length)) { createSlides(makeDeck(facts, deck?.generationWarnings)); return; }
+    const previous = savedSession || (resumeMatches ? draftSession : null);
+    if (previous?.ownerId && previous.ownerId !== user.id) return;
+    if (previous?.source.projectId) {
+      const latest = proposals.find(project => project.id === previous.source.projectId);
+      if (isLoading) { setError('Wait for your proposals to load before resuming this draft.'); return; }
+      if (!latest || latest.updatedAt !== previous.source.version) { setError('This proposal has changed or is unavailable. Choose its latest version and start a new draft; older generated sections will not be reused.'); return; }
+    }
+    if ((!previous || nextDefenceDraftStage(previous.checkpoint)) && draftSession?.retryAt && draftSession.retryAt > Date.now()) { setError('Google asked us to wait before retrying. Your completed stages are saved.'); return; }
+    if ((!previous || nextDefenceDraftStage(previous.checkpoint)) && !getResearchKeys().length) { setError('Add your Gemini API key in Settings to generate the missing sections. Your saved progress is unchanged.'); return; }
+    if (!previous && draftSession && !window.confirm('Start a new draft from the current study details? This replaces earlier saved generation progress. Saved presentations are unchanged.')) return;
+    if (savedSession && step === 'facts' && !resumeMatches && !window.confirm('Open this saved study instead? Current unsaved study-detail edits will not be included. Saved presentations are unchanged.')) return;
+    let activeSession: DefenceDraftSession = previous ? { ...previous, durationMinutes: savedSession ? previous.durationMinutes : duration, testData: savedSession ? previous.testData : testData, retryAt: previous.retryAt && previous.retryAt > Date.now() ? previous.retryAt : undefined } : { id: crypto.randomUUID(), ownerId: user.id, source: { ...source }, durationMinutes: duration, testData, checkpoint: createDefenceDraftCheckpoint(input), updatedAt: new Date().toISOString() };
+    if (savedSession) { setFacts(savedSession.checkpoint.inputFacts); setSource({ name: savedSession.source.name, projectId: savedSession.source.projectId, version: savedSession.source.version }); setDuration(savedSession.durationMinutes); setTestData(savedSession.testData); }
+    setStep('facts');
     const controller = new AbortController();
     draftRequest.current = controller; setBusy(true); setError('');
-    const notice = toast.loading('Drafting your defence presentation');
+    const account = user.id;
+    const isCurrent = () => draftRequest.current === controller && ownerId.current === account;
+    const persist = async (replace = false) => {
+      if (!isCurrent()) return;
+      activeSession = { ...activeSession, updatedAt: new Date().toISOString() };
+      setDraftSession(activeSession);
+      try { await saveDefenceDraftSession(activeSession, replace); if (isCurrent()) setStorageWarning(''); }
+      catch (e) {
+        if (e instanceof DefenceDraftConflictError) throw e;
+        if (isCurrent()) setStorageWarning(e instanceof Error ? e.message : 'Device recovery is unavailable. Keep this page open.');
+      }
+    };
+    const notice = toast.loading(previous ? 'Resuming your saved draft' : 'Drafting your defence presentation');
     try {
-      const result = await draftDefenceFacts(facts, { signal: controller.signal, onProgress: setDraftProgress });
-      if (draftRequest.current !== controller || controller.signal.aborted) return;
+      const result = await withDefenceDraftLock(account, async () => {
+        controller.signal.throwIfAborted();
+        await persist(!previous);
+        return draftDefenceFacts(input, { signal: controller.signal, checkpoint: activeSession.checkpoint,
+          onProgress: progress => { if (isCurrent()) setDraftProgress(progress); },
+          onCheckpoint: async checkpoint => { activeSession = { ...activeSession, checkpoint }; await persist(); },
+        });
+      });
+      if (!isCurrent() || controller.signal.aborted) return;
       setPendingDraft(result);
       toast.success('Draft ready to review', { id: notice, description: 'Your existing study details and presentation have not been replaced.' });
     } catch (e) {
-      if (controller.signal.aborted) toast.info('Draft generation cancelled', { id: notice, description: 'Your existing work is unchanged.' });
+      if (!isCurrent()) return;
+      activeSession = { ...activeSession, retryAt: controller.signal.aborted ? undefined : researchRetryAt(e) };
+      if (e instanceof DefenceDraftConflictError) {
+        const latest = await loadDefenceDraftSession(account).catch(() => null);
+        if (isCurrent()) setDraftSession(latest);
+      } else await persist().catch(() => undefined);
+      if (controller.signal.aborted) toast.info('Draft generation stopped', { id: notice, description: 'Completed stages have been kept. Your presentation is unchanged.' });
       else {
         const message = e instanceof Error ? e.message : 'Draft generation failed. Your existing work is unchanged.';
         setError(message); toast.error('The draft could not be completed', { id: notice, description: message });
@@ -309,6 +409,7 @@ export default function DefenceSlides() {
     setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
   };
 
+  if (workspaceOwner !== user?.id) return <DashboardLayout><WorkspacePage><p role="status">Loading your presentation workspace...</p></WorkspacePage></DashboardLayout>;
   return <DashboardLayout><WorkspacePage width="wide" className="space-y-6 pb-28">
     <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
       <div><p className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><Presentation size={16} />Proposal presentation</p><h1 className="text-2xl font-bold sm:text-3xl">Defence slides</h1></div>
@@ -318,6 +419,14 @@ export default function DefenceSlides() {
       {(['source', 'facts', 'slides'] as Step[]).map((item, i) => <Button key={item} variant={step === item ? 'secondary' : 'ghost'} disabled={busy || (item === 'facts' && !source.name) || (item === 'slides' && !deck)} onClick={() => { setStep(item); setError(''); }} className="gap-2"><span className="text-xs text-muted-foreground">{i + 1}.</span>{['Choose proposal', 'Review study details', 'Edit slides'][i]}</Button>)}
     </nav>
     {error && <Alert variant="destructive"><AlertTitle>Something needs attention</AlertTitle><AlertDescription>{error}{/key|401|403|quota|billing/i.test(error) && <Link to="/settings" className="ml-2 font-medium underline">Open Settings</Link>}</AlertDescription></Alert>}
+    {storageWarning && <Alert className="border-amber-300"><AlertTitle>Device recovery needs attention</AlertTitle><AlertDescription>{storageWarning}</AlertDescription></Alert>}
+    {recoveringDraft && <p role="status" className="text-sm text-muted-foreground">Checking saved draft progress...</p>}
+    {draftSession && !busy && !pendingDraft && step !== 'slides' && <section aria-label="Saved draft progress" className="space-y-4 border-y py-5">
+      <div><h2 className="font-semibold">Saved draft progress</h2><p className="mt-1 break-words text-sm leading-6">{draftSession.checkpoint.inputFacts.topic.value}</p><p className="mt-1 text-xs text-muted-foreground">{draftSession.checkpoint.completedStages.length} of 4 stages kept. {storageWarning ? 'Available in this open page.' : 'Saved on this device.'} Your presentation has not been replaced.</p></div>
+      <ul className="grid gap-2 text-sm sm:grid-cols-2">{DEFENCE_DRAFT_STAGES.map(stage => <li key={stage} className="flex items-center gap-2">{draftSession.checkpoint.completedStages.includes(stage) ? <Check size={16} className="shrink-0 text-emerald-700" /> : <span className="h-4 w-4 shrink-0 rounded-full border" aria-hidden="true" />}<span>{DEFENCE_DRAFT_STAGE_LABELS[stage]}</span></li>)}</ul>
+      {retrySeconds > 0 && nextDefenceDraftStage(draftSession.checkpoint) && <p role="status" className="text-sm text-amber-900">Google asked us to wait. Retry available in {retrySeconds} seconds. No request will be sent automatically.</p>}
+      <div className="flex flex-wrap gap-3"><Button className="gap-2" disabled={recoveringDraft || retrySeconds > 0 && Boolean(nextDefenceDraftStage(draftSession.checkpoint))} onClick={() => generate(draftSession)}><RotateCcw size={16} />{nextDefenceDraftStage(draftSession.checkpoint) ? 'Resume saved draft' : 'Review completed draft'}</Button><Button variant="ghost" onClick={() => discardProgress()}>Discard progress</Button></div>
+    </section>}
 
     {step === 'source' && <section className="max-w-3xl space-y-6">
       {saved.length > 0 && <div className="space-y-2 border-b pb-6"><Label htmlFor="saved-defence">Continue a saved presentation</Label><select id="saved-defence" className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value="" onChange={e => resume(e.target.value)}><option value="">Choose a presentation</option>{saved.map(d => <option key={d.id} value={d.id}>{d.testData ? 'Test: ' : ''}{d.facts.topic.value} - {new Date(d.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</option>)}</select></div>}
@@ -330,7 +439,7 @@ export default function DefenceSlides() {
     </section>}
 
     {step === 'facts' && <section className="space-y-6" aria-busy={busy}>
-      {draftProgress && <div className="space-y-3"><OperationProgress title="Drafting defence slides" stage={draftProgress.message} value={draftProgress.completed} steps={['Published sources', 'Study focus', 'Proposed methods', 'Section and length checks']} /><Button variant="outline" onClick={() => draftRequest.current?.abort()}>Cancel generation</Button></div>}
+      {draftProgress && <div className="space-y-3"><OperationProgress title="Drafting defence slides" stage={draftProgress.message} value={draftProgress.completed} activeStep={DEFENCE_DRAFT_STAGES.indexOf(draftProgress.stage)} steps={DEFENCE_DRAFT_STAGES.map(stage => DEFENCE_DRAFT_STAGE_LABELS[stage])} /><Button variant="outline" onClick={() => draftRequest.current?.abort()}>Stop and keep progress</Button></div>}
       {!draftProgress && <fieldset disabled={busy} className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h2 className="text-xl font-semibold">Review your study details</h2><p className="mt-1 max-w-3xl break-words text-sm text-muted-foreground">{source.name}</p></div><div className="flex items-center gap-3"><Label htmlFor="defence-duration">Duration</Label><select id="defence-duration" className="h-10 rounded-md border bg-background px-3 text-sm" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[5, 8, 10, 12, 15, 20].map(n => <option key={n} value={n}>{n} minutes</option>)}</select></div></div>
       <div className="flex items-center gap-3 border-b pb-4"><Checkbox id="defence-test-data" checked={testData} onCheckedChange={value => setTestData(value === true)} /><Label htmlFor="defence-test-data">Test presentation</Label></div>
@@ -356,7 +465,7 @@ export default function DefenceSlides() {
           </div>
         </section>)}
       </div>
-      <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><p className="text-sm text-muted-foreground">{missing.length || suggested.length ? 'Working draft for review' : 'Study details ready'}<span className="block text-xs">Saved on this device when slides are created.</span></p><Button className="gap-2" disabled={busy} onClick={generate}>{busy ? <Loader2 size={16} className="animate-spin" /> : draftMissing && draftable.length ? <Sparkles size={16} /> : <Presentation size={16} />}{busy ? 'Drafting...' : draftMissing && draftable.length ? 'Generate draft slides' : deck ? 'Create new version' : 'Create 10 slides'}</Button></div>
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><p className="text-sm text-muted-foreground">{missing.length || suggested.length ? 'Working draft for review' : 'Study details ready'}<span className="block text-xs">{resumeMatches ? 'Completed stages will be reused.' : 'Saved on this device when slides are created.'}</span></p><Button className="gap-2" disabled={busy || recoveringDraft || draftMissing && draftable.length > 0 && retrySeconds > 0 && !(resumeMatches && draftSession && !nextDefenceDraftStage(draftSession.checkpoint))} onClick={() => generate()}>{busy ? <Loader2 size={16} className="animate-spin" /> : draftMissing && draftable.length ? <Sparkles size={16} /> : <Presentation size={16} />}{busy ? 'Drafting...' : draftMissing && draftable.length ? resumeMatches && draftSession ? nextDefenceDraftStage(draftSession.checkpoint) ? 'Resume draft' : 'Review completed draft' : 'Generate draft slides' : deck ? 'Create new version' : 'Create 10 slides'}</Button></div>
       </fieldset>}
     </section>}
 
@@ -393,14 +502,14 @@ export default function DefenceSlides() {
       <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><div className="text-sm"><span className="font-medium">{incomplete ? 'Working draft' : 'Ten-slide presentation'}</span><span className="block text-xs text-muted-foreground">{deck.durationMinutes} minutes | {saveStatus || 'Saving...'}</span></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={exporting} onClick={() => exportFile('notes')} className="gap-2"><FileText size={16} />Speaker notes</Button><Button disabled={exporting || layoutIssues.length > 0 || contentIssues.length > 0 || blockingRuleFindings.length > 0} onClick={() => exportFile('pptx')} className="gap-2">{exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}{incomplete ? 'Download draft PPTX' : 'Download PowerPoint'}</Button></div></div>
     </section>}
 
-    <Dialog open={Boolean(pendingDraft)} onOpenChange={open => { if (!open) setPendingDraft(null); }}>
+    <Dialog open={Boolean(pendingDraft && draftSession)} onOpenChange={open => { if (!open && !applyingDraft) setPendingDraft(null); }}>
       <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto">
         <DialogHeader><DialogTitle>Review your generated draft</DialogTitle></DialogHeader>
         {pendingDraft && <>
           <p className="text-sm leading-6 text-muted-foreground">Only missing sections were drafted. Your original details are unchanged. These suggestions are not confirmed research facts.</p>
           <ul className="list-disc space-y-2 border-y py-4 pl-5 text-sm leading-6">{pendingDraft.warnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul>
           <div className="space-y-5">{pendingDraft.generatedKeys.map(key => <section key={key} className="border-b pb-4"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{DEFENCE_FACT_FIELDS.find(field => field.key === key)?.label}</h3><span className="text-xs text-muted-foreground">{defenceWordCount(pendingDraft.facts[key].value)} words</span></div><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{pendingDraft.facts[key].value}</p></section>)}</div>
-          <div className="sticky -bottom-6 flex flex-wrap justify-end gap-3 border-t bg-background py-4"><Button variant="outline" onClick={() => setPendingDraft(null)}>Discard draft</Button><Button onClick={() => { createSlides(pendingDraft.facts, pendingDraft.warnings); setPendingDraft(null); }}>Use draft and create slides</Button></div>
+          <div className="sticky -bottom-6 flex flex-wrap justify-end gap-3 border-t bg-background py-4"><Button variant="outline" disabled={applyingDraft} onClick={() => discardProgress()}>Discard draft</Button><Button disabled={applyingDraft} onClick={applyPendingDraft}>{applyingDraft ? 'Saving presentation...' : 'Use draft and create slides'}</Button></div>
         </>}
       </DialogContent>
     </Dialog>

@@ -7,14 +7,15 @@ type OperationProgressProps = {
   stage: string;
   value: number;
   steps: string[];
+  activeStep?: number;
   className?: string;
 };
 
-const OperationProgress = ({ title, stage, value, steps, className }: OperationProgressProps) => {
+const OperationProgress = ({ title, stage, value, steps, activeStep, className }: OperationProgressProps) => {
   const safeValue = Math.max(0, Math.min(100, value));
   const currentStep = Math.min(
     steps.length - 1,
-    Math.max(0, Math.floor(Math.max(0, safeValue - 1) / (100 / steps.length)))
+    Math.max(0, activeStep ?? Math.floor(Math.max(0, safeValue - 1) / (100 / steps.length)))
   );
 
   return (

@@ -1,6 +1,6 @@
 import { getKeyRevision, getResearchKeys } from "@/lib/aiKeys";
 import { runtimeConfig } from "@/lib/runtimeConfig";
-import { ResearchServiceError } from '@/lib/researchServiceError';
+import { ResearchServiceError, researchRetryAfter } from '@/lib/researchServiceError';
 
 export interface GeminiResponse {
   text?: string;
@@ -102,8 +102,8 @@ export const generateResearchResponse = async (prompt: string, tools: ResearchTo
     if (!response.ok) {
       const message = typeof data.error === "string" ? data.error : data.error?.message;
       const code = typeof data.error === 'object' ? String(data.error?.code || '') : data.code || '';
-      const retryAfter = Number(response.headers?.get('retry-after'));
-      throw new ResearchServiceError(apiKey ? (message || 'Failed to generate content').split(apiKey).join('[redacted]') : message || 'Failed to generate content', response.status, code, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined);
+      const retryAfter = researchRetryAfter(response.headers?.get('retry-after'));
+      throw new ResearchServiceError(apiKey ? (message || 'Failed to generate content').split(apiKey).join('[redacted]') : message || 'Failed to generate content', response.status, code, retryAfter);
     }
 
     const generatedText = extractGeminiText(data);
