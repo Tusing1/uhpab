@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Download, FileText, Loader2, Pause, Play, Presentation, RotateCcw, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Download, FileText, Loader2, Pause, Play, Presentation, RotateCcw, Sparkles, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { WorkspacePage } from '@/components/workspace/WorkspacePage';
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { OperationProgress } from '@/components/ui/operation-progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,8 @@ import { DEFENCE_FACT_FIELDS, buildDefenceSlide, createDefenceDeck, emptyDefence
 import { listDefenceDecks, saveDefenceDeck } from '@/lib/defenceSlidesStore';
 import { DEFENCE_LOGO_DATA, DEFENCE_SLIDE_LAYOUT, buildDefenceHandout, buildDefencePptx, defenceDeckIsWorkingDraft, defenceSlideLayout, defenceSlideLayoutIssues } from '@/lib/defenceSlidesExport';
 import { DEFENCE_RULES_VERSION, getDefenceSectionRule, reviewDefenceRules, type DefenceRuleFinding } from '@/lib/defenceSectionRules';
+import { defenceWordCount, draftDefenceFacts, missingDefenceDraftKeys, type DefenceDraftProgress, type DefenceDraftResult } from '@/lib/defenceSlidesDraft';
+import { getResearchKeys } from '@/lib/aiKeys';
 
 type SourceMode = 'project' | 'upload' | 'topic';
 type Step = 'source' | 'facts' | 'slides';
@@ -101,11 +104,17 @@ export default function DefenceSlides() {
   elapsedSeconds.current = seconds;
   const [editorTab, setEditorTab] = useState('content');
   const [ruleSuggestion, setRuleSuggestion] = useState<DefenceSlide | null>(null);
+  const [draftMissing, setDraftMissing] = useState(true);
+  const [draftProgress, setDraftProgress] = useState<DefenceDraftProgress | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<DefenceDraftResult | null>(null);
+  const draftRequest = useRef<AbortController | null>(null);
   const handledRoute = useRef('');
   const latestDeck = useRef<DefenceDeck | null>(null);
   latestDeck.current = deck;
   const proposals = useMemo(() => projects.filter(p => p.type === 'proposal'), [projects]);
   const missing = missingDefenceFacts(facts);
+  const draftable = missingDefenceDraftKeys(facts);
+  const suggested = DEFENCE_FACT_FIELDS.filter(({ key }) => facts[key].draft);
   const selectedSlide = deck?.slides[slideIndex];
   const incomplete = deck ? defenceDeckIsWorkingDraft(deck) : true;
   const layoutIssues = useMemo(() => deck?.slides.flatMap((slide, i) => defenceSlideLayoutIssues(slide, i)) || [], [deck]);
@@ -128,6 +137,11 @@ export default function DefenceSlides() {
     if (user?.id) listDefenceDecks(user.id).then(items => { if (!cancelled) setSaved(items); }).catch(e => { if (!cancelled) setError(e.message); });
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  useEffect(() => {
+    setPendingDraft(null); setDraftProgress(null); setBusy(false);
+    return () => { draftRequest.current?.abort(); draftRequest.current = null; };
+  }, [user?.id, location.key]);
 
   useEffect(() => {
     if (isLoading || !user?.id) return;
@@ -181,7 +195,7 @@ export default function DefenceSlides() {
   }, [saveStatus]);
 
   const changeFact = (key: DefenceFactKey, value: string) => {
-    setFacts(current => ({ ...current, [key]: { value, source: 'Entered by student', status: value.trim() ? 'confirmed' : 'missing' } }));
+    setFacts(current => ({ ...current, [key]: { value, source: current[key].draft ? 'Student-edited suggested draft - not confirmed' : 'Entered by student', status: value.trim() ? 'confirmed' : 'missing', ...(current[key].draft && value.trim() ? { draft: true } : {}) } }));
   };
 
   const readSource = async () => {
@@ -217,11 +231,35 @@ export default function DefenceSlides() {
     finally { setBusy(false); }
   };
 
-  const generate = () => {
+  const createSlides = (nextFacts: DefenceFacts, warnings?: string[]) => {
+    const next = createDefenceDeck(nextFacts, { sourceName: source.name || nextFacts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData, generationWarnings: warnings });
+    setFacts(nextFacts); setDeck(next); setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
+    toast.success('Ten defence slides created', { description: warnings?.length ? 'Suggested content is labelled as a working draft. Review it with your supervisor.' : 'Review the slide content and speaker notes before presenting.' });
+  };
+
+  const generate = async () => {
+    if (busy) return;
     if (!facts.topic.value.trim()) { setError('Add the research topic before creating your slides.'); return; }
-    const next = createDefenceDeck(facts, { sourceName: source.name || facts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData });
-    setDeck(next); setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
-    toast.success('Ten defence slides created', { description: missing.length ? 'Your working draft includes the missing details for you to complete.' : 'Review the slide content and speaker notes before presenting.' });
+    if (!draftMissing || !draftable.length) { createSlides(facts, deck?.generationWarnings); return; }
+    if (!getResearchKeys().length) { setError('Add your Gemini API key in Settings to generate the missing sections. Your study details are unchanged.'); return; }
+    const controller = new AbortController();
+    draftRequest.current = controller; setBusy(true); setError('');
+    const notice = toast.loading('Drafting your defence presentation');
+    try {
+      const result = await draftDefenceFacts(facts, { signal: controller.signal, onProgress: setDraftProgress });
+      if (draftRequest.current !== controller || controller.signal.aborted) return;
+      setPendingDraft(result);
+      toast.success('Draft ready to review', { id: notice, description: 'Your existing study details and presentation have not been replaced.' });
+    } catch (e) {
+      if (controller.signal.aborted) toast.info('Draft generation cancelled', { id: notice, description: 'Your existing work is unchanged.' });
+      else {
+        const message = e instanceof Error ? e.message : 'Draft generation failed. Your existing work is unchanged.';
+        setError(message); toast.error('The draft could not be completed', { id: notice, description: message });
+      }
+    } finally {
+      if (draftRequest.current === controller) { draftRequest.current = null; setBusy(false); setDraftProgress(null); }
+      else toast.dismiss(notice);
+    }
   };
 
   const editSlide = (patch: Partial<DefenceSlide>) => {
@@ -274,12 +312,12 @@ export default function DefenceSlides() {
   return <DashboardLayout><WorkspacePage width="wide" className="space-y-6 pb-28">
     <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
       <div><p className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><Presentation size={16} />Proposal presentation</p><h1 className="text-2xl font-bold sm:text-3xl">Defence slides</h1></div>
-      {deck && <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground" role="status">{saveStatus}</span><Button variant="outline" onClick={() => { setStep('source'); setError(''); }}><FileText size={16} className="mr-2" />New presentation</Button></div>}
+      {deck && <div className="flex flex-wrap items-center gap-2"><span className="text-xs text-muted-foreground" role="status">{saveStatus}</span><Button variant="outline" disabled={busy} onClick={() => { setStep('source'); setError(''); }}><FileText size={16} className="mr-2" />New presentation</Button></div>}
     </header>
     <nav aria-label="Presentation steps" className="flex flex-wrap gap-1 border-b pb-3">
       {(['source', 'facts', 'slides'] as Step[]).map((item, i) => <Button key={item} variant={step === item ? 'secondary' : 'ghost'} disabled={busy || (item === 'facts' && !source.name) || (item === 'slides' && !deck)} onClick={() => { setStep(item); setError(''); }} className="gap-2"><span className="text-xs text-muted-foreground">{i + 1}.</span>{['Choose proposal', 'Review study details', 'Edit slides'][i]}</Button>)}
     </nav>
-    {error && <Alert variant="destructive"><AlertTitle>Something needs attention</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+    {error && <Alert variant="destructive"><AlertTitle>Something needs attention</AlertTitle><AlertDescription>{error}{/key|401|403|quota|billing/i.test(error) && <Link to="/settings" className="ml-2 font-medium underline">Open Settings</Link>}</AlertDescription></Alert>}
 
     {step === 'source' && <section className="max-w-3xl space-y-6">
       {saved.length > 0 && <div className="space-y-2 border-b pb-6"><Label htmlFor="saved-defence">Continue a saved presentation</Label><select id="saved-defence" className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value="" onChange={e => resume(e.target.value)}><option value="">Choose a presentation</option>{saved.map(d => <option key={d.id} value={d.id}>{d.testData ? 'Test: ' : ''}{d.facts.topic.value} - {new Date(d.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</option>)}</select></div>}
@@ -291,9 +329,13 @@ export default function DefenceSlides() {
       <p className="border-t pt-4 text-sm leading-6 text-muted-foreground">Ten slides for a proposal defence. Follow your school's required format where it differs.</p>
     </section>}
 
-    {step === 'facts' && <section className="space-y-6">
+    {step === 'facts' && <section className="space-y-6" aria-busy={busy}>
+      {draftProgress && <div className="space-y-3"><OperationProgress title="Drafting defence slides" stage={draftProgress.message} value={draftProgress.completed} steps={['Published sources', 'Study focus', 'Proposed methods', 'Section and length checks']} /><Button variant="outline" onClick={() => draftRequest.current?.abort()}>Cancel generation</Button></div>}
+      {!draftProgress && <fieldset disabled={busy} className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0"><h2 className="text-xl font-semibold">Review your study details</h2><p className="mt-1 max-w-3xl break-words text-sm text-muted-foreground">{source.name}</p></div><div className="flex items-center gap-3"><Label htmlFor="defence-duration">Duration</Label><select id="defence-duration" className="h-10 rounded-md border bg-background px-3 text-sm" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[5, 8, 10, 12, 15, 20].map(n => <option key={n} value={n}>{n} minutes</option>)}</select></div></div>
       <div className="flex items-center gap-3 border-b pb-4"><Checkbox id="defence-test-data" checked={testData} onCheckedChange={value => setTestData(value === true)} /><Label htmlFor="defence-test-data">Test presentation</Label></div>
+      {draftable.length > 0 && <div className="flex items-start gap-3 border-y py-4"><Checkbox id="defence-draft-missing" checked={draftMissing} onCheckedChange={value => setDraftMissing(value === true)} /><div className="space-y-2"><Label htmlFor="defence-draft-missing">Draft missing sections with Gemini</Label><p className="max-w-3xl text-sm leading-6 text-muted-foreground">{draftable.length} sections can be drafted. Existing writing stays unchanged. New methods are suggestions for your review, not approved study facts. Your Gemini key is used for generation. <Link to="/settings" className="font-medium text-primary underline">Research key settings</Link></p></div></div>}
+      {suggested.length > 0 && <p className="border-l-4 border-sky-500 bg-sky-50 p-4 text-sm text-sky-950">{suggested.length} suggested details still need your review. Confirm each only after checking it against your planned study and sources.</p>}
       {missing.length > 0 && <Alert className="border-amber-300 bg-amber-50 text-amber-950"><AlertTitle>{missing.length} details still needed</AlertTitle><AlertDescription>{missing.map(f => f.label).join(', ')}. You can continue with a working draft.</AlertDescription></Alert>}
       <RuleFindings findings={factFindings} onSuggestion={finding => { if (finding.suggestion) changeFact(finding.key, finding.suggestion); }} />
       <div className="space-y-7">
@@ -304,23 +346,26 @@ export default function DefenceSlides() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label htmlFor={`fact-${field.key}`}>{field.label}{field.required && <span className="ml-1 text-amber-700">*</span>}</Label>
                 <span className={cn('text-xs', facts[field.key].status === 'missing' ? 'text-amber-800' : 'text-muted-foreground')}>
-                  {facts[field.key].status === 'missing' ? facts[field.key].value.trim() ? 'Needs completion' : 'Not supplied' : facts[field.key].status === 'confirmed' ? 'Your entry' : 'From proposal'}
+                  {facts[field.key].draft ? 'Suggested draft' : facts[field.key].status === 'missing' ? facts[field.key].value.trim() ? 'Needs completion' : 'Not supplied' : facts[field.key].status === 'confirmed' ? 'Your entry' : 'From proposal'}
                 </span>
               </div>
               {field.multiline ? <Textarea id={`fact-${field.key}`} rows={field.key === 'references' ? 6 : 4} value={facts[field.key].value} onChange={e => changeFact(field.key, e.target.value)} /> : <Input id={`fact-${field.key}`} value={facts[field.key].value} onChange={e => changeFact(field.key, e.target.value)} />}
               {facts[field.key].source && <p className="break-words text-xs text-muted-foreground">{factSourceLabel(facts[field.key].source, field.label)}</p>}
+              {facts[field.key].draft && <Button type="button" size="sm" variant="outline" className="gap-2" onClick={() => setFacts(current => ({ ...current, [field.key]: { ...current[field.key], draft: false, status: 'confirmed', source: `Reviewed by student; ${current[field.key].source}` } }))}><Check size={14} />Confirm reviewed detail</Button>}
             </div>)}
           </div>
         </section>)}
       </div>
-      <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><p className="text-sm text-muted-foreground">{missing.length ? 'Working draft with missing details' : 'Study details ready'}<span className="block text-xs">Saved on this device when slides are created.</span></p><Button className="gap-2" onClick={generate}><Presentation size={16} />{deck ? 'Create new version' : 'Create 10 slides'}</Button></div>
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><p className="text-sm text-muted-foreground">{missing.length || suggested.length ? 'Working draft for review' : 'Study details ready'}<span className="block text-xs">Saved on this device when slides are created.</span></p><Button className="gap-2" disabled={busy} onClick={generate}>{busy ? <Loader2 size={16} className="animate-spin" /> : draftMissing && draftable.length ? <Sparkles size={16} /> : <Presentation size={16} />}{busy ? 'Drafting...' : draftMissing && draftable.length ? 'Generate draft slides' : deck ? 'Create new version' : 'Create 10 slides'}</Button></div>
+      </fieldset>}
     </section>}
 
     {step === 'slides' && deck && selectedSlide && <section className="space-y-5">
       {deck.testData && <p className="border-l-4 border-sky-500 bg-sky-50 px-4 py-3 text-sm text-sky-950">Test version. Demonstration details are not for academic submission.</p>}
       {selectedSlide.rulesVersion !== DEFENCE_RULES_VERSION && <Alert className="border-sky-300 bg-sky-50 text-sky-950"><AlertTitle>This slide uses earlier wording</AlertTitle><AlertDescription className="space-y-3"><p>Review the updated wording against the current section requirements.</p><Button variant="outline" size="sm" onClick={() => setRuleSuggestion(buildDefenceSlide(slideIndex, deck.facts))}>Review updated wording</Button></AlertDescription></Alert>}
       {projectChanged && <Alert className="border-amber-300"><AlertTitle>The saved proposal has changed</AlertTitle><AlertDescription>This presentation uses an earlier proposal version. <Link className="underline" to={`/defence-slides?project=${deck.projectId}`}>Review the latest proposal</Link> before preparing another version.</AlertDescription></Alert>}
-      {incomplete && <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span>{missingDefenceFacts(deck.facts).length ? `Working draft: ${missingDefenceFacts(deck.facts).length} study details need completion.` : 'Working draft: complete the placeholders in your slides.'}</span><Button size="sm" variant="outline" onClick={() => { setFacts(deck.facts); setStep('facts'); }}>Complete details</Button></div>}
+      {incomplete && <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span>{Object.values(deck.facts).some(fact => fact.draft) ? 'Working draft: review and confirm the suggested study details and sources.' : missingDefenceFacts(deck.facts).length ? `Working draft: ${missingDefenceFacts(deck.facts).length} study details need completion.` : 'Working draft: review section findings and unresolved slide wording.'}</span><Button size="sm" variant="outline" onClick={() => { setFacts(deck.facts); setStep('facts'); }}>Review details</Button></div>}
+      {deck.generationWarnings?.length ? <details className="border-b py-3 text-sm"><summary className="cursor-pointer font-semibold">Draft review notes</summary><ul className="mt-3 list-disc space-y-2 pl-5 leading-6">{deck.generationWarnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul></details> : null}
       {visibleContentIssues.length > 0 && <Alert className="border-amber-300"><AlertTitle>Review these slides before downloading</AlertTitle><AlertDescription><ul className="list-disc pl-4">{visibleContentIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>Keep key points on the slide and move supporting detail to speaker notes.</AlertDescription></Alert>}
       <RuleFindings findings={deckFindings.filter(finding => selectedSlide.sourceKeys.includes(finding.key))} />
       {slidesNeedingRules.some(({ index }) => index !== slideIndex) && <div className="flex flex-wrap items-center gap-3 border-b pb-4 text-sm"><span>Before downloading, review:</span>{slidesNeedingRules.filter(({ index }) => index !== slideIndex).map(({ slide, index }) => <Button key={slide.id} size="sm" variant="outline" className="gap-2" onClick={() => { setSlideIndex(index); setEditorTab('content'); }}>Slide {index + 1}: {slide.title}<ArrowRight size={14} /></Button>)}</div>}
@@ -348,6 +393,17 @@ export default function DefenceSlides() {
       <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><div className="text-sm"><span className="font-medium">{incomplete ? 'Working draft' : 'Ten-slide presentation'}</span><span className="block text-xs text-muted-foreground">{deck.durationMinutes} minutes | {saveStatus || 'Saving...'}</span></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={exporting} onClick={() => exportFile('notes')} className="gap-2"><FileText size={16} />Speaker notes</Button><Button disabled={exporting || layoutIssues.length > 0 || contentIssues.length > 0 || blockingRuleFindings.length > 0} onClick={() => exportFile('pptx')} className="gap-2">{exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}{incomplete ? 'Download draft PPTX' : 'Download PowerPoint'}</Button></div></div>
     </section>}
 
+    <Dialog open={Boolean(pendingDraft)} onOpenChange={open => { if (!open) setPendingDraft(null); }}>
+      <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto">
+        <DialogHeader><DialogTitle>Review your generated draft</DialogTitle></DialogHeader>
+        {pendingDraft && <>
+          <p className="text-sm leading-6 text-muted-foreground">Only missing sections were drafted. Your original details are unchanged. These suggestions are not confirmed research facts.</p>
+          <ul className="list-disc space-y-2 border-y py-4 pl-5 text-sm leading-6">{pendingDraft.warnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul>
+          <div className="space-y-5">{pendingDraft.generatedKeys.map(key => <section key={key} className="border-b pb-4"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{DEFENCE_FACT_FIELDS.find(field => field.key === key)?.label}</h3><span className="text-xs text-muted-foreground">{defenceWordCount(pendingDraft.facts[key].value)} words</span></div><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{pendingDraft.facts[key].value}</p></section>)}</div>
+          <div className="sticky -bottom-6 flex flex-wrap justify-end gap-3 border-t bg-background py-4"><Button variant="outline" onClick={() => setPendingDraft(null)}>Discard draft</Button><Button onClick={() => { createSlides(pendingDraft.facts, pendingDraft.warnings); setPendingDraft(null); }}>Use draft and create slides</Button></div>
+        </>}
+      </DialogContent>
+    </Dialog>
     <Dialog open={rehearsing} onOpenChange={value => { setRehearsing(value); if (!value) setRunning(false); }}>
       <DialogContent className="max-h-[95dvh] w-[calc(100%-1rem)] max-w-6xl overflow-y-auto p-4 sm:p-6">
         <DialogHeader><DialogTitle>Defence rehearsal</DialogTitle></DialogHeader>

@@ -77,7 +77,7 @@ export function groundingCitations(data: unknown): GroundedResponse['citations']
   return [...found.values()];
 }
 
-export const generateResearchResponse = async (prompt: string, tools: ResearchTool[] = []): Promise<GroundedResponse> => {
+export const generateResearchResponse = async (prompt: string, tools: ResearchTool[] = [], options: { signal?: AbortSignal } = {}): Promise<GroundedResponse> => {
     const keys = getResearchKeys();
     const revision = getKeyRevision();
     if (!keys.length) throw new ResearchServiceError('Add your Gemini key in Settings before generating.', 401, 'missing_key');
@@ -92,7 +92,7 @@ export const generateResearchResponse = async (prompt: string, tools: ResearchTo
         prompt,
         tools,
       }),
-      signal: AbortSignal.timeout(45000),
+      signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
     });
 
     const data: GeminiResponse = await response.json().catch(() => {
@@ -123,4 +123,4 @@ export const generateResearchResponse = async (prompt: string, tools: ResearchTo
     }
 }; 
 
-export const generateContent = async (prompt: string): Promise<string> => (await generateResearchResponse(prompt)).text;
+export const generateContent = async (prompt: string, options: { signal?: AbortSignal } = {}): Promise<string> => (await generateResearchResponse(prompt, [], options)).text;

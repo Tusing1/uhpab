@@ -273,7 +273,7 @@ function assertDeck(deck: DefenceDeck): void {
 
 function factText(deck: DefenceDeck, key: DefenceFactKey): string {
   const fact = deck.facts[key];
-  return `[${key}] ${FACT_LABELS[key]}\nStatus: ${fact.status}\nSource anchor: ${fact.source.trim() ? fact.source : '[Not supplied]'}\nFull source field:\n${fact.value.trim() ? fact.value : '[Not supplied]'}`;
+  return `[${key}] ${FACT_LABELS[key]}\nStatus: ${fact.draft ? 'Suggested draft - not confirmed' : fact.status}\nSource anchor: ${fact.source.trim() ? fact.source : '[Not supplied]'}\nFull source field:\n${fact.value.trim() ? fact.value : '[Not supplied]'}`;
 }
 
 function referencesText(deck: DefenceDeck): string {
@@ -287,7 +287,7 @@ const unresolvedText = (value: string): boolean => !value.trim()
 /** Supervisor is optional; all other fact fields are required by this template. */
 export function defenceDeckIsWorkingDraft(deck: DefenceDeck): boolean {
   return FACT_KEYS.some(key => key !== 'supervisor'
-    && (!deck.facts?.[key] || deck.facts[key].status === 'missing' || unresolvedText(deck.facts[key].value)))
+    && (!deck.facts?.[key] || deck.facts[key].draft === true || deck.facts[key].status === 'missing' || unresolvedText(deck.facts[key].value)))
     || deck.slides.some(slide => [slide.title, ...slide.bullets, slide.notes].some(text => text.trim() && unresolvedText(text)))
     || deck.slides.some(slide => slide.rulesVersion !== DEFENCE_RULES_VERSION)
     || reviewDefenceRules(deck.facts, deck.slides).length > 0;
@@ -304,6 +304,7 @@ function slideNotes(deck: DefenceDeck, slide: DefenceSlide, index: number): stri
     `SLIDE ${index + 1}: ${slide.title}`,
     `SPEAKER NOTES\n${slide.notes.trim() ? slide.notes : '[No speaker notes supplied]'}`,
     sourceDescription(deck),
+    ...(deck.generationWarnings?.length ? [`DRAFT REVIEW NOTES\n${deck.generationWarnings.join('\n')}`] : []),
     `SOURCE FIELDS AND ANCHORS\n${keys.length ? keys.map(key => factText(deck, key)).join('\n\n') : '[No source fields linked to this slide]'}`,
   ];
   if (index === DEFENCE_SLIDE_LAYOUT.slideCount - 1) {

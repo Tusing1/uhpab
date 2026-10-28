@@ -125,14 +125,14 @@ function sentences(value: string): string[] {
     .filter(text => !instruction(text) && !marker(text) && !/^\d+(?:\.\d+)*$/.test(text));
 }
 
-const gap = /\b(?:gap|paucity|unknown|unclear|overlook\w*|understudied|undocumented|not (?:well )?(?:known|understood|documented)|(?:limited|little|no|insufficient) (?:local )?(?:evidence|research|information|knowledge|data))\b/i;
+const gap = /\b(?:gap|paucity|unknown|unclear|overlook\w*|understudied|undocumented|not yet (?:established|determined)|not (?:well )?(?:known|understood|documented)|(?:limited|little|no|insufficient) (?:local )?(?:evidence|research|information|knowledge|data))\b/i;
 const ideal = /\bideally\b|\bin an ideal\b|\b(?:should|ought to|expected to)\b/i;
 const consequence = /^(?:if\b|therefore\b|thus\b|consequently\b)|\b(?:consequen\w*|not addressed|persists?|study (?:is needed|is necessary|will (?:examine|investigate|assess)))\b/i;
 const current = /\b(?:however|despite|currently|uptake|remains?|reported|screening rate|prevalence|low|poor|suboptimal)\b/i;
-const benefit = /\b(?:health workers?|nurses?|midwives?|staff|patients?|respondents?|participants?|women|mothers|communities|community|managers?|policy\s?makers?|ministry|institutions?|researchers?|planners?|students?|facilit(?:y|ies))\b/i;
+const benefit = /\b(?:health workers?|health\s?care (?:providers?|professionals?)|administrators?|nurses?|midwives?|staff|patients?|respondents?|participants?|women|mothers|communities|community|managers?|policy\s?makers?|ministry|institutions?|researchers?|planners?|students?|facilit(?:y|ies))\b/i;
 const howBenefit = /\b(?:inform|guide|support|enable|tailor|improve|prioriti[sz]e|plan|develop|identify|understand)\w*\b|\b(?:by|through|use .+ to)\b/i;
 const rationale = /\b(?:because|justifi\w*|necessar\w*|needed|need for|chosen|rationale|address\w*|local evidence)\b/i;
-const period = /\b(?:19|20)\d{2}\b|\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b|\b\d+\s+(?:days|weeks|months|years)\b/i;
+const period = /\b(?:19|20)\d{2}\b|\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b|\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)[\s-]+(?:days?|weeks?|months?|years?)\b/i;
 function consequenceClause(text: string): string | undefined {
   const split = text.search(/,\s+(?:leading to|resulting in|contributing to)\b/i);
   if (split < 0 || /[()[\]]/.test(text.slice(split))) return undefined;
@@ -163,6 +163,7 @@ function problemRole(value: string): number {
   const text = value.replace(/^(?:problem statement|statement of the problem|ideal situation|current situation|gap|consequence(?:\/study need)?|study need)\s*:\s*/i, '');
   return ideal.test(text) && !/^(?:however|despite|if|therefore)\b/i.test(text) ? 0
     : /^(?:if|therefore|thus|consequently)\b/i.test(text) ? 3
+      : /^(?:however|despite)\b/i.test(text) && /\bnot yet (?:established|determined)\b/i.test(text) && current.test(text) ? 1
       : gap.test(text) ? 2 : consequence.test(text) ? 3 : current.test(text) ? 1 : -1;
 }
 

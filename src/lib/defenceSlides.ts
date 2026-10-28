@@ -14,6 +14,7 @@ export interface DefenceFact {
   value: string;
   source: string;
   status: 'found' | 'confirmed' | 'missing';
+  draft?: boolean;
 }
 export type DefenceFacts = Record<DefenceFactKey, DefenceFact>;
 export interface DefenceSlide {
@@ -39,6 +40,7 @@ export interface DefenceDeck {
   slides: DefenceSlide[];
   rulesVersion?: number;
   testData?: boolean;
+  generationWarnings?: string[];
 }
 
 type DefenceFactField = {
@@ -398,7 +400,7 @@ export function buildDefenceSlide(index: number, facts: DefenceFacts): DefenceSl
   const keys = definition.keys;
   const notes = keys.map(key => {
     const fact = facts[key];
-    return `${fieldFor(key).label}\nSource: ${fact?.source || 'Not supplied'}\nStatus: ${fact?.status || 'missing'}\n${fact?.value || (fieldFor(key).required ? placeholder(key) : 'Not supplied (optional)')}`;
+    return `${fieldFor(key).label}\nSource: ${fact?.source || 'Not supplied'}\nStatus: ${fact?.draft ? 'Suggested draft - not confirmed' : fact?.status || 'missing'}\n${fact?.value || (fieldFor(key).required ? placeholder(key) : 'Not supplied (optional)')}`;
   }).join('\n\n');
   return {
     id: `defence-${definition.role}`, role: definition.role,
@@ -419,6 +421,7 @@ export function createDefenceDeck(facts: DefenceFacts, options: {
   sourceVersion?: string;
   durationMinutes: number;
   testData?: boolean;
+  generationWarnings?: string[];
 }): DefenceDeck {
   if (!hasText(options.sourceName)) throw new Error('Provide a source name for the proposal or topic.');
   if (!Number.isFinite(options.durationMinutes) || options.durationMinutes <= 0)
@@ -430,6 +433,7 @@ export function createDefenceDeck(facts: DefenceFacts, options: {
     ...(options.sourceVersion === undefined ? {} : { sourceVersion: options.sourceVersion }),
     updatedAt: new Date().toISOString(), durationMinutes: options.durationMinutes, facts: snapshot,
     ...(options.testData ? { testData: true } : {}),
+    ...(options.generationWarnings?.length ? { generationWarnings: [...options.generationWarnings] } : {}),
     slides: slideDefinitions.map((_, index) => buildDefenceSlide(index, snapshot)),
   };
 }
@@ -448,6 +452,7 @@ export function validateDefenceDeck(deck: DefenceDeck, options: { allowDraft?: b
   if (typeof deck.durationMinutes !== 'number' || !Number.isFinite(deck.durationMinutes) || deck.durationMinutes <= 0)
     errors.push('Set a positive presentation duration in minutes.');
   if (deck.testData !== undefined && typeof deck.testData !== 'boolean') errors.push('Test presentation must be a boolean when supplied.');
+  if (deck.generationWarnings !== undefined && (!Array.isArray(deck.generationWarnings) || !deck.generationWarnings.every(hasText))) errors.push('Generation warnings must be a list of text notes.');
   const facts = record(deck.facts);
   const validFacts = new Set<DefenceFactKey>();
   for (const field of DEFENCE_FACT_FIELDS) {
@@ -457,6 +462,8 @@ export function validateDefenceDeck(deck: DefenceDeck, options: { allowDraft?: b
       continue;
     }
     validFacts.add(field.key);
+    if (fact.draft !== undefined && typeof fact.draft !== 'boolean') errors.push(`Invalid draft status for ${field.label.toLowerCase()}.`);
+    if (!options.allowDraft && fact.draft === true) errors.push(`Review and confirm the suggested ${field.label.toLowerCase()} before presenting.`);
     if (fact.status !== 'missing' && unresolved(fact.value as string)) errors.push(`Resolve the placeholder in ${field.label.toLowerCase()} or mark it missing.`);
     if (fact.status !== 'missing' && !hasText(fact.source)) errors.push(`Add a source anchor for ${field.label.toLowerCase()}.`);
     const noItems = (field.key === 'objectives' || field.key === 'questions') && !researchListItems(fact.value as string, field.key).length;
