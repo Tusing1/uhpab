@@ -16,4 +16,6 @@ The scheduled `uhpab-feedback-retention` job runs hourly and calls `purge_expire
 
 Descriptions and replies are not a secure place for credentials or research documents. Automatic text redaction is deliberately limited; testers must review all text and screenshots before consenting. The original selected screenshot is not uploaded: the browser creates a resized PNG without original metadata, though any visible text remains visible. The database limits accepted PNG size and dimensions; it does not establish that an image contains no private information.
 
+Technical context includes a build-date and short numeric build marker derived from Cloudflare's commit identifier. It is intended to distinguish ordinary releases, not serve as a cryptographic commit identifier; the numeric marker can collide. Local builds use marker 0.
+
 Run `npm run test:feedback`, `npm run test:defence`, `npm run test:assisted` and the safe production build before publishing changes. `scripts/qa-tester-feedback.sql` is designed to run after the migration inside a transaction that is rolled back, on a fresh isolated installation with at least three test accounts. Do not run that installation-only test against an existing live feedback table.

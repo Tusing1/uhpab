@@ -5,6 +5,10 @@ import { componentTagger } from "lovable-tagger";
 import { onRequestPost as validateKey } from './functions/api/validate-gemini-key.js';
 import { onRequestPost as generate } from './functions/api/gemini.js';
 
+const commit = process.env.CF_PAGES_COMMIT_SHA || '';
+const buildMarker = /^[a-f0-9]{7,40}$/i.test(commit) ? parseInt(commit.slice(0, 6), 16) % 1000 : 0;
+const appRelease = `${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}-feedback.${buildMarker}`;
+
 const localResearchApi = (): Plugin => ({
   name: 'local-research-api',
   configureServer(server) {
@@ -26,6 +30,9 @@ const localResearchApi = (): Plugin => ({
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_RELEASE__: JSON.stringify(appRelease),
+  },
   server: {
     host: "::",
     port: 8080,

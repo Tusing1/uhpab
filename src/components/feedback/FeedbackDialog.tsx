@@ -41,7 +41,10 @@ export default function FeedbackDialog({ userId, pathname, context, onClose }: {
     const notice = toast.loading('Sending your report');
     try {
       const result = await submitTesterFeedback(feedbackSubmissionSchema.parse({ ...preview, consent }));
-      if (mounted.current) { setReceipt(result.id); setScreenshot(null); setDescription(''); setPreview(null); }
+      if (mounted.current) {
+        setReceipt(result.id); setScreenshot(null); setDescription(''); setPreview(null);
+        window.dispatchEvent(new Event('uhpab:feedback-submitted'));
+      }
       if (mounted.current) toast.success(result.duplicate ? 'Your report is already received' : 'Report received', { id: notice, description: 'You can track updates in Feedback and support.' });
       else toast.dismiss(notice);
     } catch (e) {

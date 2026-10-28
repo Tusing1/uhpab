@@ -104,6 +104,11 @@ function FeedbackWorkspace() {
   }, [available, scope, user?.id]);
   const invalidate = useCallback(() => { request.current++; }, []);
   useEffect(() => { setReports([]); setSelectedId(''); void load(); return invalidate; }, [load, invalidate]);
+  useEffect(() => {
+    const refresh = () => { void load(); };
+    window.addEventListener('uhpab:feedback-submitted', refresh);
+    return () => window.removeEventListener('uhpab:feedback-submitted', refresh);
+  }, [load]);
   const selected = reports.find(report => report.id === selectedId);
   return <DashboardLayout><WorkspacePage className="space-y-6">
     <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-5"><div><h1 className="text-2xl font-semibold">Feedback and support</h1><p className="mt-2 text-sm text-muted-foreground">Your reports, support replies and progress.</p></div><div className="flex gap-2"><Button size="icon" variant="outline" disabled={busy || !available} onClick={() => load()} aria-label="Refresh reports" title="Refresh reports"><RefreshCw size={16} className={cn(busy && 'animate-spin')} /></Button><Button className="gap-2" onClick={() => reportProblem()}><MessageSquareWarning size={16} />Report a problem</Button></div></header>

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const FEEDBACK_RELEASE = '2026.10.28-feedback.1';
+declare const __APP_RELEASE__: string;
+export const FEEDBACK_RELEASE = typeof __APP_RELEASE__ === 'string' ? __APP_RELEASE__ : '2026.10.28-feedback.1';
 export const FEEDBACK_TOOLS = ['dashboard', 'defence-slides', 'document-analysis', 'plagiarism-checker', 'content-improvement', 'humanizer', 'research-topic-generator', 'chapter-work', 'projects', 'student-workspace', 'school-dashboard', 'supervisor-workspace', 'settings', 'getting-started', 'other'] as const;
 export const FEEDBACK_STAGES = ['general', 'upload', 'sources', 'focus', 'methods', 'checks', 'generate', 'save', 'export'] as const;
 export const FEEDBACK_CODES = ['none', 'authentication', 'rate-limit', 'provider-unavailable', 'invalid-response', 'storage-unavailable', 'extraction-failed', 'export-failed', 'unknown'] as const;
