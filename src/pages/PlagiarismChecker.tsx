@@ -24,6 +24,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   buildMarkedPlagiarismReport,
   downloadPlagiarismPdf,
+  localReviewScope,
+  normaliseLocalReview,
   passageReviewLabel,
   type MarkerTone,
   type PlagiarismReport,
@@ -48,7 +50,6 @@ import {
 import {
   AlertTriangle,
   ArrowRight,
-  BookOpenCheck,
   CheckCircle2,
   Download,
   FileCheck,
@@ -213,7 +214,7 @@ const PlagiarismChecker = () => {
 
       if (reusable.record) {
         setScanProgress(78);
-        setScanStage("Restoring the verified saved originality report");
+        setScanStage("Restoring the saved local wording review");
         await new Promise((resolve) => setTimeout(resolve, 350));
         await saveToolResult({
           userId,
@@ -225,7 +226,7 @@ const PlagiarismChecker = () => {
           sourceContext: handoff,
           reusedFromId: reusable.record.id,
         });
-        setReport(reusable.record.result);
+        setReport(normaliseLocalReview(reusable.record.result));
         setScanProgress(100);
         setScanStage("Originality report ready");
         setResultReused(true);
@@ -256,7 +257,7 @@ const PlagiarismChecker = () => {
       setScanStage("Originality report ready");
       setRecentResults(await listToolResultRecords(userId, "plagiarism-checker"));
       toast.success("Originality review complete", {
-        description: `${markedReport.uncommonFlagCount} ${markedReport.uncommonFlagCount === 1 ? "passage needs" : "passages need"} review.`,
+        description: `${markedReport.uncommonFlagCount} wording ${markedReport.uncommonFlagCount === 1 ? "flag" : "flags"} in the passages shown.`,
       });
     } catch (error) {
       console.error("Failed to check or store originality report:", error);
@@ -298,8 +299,6 @@ const PlagiarismChecker = () => {
     baseFileName: string,
     baseHandoff?: ReviewToolHandoff | null
   ): ReviewToolHandoff => {
-    const pageMatch = passage.location.match(/page\s+(\d+)/i);
-
     return {
       sourceTool: "plagiarism-checker",
       fileName: baseFileName || "flagged-passage.txt",
@@ -307,7 +306,7 @@ const PlagiarismChecker = () => {
       section: baseHandoff?.section ? `${baseHandoff.section} - ${passage.location}` : passage.location,
       selectedText: passage.text,
       issueLabel: baseHandoff?.issueLabel ? `${passage.label} from ${baseHandoff.issueLabel}` : passage.label,
-      pageNumber: pageMatch ? Number(pageMatch[1]) : baseHandoff?.pageNumber ?? null,
+      pageNumber: null,
     };
   };
 
@@ -327,7 +326,7 @@ const PlagiarismChecker = () => {
     const inputText = record.inputText || record.inputPreview;
     setDocumentText(inputText);
     setFileName(record.fileName || "saved-originality-check.txt");
-    setReport(record.result);
+    setReport(normaliseLocalReview(record.result));
     setHandoff(record.sourceContext ?? null);
     setResultReused(true);
     setScanProgress(100);
@@ -366,9 +365,9 @@ const PlagiarismChecker = () => {
   }, [routeToolResultRecordId, userId]);
 
   const improveSavedOriginalityFlag = (record: StoredToolResultRecord<"plagiarism-checker">) => {
-    const passage = record.result.passages.find((item) => item.tone !== "common" && item.tone !== "neutral");
+    const passage = normaliseLocalReview(record.result).passages.find((item) => item.tone !== "common" && item.tone !== "neutral");
     if (!passage) {
-      toast.success("No passage needs correction in this saved report");
+      toast.info("No flagged passage is available in this saved sample.");
       return;
     }
 
@@ -382,9 +381,9 @@ const PlagiarismChecker = () => {
   };
 
   const humanReviewSavedOriginalityFlag = (record: StoredToolResultRecord<"plagiarism-checker">) => {
-    const passage = record.result.passages.find((item) => item.tone !== "common" && item.tone !== "neutral");
+    const passage = normaliseLocalReview(record.result).passages.find((item) => item.tone !== "common" && item.tone !== "neutral");
     if (!passage) {
-      toast.success("No passage needs human review in this saved report");
+      toast.info("No flagged passage is available in this saved sample.");
       return;
     }
 
@@ -405,7 +404,7 @@ const PlagiarismChecker = () => {
           tone="danger"
           icon={<ShieldCheck size={14} />}
           title="Highlight what matters, ignore ordinary research wording"
-          description="Common research terms stay neutral. The checker focuses attention on uncommon phrasing, template-like sentences, missing citation cues, and passages students should rewrite."
+          description="Review a sample of wording and citation cues before checking your sources independently."
           actions={
             <>
               <Button onClick={loadDemo} variant="outline" className="gap-2 bg-white/80">
@@ -464,7 +463,7 @@ const PlagiarismChecker = () => {
           }
         >
           <div className="mt-4 grid gap-2 text-sm leading-6 text-muted-foreground">
-            <p>This local review does not claim verified matches against internet, publication, or student-paper databases.</p>
+            <p>{localReviewScope}</p>
             <p className="rounded-lg border bg-muted/40 px-3 py-2 text-foreground/75">
               Standard chapter-opening lists and other expected research structure are excluded from review attention.
             </p>
@@ -592,57 +591,16 @@ const PlagiarismChecker = () => {
                     tone="success"
                     icon={<RotateCcw size={16} />}
                     title="Saved originality report reused"
-                    description="This exact text was already checked, so the verified saved report was restored."
+                    description="The saved local wording review for this exact text was restored."
                   />
                 )}
 
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <WorkspaceMetric label="Original-looking wording" value={`${report.originalityScore}%`} tone="success" />
-                  <WorkspaceMetric label="Review attention" value={`${report.similarityScore}%`} tone="danger" />
-                  <WorkspaceMetric label="Common wording excluded" value={`${report.commonLanguagePercent}%`} />
+                  <WorkspaceMetric label="Passages shown" value={report.passages.length} />
+                  <WorkspaceMetric label="Wording flags" value={report.uncommonFlagCount} tone="danger" />
+                  <WorkspaceMetric label="Citation checks" value={report.passages.filter(passage => passage.tone === 'citation').length} />
                 </div>
-
-                <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-                  <div className="rounded-lg border bg-white/75 p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <BookOpenCheck className="h-5 w-5 text-primary" />
-                      <p className="font-semibold">Filtered from report</p>
-                    </div>
-                    <div className="grid gap-2">
-                      {report.filteredFromReport.map((item) => (
-                        <div key={item} className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border bg-white/75 p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <FileCheck className="h-5 w-5 text-primary" />
-                      <p className="font-semibold">Possible source types</p>
-                    </div>
-                    {report.topSources.length > 0 ? (
-                      <div className="space-y-2">
-                        {report.topSources.map((source) => (
-                          <div key={`${source.type}-${source.name}`} className="flex items-center justify-between gap-3 rounded-md border bg-slate-50 px-3 py-2 text-sm">
-                            <div>
-                              <p className="font-medium">{source.type}</p>
-                              <p className="text-xs text-muted-foreground">{source.name}</p>
-                            </div>
-                            <Badge variant="outline" className="bg-white">
-                              Review
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
-                        No meaningful source group after filtering common wording.
-                      </p>
-                    )}
-                  </div>
-                </div>
+                <Alert><Info className="h-4 w-4" /><AlertTitle>Review scope</AlertTitle><AlertDescription>{localReviewScope} Passage numbers are not document page or paragraph numbers.</AlertDescription></Alert>
 
                 <div className="rounded-lg border bg-white/75 p-4">
                   <p className="mb-3 font-semibold">Review groups</p>
@@ -654,9 +612,6 @@ const PlagiarismChecker = () => {
                             <p className="font-semibold">{group.count} {group.label}</p>
                             <p className="mt-1 text-xs leading-5 opacity-80">{group.description}</p>
                           </div>
-                          <Badge variant="outline" className={toneBadgeStyles[group.tone]}>
-                            {group.percent}%
-                          </Badge>
                         </div>
                       </div>
                     ))}
@@ -737,7 +692,7 @@ const PlagiarismChecker = () => {
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-5 w-5 text-emerald-700" />
-                      <p className="font-semibold">No major uncommon flags detected</p>
+                      <p className="font-semibold">No wording flags in the passages shown</p>
                     </div>
                   </div>
                 )}
@@ -769,7 +724,7 @@ const PlagiarismChecker = () => {
                     meta={`${record.wordCount.toLocaleString()} words - ${record.runs} run${record.runs === 1 ? "" : "s"}`}
                     status={
                       <Badge variant="outline" className="bg-success-muted text-success-foreground">
-                        {record.result.originalityScore}% original-looking
+                        {record.result.uncommonFlagCount} wording flags
                       </Badge>
                     }
                     summary={<p className="line-clamp-2">{record.inputPreview}</p>}
@@ -826,7 +781,7 @@ const PlagiarismChecker = () => {
         {report && (
           <WorkspaceActionDock
             title="Originality report ready"
-            description={`${report.uncommonFlagCount} passage${report.uncommonFlagCount === 1 ? "" : "s"} need review after filtering common research wording.`}
+            description={`${report.uncommonFlagCount} wording flag${report.uncommonFlagCount === 1 ? "" : "s"} in the passages shown.`}
             primaryAction={{
               label: "Export originality PDF",
               icon: <Download size={16} />,

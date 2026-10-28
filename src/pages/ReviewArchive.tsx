@@ -384,9 +384,9 @@ export const ReviewArchivePanel = ({ className }: ReviewArchivePanelProps) => {
       label: "Originality",
       labelClass: "border-amber-200 bg-amber-50 text-amber-800",
       icon: <ShieldCheck className="h-5 w-5" />,
-      primary: `${item.record.result.originalityScore}% original-looking`,
+      primary: `${item.record.result.uncommonFlagCount} wording flags`,
       secondary: `${item.record.result.uncommonFlagCount} ${item.record.result.uncommonFlagCount === 1 ? "passage needs" : "passages need"} review`,
-      context: `${item.record.result.similarityScore}% review attention after common wording is excluded`,
+      context: 'Local wording sample only; no source database comparison',
       sourceLabel: "Input TXT",
       needsFreshCheck: false,
     };

@@ -67,7 +67,7 @@ export const passageReviewLabel = (tone: MarkerTone) => {
   if (tone === "moderate") return "Review wording";
   if (tone === "citation") return "Citation check";
   if (tone === "common") return "Excluded wording";
-  return "No concern";
+  return "No cue detected";
 };
 
 export const passageReviewDescription = (tone: MarkerTone) => {
@@ -75,7 +75,7 @@ export const passageReviewDescription = (tone: MarkerTone) => {
   if (tone === "moderate") return "Add citation support or rewrite for clearer ownership.";
   if (tone === "citation") return "Confirm the reference list contains the cited source.";
   if (tone === "common") return "Expected research structure, excluded from review attention.";
-  return "No action needed unless the idea requires a citation.";
+  return "Review source use and citations independently.";
 };
 
 const commonResearchTerms = new Set([
@@ -205,7 +205,21 @@ const isSimilarityReportMetadata = (text: string) =>
     text
   );
 
-const pageForIndex = (index: number) => `Page ${Math.floor(index / 4) + 1}, Paragraph ${(index % 4) + 1}`;
+const passageForIndex = (index: number) => `Passage ${index + 1}`;
+
+export const localReviewScope = 'This local wording review shows at most the first 14 qualifying passages. It does not search source databases, measure plagiarism or prove originality. Other text may not be reviewed.';
+
+export const normaliseLocalReview = (report: PlagiarismReport): PlagiarismReport => ({
+  ...report,
+  topSources: [],
+  filteredFromReport: ['Recognised common research phrasing'],
+  passages: report.passages.map((passage, index) => ({
+    ...passage,
+    location: passageForIndex(index),
+    label: passage.tone === 'neutral' ? 'No reuse cue detected' : passage.label,
+  })),
+  summary: localReviewScope,
+});
 
 export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
   const cleanText = text.trim();
@@ -229,7 +243,7 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
         text: chunk,
         tone: "common",
         label: "Similarity-report metadata",
-        location: pageForIndex(index),
+        location: passageForIndex(index),
         reason: "Source-list and integrity-report metadata is excluded from student wording attention.",
         suggestion: "No rewrite is needed for report-generated metadata.",
       };
@@ -241,7 +255,7 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
         text: chunk,
         tone: repeated ? "high" : "moderate",
         label: repeated ? "High attention phrase" : "Uncommon uncited wording",
-        location: pageForIndex(index),
+        location: passageForIndex(index),
         reason: repeated
           ? "This phrase often appears in reused report templates and should be checked against the source."
           : "This sentence is long and formal but has no visible citation.",
@@ -255,7 +269,7 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
         text: chunk,
         tone: "citation",
         label: "Citation evidence",
-        location: pageForIndex(index),
+        location: passageForIndex(index),
         reason: "Citation-like evidence is present, so this passage needs reference-list alignment rather than plagiarism alarm.",
         suggestion: "Confirm the cited source appears in the reference list and follows APA style.",
       };
@@ -267,7 +281,7 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
         text: chunk,
         tone: "common",
         label: "Common research language",
-        location: pageForIndex(index),
+        location: passageForIndex(index),
         reason: "These are expected research terms or section phrases, so they are kept neutral.",
         suggestion: "No rewrite needed unless the surrounding paragraph is copied from a source.",
       };
@@ -277,8 +291,8 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
       id: `passage-${index}`,
       text: chunk,
       tone: "neutral",
-      label: "Original-looking wording",
-      location: pageForIndex(index),
+      label: "No reuse cue detected",
+      location: passageForIndex(index),
       reason: "No strong wording-reuse cue was detected in this passage.",
       suggestion: "Keep the wording clear and support factual claims with citations.",
     };
@@ -286,17 +300,11 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
 
   const highCount = passages.filter((passage) => passage.tone === "high").length;
   const moderateCount = passages.filter((passage) => passage.tone === "moderate").length;
-  const citationCount = passages.filter((passage) => passage.tone === "citation").length;
   const commonCount = passages.filter((passage) => passage.tone === "common").length;
-  const similarityScore = Math.min(88, highCount * 9 + moderateCount * 5);
-  const originalityScore = Math.max(12, 100 - similarityScore);
-  const submittedWorkPercent = Math.min(12, Math.max(0, highCount * 3 + moderateCount * 2));
-  const internetPercent = Math.min(18, Math.max(0, highCount * 4 + moderateCount * 2));
-  const publicationPercent = Math.min(8, Math.max(0, citationCount * 2));
 
-  return {
-    originalityScore,
-    similarityScore,
+  return normaliseLocalReview({
+    originalityScore: 0,
+    similarityScore: 0,
     commonLanguagePercent,
     uncommonFlagCount: highCount + moderateCount,
     filteredFromReport: ["Bibliography", "Cited text", "Small matches below 10 words", "Default research structure"],
@@ -304,7 +312,7 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
       {
         label: highCount + moderateCount === 1 ? "passage needing source review" : "passages needing source review",
         count: highCount + moderateCount,
-        percent: similarityScore,
+        percent: 0,
         description: "Only uncommon uncited wording is counted here. Standard chapter structure is excluded.",
         tone: highCount > 0 ? "high" : moderateCount > 0 ? "moderate" : "common",
       },
@@ -330,17 +338,13 @@ export const buildMarkedPlagiarismReport = (text: string): PlagiarismReport => {
         tone: "common",
       },
     ],
-    topSources: [
-      { type: "Internet", name: "Possible web sources", percent: internetPercent },
-      { type: "Publication", name: "Citation-bearing publication text", percent: publicationPercent },
-      { type: "Student papers", name: "Submitted research reports", percent: submittedWorkPercent },
-    ].filter((source) => source.percent > 0),
+    topSources: [],
     passages,
     summary:
       highCount + moderateCount > 0
         ? "The scan filtered ordinary research wording before scoring. Focus on red and amber passages, then confirm citations and references."
         : "The scan found mostly neutral research language and citation-like evidence. Continue checking references and originality before submission.",
-  };
+  });
 };
 
 export const sampleAnalysisEvidence = (result: AnalysisResult): MarkedPassage[] => {
@@ -363,7 +367,7 @@ export const sampleAnalysisEvidence = (result: AnalysisResult): MarkedPassage[] 
       text: item.guidance,
       tone: item.status === "missing" ? "missing" : "moderate",
       label: `${item.section}: ${item.label}`,
-      location: pageForIndex(index),
+      location: `Review item ${index + 1}`,
       reason: item.status === "missing" ? "Finding: marking-guide evidence was not identified for this criterion." : "Finding: partial marking-guide evidence was identified for this criterion.",
       suggestion: `Examiner note: ${item.guidance}`,
     })
@@ -523,23 +527,22 @@ const drawCoverPage = (doc: jsPDF, report: PlagiarismReport, fileName: string, s
       },
     ],
     metric: {
-      value: String(report.originalityScore),
-      denominator: "/100",
-      label: "Original wording",
-      caption: `${report.similarityScore}% review attention`,
-      progress: report.originalityScore,
-      tone: report.originalityScore >= 75 ? reportAccent.green : reportAccent.amber,
+      value: String(report.uncommonFlagCount),
+      label: "Wording flags",
+      caption: "In sampled passages",
+      progress: 0,
+      tone: reportAccent.amber,
     },
   });
 
   drawFormalStatsBar(doc, [
-    { value: `${report.originalityScore}%`, label: ["Original-looking", "wording"], tone: reportAccent.green },
-    { value: `${report.similarityScore}%`, label: ["Review", "attention"], tone: reportAccent.rose },
-    { value: `${report.commonLanguagePercent}%`, label: ["Common structure", "excluded"], tone: reportAccent.slate },
+    { value: report.passages.length, label: ["Passages", "shown"], tone: reportAccent.green },
+    { value: report.passages.filter(p => p.tone === 'citation').length, label: ["Citation", "checks"], tone: reportAccent.rose },
+    { value: report.passages.filter(p => p.tone === 'common').length, label: ["Common wording", "passages"], tone: reportAccent.slate },
     { value: report.uncommonFlagCount, label: ["Passages needing", "review"], tone: reportAccent.blue },
   ]);
 
-  let y = sectionTitle(doc, "Review interpretation", 119, "The result is calculated after expected research language is excluded.");
+  let y = sectionTitle(doc, "Review scope", 119, "A limited local wording sample, not a plagiarism or originality score.");
   const summaryLines = doc.splitTextToSize(report.summary, page.contentWidth);
   const interpretationHeight = 13 + summaryLines.length * 4.4;
   setRgb(doc, brand.white, "fill");
@@ -551,7 +554,7 @@ const drawCoverPage = (doc: jsPDF, report: PlagiarismReport, fileName: string, s
   doc.text(summaryLines, page.margin + 6, y + 8);
 
   y += interpretationHeight + 10;
-  y = sectionTitle(doc, "Excluded before scoring", y, "These expected features do not increase review attention.");
+  y = sectionTitle(doc, "Common phrasing", y, "Recognised common wording is treated as neutral, not proof of originality.");
   report.filteredFromReport.forEach((item, index) => {
     const x = page.margin + (index % 2) * 91;
     const rowY = y + Math.floor(index / 2) * 13;
@@ -566,7 +569,7 @@ const drawCoverPage = (doc: jsPDF, report: PlagiarismReport, fileName: string, s
 
   y += Math.max(18, Math.ceil(report.filteredFromReport.length / 2) * 13 + 7);
   const noteLines = doc.splitTextToSize(
-    "This local scan highlights wording patterns for academic review. Final decisions require student/source verification.",
+    "Passage numbers are not document page numbers. Verify sources and the rest of the document independently.",
     page.contentWidth - 10
   );
   setRgb(doc, [255, 255, 255], "fill");
@@ -586,7 +589,7 @@ const drawOverviewPage = (doc: jsPDF, report: PlagiarismReport) => {
   doc.addPage();
   drawReportShell(doc, "Review Overview");
   let y = 34;
-  y = sectionTitle(doc, "Review Groups", y, "Counts are calculated after common research structure has been filtered.");
+  y = sectionTitle(doc, "Review Groups", y, "Counts describe only the passages shown, not the entire document.");
 
   report.matchGroups.forEach((group) => {
     y = ensureReportSpace(doc, y, 28, "Review Overview");
@@ -606,18 +609,17 @@ const drawOverviewPage = (doc: jsPDF, report: PlagiarismReport) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(descriptionLines, page.margin + 15, y + 15);
-    percentPill(doc, page.width - page.margin - 24, y + 5.5, `${group.percent}%`, accent);
     y += cardHeight + 5;
   });
 
   y += 7;
   y = ensureReportSpace(doc, y, 42, "Review Overview");
-  y = sectionTitle(doc, "Possible Source Types", y, "These categories are estimates from the local wording review, not verified source matches.");
+  y = sectionTitle(doc, "Source comparison", y, "No source databases were searched.");
   if (report.topSources.length === 0) {
     setRgb(doc, brand.muted);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text("No meaningful source group after filtering common wording.", page.margin, y);
+    doc.text("Source matches and plagiarism percentages are not available in this local review.", page.margin, y);
     y += 12;
   } else {
     for (let index = 0; index < report.topSources.length; index += 2) {
@@ -672,7 +674,8 @@ const drawOverviewPage = (doc: jsPDF, report: PlagiarismReport) => {
     y += 18;
   });
 
-  y = sectionTitle(doc, "How To Use This Review", y + 4, "Work through the colors in this order before submission.");
+  y = ensureReportSpace(doc, y + 4, 35, "Review Overview");
+  y = sectionTitle(doc, "How To Use This Review", y, "Work through the colors in this order before submission.");
   const actionSteps = [
     { title: "Resolve red passages", detail: "Rewrite in your own words and verify the source or quotation." },
     { title: "Check amber and blue passages", detail: "Add source support and confirm every citation in the reference list." },
@@ -699,20 +702,21 @@ const drawOverviewPage = (doc: jsPDF, report: PlagiarismReport) => {
     y += 24;
   });
 
+  y = ensureReportSpace(doc, y + 2, 27, "Review Overview");
   setRgb(doc, brand.skySoft, "fill");
   setRgb(doc, brand.line, "draw");
-  doc.roundedRect(page.margin, y + 2, page.contentWidth, 22, 3, 3, "FD");
+  doc.roundedRect(page.margin, y, page.contentWidth, 22, 3, 3, "FD");
   setRgb(doc, brand.ink);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text("Important limitation", page.margin + 6, y + 10);
+  doc.text("Important limitation", page.margin + 6, y + 8);
   setRgb(doc, brand.muted);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.text(
     doc.splitTextToSize("This local review does not verify matches against internet, publication, or student-paper databases.", page.contentWidth - 12),
     page.margin + 6,
-    y + 17
+    y + 15
   );
 };
 
@@ -1148,6 +1152,7 @@ export const createMarkedAnalysisPdfDocument = createMarkingGuidePdfDocument;
 export const downloadMarkedAnalysisPdf = downloadMarkingGuidePdf;
 
 export const createPlagiarismPdfDocument = (report: PlagiarismReport, fileName: string, studentName?: string) => {
+  report = normaliseLocalReview(report);
   const doc = new jsPDF();
   doc.setProperties({
     title: "UHPAB Originality Review Report",

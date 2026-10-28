@@ -56,7 +56,7 @@ Verification: 23 new checks, bringing the defence suite to 146, plus 20 shared a
 
 ## 4. Capture tester feedback safely
 
-Status: Implemented and installed in production. A support account still needs explicit designation before staff can access the inbox.
+Status: Implemented and installed in production. One confirmed account was explicitly designated for platform-support access on 28 October 2026; its Support inbox tab was verified in the live application.
 
 - Add Report a problem from tool pages and generation/export errors, with category, description and optional screenshot.
 - Preview the report and request consent before sending. Never automatically attach document text, prompts, API keys, identifiers or browser storage.
@@ -83,10 +83,14 @@ Walkthrough findings and fixes:
 - Medium: the marking-to-defence action lost the topic when given saved project text as a generic document. Unchanged, owned proposal text now reconnects to the original project; changed or uploaded content remains a separate handoff unless its text exactly matches the project.
 - Medium: topic templates could turn a low level of a practice into barriers to the low level. The qualifier is removed for recognised behavioural outcomes, while clinical terms such as low birth weight are preserved.
 - Medium: a missing research key error pointed to settings without a direct action. The editor now offers an Open Settings action.
+- High: the local originality review inferred page numbers from sentence positions and displayed heuristic percentages and possible source categories despite having no source database. The interface, archive and PDF now show passage numbers and counts, disclose the first-14-qualifying-passage limit, and do not present scores or source categories as evidence. Older stored reports are normalised on display/export; exact-result reuse requires the new engine version. This remains a limited wording aid, not a plagiarism checker.
+- Medium: the originality PDF's final limitation notice needed a page-space check to avoid overlapping the footer. A synthetic export was rendered for inspection.
 
 Verification so far: a local synthetic topic, project and saved paragraph were taken through the 64-mark proposal screen, using a local fixture rather than Gemini. The marking result explicitly contained no real academic assessment. The missing-passage state was verified in the browser, and the project-to-defence action retained the saved topic. A synthetic marking PDF downloaded successfully; the first two rendered pages were inspected for table and footer overflow. Ten focused journey checks, 17 marking checks, 14 writing checks, 146 defence checks, 20 assisted-drafting checks and 10 feedback checks passed. No actual student result or source accuracy was inferred from the fixture.
 
-Still required: a full existing-proposal walkthrough with an authorised real document, live-provider behaviour, the remaining exported pages and presentation in this journey, originality and correction flows, rehearsal, and mobile checks. Supervisor sharing cannot be verified end-to-end until the shared backend exists. The tester-feedback inbox also still needs a designated support account. Repository-wide TypeScript checks have pre-existing unrelated errors.
+Additional verification: the built-in synthetic sample was checked locally and its citation passage was sent to the correction workspace intact; the editor preserved the wording and stated that no safe rewrite was needed. The browser displayed an export-start notification and backup link, but its download event did not confirm a completed file. The same exporter generated a synthetic PDF directly for visual inspection, and focused tests check new and legacy reports for fabricated locations, categories and percentages. The exact-result cache version was incremented. A synthetic saved proposal produced a labelled ten-slide working draft with absent details still visible; rehearsal opened, navigation and start/pause controls responded, and the source notes followed the selected slide. This was not a timed or academic assessment. No source database or real external AI provider was used.
+
+Still required: a full existing-proposal walkthrough with an authorised real document, live-provider behaviour, completed browser download verification, all pages of the exports and presentation in this journey, a timed rehearsal, and broader mobile checks. Supervisor sharing cannot be verified end-to-end until the shared backend exists. Repository-wide TypeScript checks have pre-existing unrelated errors.
 
 - Test both topic-only and existing-proposal paths, using clearly labelled synthetic fixtures and permissioned real documents.
 - Follow topic selection, proposal writing, source management, marking-guide review, corrections, supervisor feedback, defence drafting, rehearsal and downloads.

@@ -17,7 +17,7 @@ export type ToolResultPayload = {
 
 export const TOOL_ENGINE_VERSION: Record<StoredToolKind, number> = {
   "content-improvement": 1,
-  "plagiarism-checker": 3,
+  "plagiarism-checker": 4,
   humanizer: 4,
 };
 
