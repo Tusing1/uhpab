@@ -39,12 +39,20 @@ Verification: 17 new evidence checks plus the existing 106 defence checks and 20
 
 ## 3. Compare slides with the proposal
 
-Status: Pending; uses evidence records from workstream 2.
+Status: Implemented and verified for the tester release.
 
 - Compare the exact source snapshot with slide wording: objectives/questions, issue, population/ages, setting, dates, design, sample assumptions and recruitment.
 - Separate presentation shortening from an actual research change. Identify contradictions and show source/slide text side by side.
 - Update only selected slides after the student reviews the differences; preserve manual edits, notes, source anchors and undo.
 - Verify that changed source versions are surfaced and that no draft gains approval, results or new identities during summarisation.
+
+Implementation: `defenceConsistency.ts` adds a validated, separate original-input snapshot and local comparison against reviewed fields. New input snapshots are captured before edits/drafting and travel with saved presentations and interrupted-generation sessions. Older presentations explicitly disclose that their original import snapshot is unavailable; no original proposal is reconstructed. Original-versus-reviewed fields and the same consistency findings appear in the notes/handout.
+
+The comparison covers existing formulation rules plus new figures/assumptions, named design and recruitment terms, population/place wording, months/durations, missing qualifications, changed identity details and newly completed approval/recruitment/results claims. Citation years are excluded from study-figure comparisons. Harmless extractive shortening is allowed; paraphrases and unlabelled custom text require review rather than being called factual errors. This is bounded text comparison, not general semantic verification or academic approval.
+
+Saved-project revisions and locally extracted PDF/DOCX/TXT or pasted proposals can be compared without generation or search calls. Students select slides and preview before applying. Missing revision fields never erase existing work. Changed topic updates require including the title slide. Source updates preserve unselected slides, custom notes and text sizes; labelled unaffected points on a selected slide are retained too. A partial update cannot mark outstanding supplied source changes as adopted. A one-step undo remains available until another edit. A changed presentation/revision invalidates an open preview. Retained notes must still be checked against updated study details.
+
+Verification: 23 new checks, bringing the defence suite to 146, plus 20 shared assisted-drafting checks. Controlled browser QA used synthetic local presentations with no Google calls: a changed statistic was compared/restored/undone, a pasted methods revision showed its one supplied change before 22 collapsed missing fields, and only the selected methods slide was updated. A fresh topic-only presentation retained its original input and later manually entered design separately after reload. The preview was checked at desktop and 390px mobile width with no horizontal overflow. Browser testing also found and fixed duplicate sibling React keys between comparison and evidence panels. Existing unrelated repository-wide TypeScript errors remain outside this workstream.
 
 ## 4. Capture tester feedback safely
 

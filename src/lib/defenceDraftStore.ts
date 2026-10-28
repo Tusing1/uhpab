@@ -2,12 +2,14 @@ import { z } from 'zod';
 import { readDefenceDraftCheckpoint, sameDefenceDraftInput, type DefenceDraftCheckpoint } from './defenceDraftCheckpoint';
 import type { DefenceFacts } from './defenceSlides';
 import { readDefenceEvidence, type DefenceEvidence } from './defenceEvidence';
+import { defenceSourceSnapshotSchema, type DefenceSourceSnapshot } from './defenceConsistency';
 
 const sourceSchema = z.object({ name: z.string().min(1).max(1000), projectId: z.string().max(200).optional(), version: z.string().max(200).optional() }).strict();
 const sessionSchema = z.object({
   id: z.string().min(1).max(200), ownerId: z.string().min(1).max(200), source: sourceSchema,
   durationMinutes: z.number().positive().max(120), testData: z.boolean(), retryAt: z.number().finite().nonnegative().optional(),
   updatedAt: z.string().datetime(), checkpoint: z.unknown(),
+  sourceSnapshot: defenceSourceSnapshotSchema.optional(),
 }).strict();
 export interface DefenceDraftSession {
   id: string;
@@ -18,6 +20,7 @@ export interface DefenceDraftSession {
   updatedAt: string;
   retryAt?: number;
   checkpoint: DefenceDraftCheckpoint;
+  sourceSnapshot?: DefenceSourceSnapshot;
 }
 export class DefenceDraftConflictError extends Error {}
 
@@ -25,7 +28,7 @@ export function readDefenceDraftSession(value: unknown, ownerId: string): Defenc
   const parsed = sessionSchema.safeParse(value);
   if (!parsed.success || parsed.data.ownerId !== ownerId) return null;
   const checkpoint = readDefenceDraftCheckpoint(parsed.data.checkpoint);
-  return checkpoint ? { ...parsed.data, source: { name: parsed.data.source.name, projectId: parsed.data.source.projectId, version: parsed.data.source.version }, id: parsed.data.id, ownerId: parsed.data.ownerId, durationMinutes: parsed.data.durationMinutes, testData: parsed.data.testData, updatedAt: parsed.data.updatedAt, checkpoint } : null;
+  return checkpoint ? { ...parsed.data, sourceSnapshot: parsed.data.sourceSnapshot as DefenceSourceSnapshot | undefined, source: { name: parsed.data.source.name, projectId: parsed.data.source.projectId, version: parsed.data.source.version }, id: parsed.data.id, ownerId: parsed.data.ownerId, durationMinutes: parsed.data.durationMinutes, testData: parsed.data.testData, updatedAt: parsed.data.updatedAt, checkpoint } : null;
 }
 
 export const defenceDraftSessionMatches = (session: DefenceDraftSession, facts: DefenceFacts, source: DefenceDraftSession['source'], evidence?: DefenceEvidence[]) =>

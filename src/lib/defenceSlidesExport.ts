@@ -1,6 +1,7 @@
 import type PptxGenJS from 'pptxgenjs';
 import type { DefenceDeck, DefenceFactKey, DefenceSlide } from './defenceSlides';
 import { auditDefenceEvidence, defenceEvidenceReport } from './defenceEvidence';
+import { defenceConsistencyReport, reviewDefenceConsistency } from './defenceConsistency';
 import { DEFENCE_RULES_VERSION, reviewDefenceRules } from './defenceSectionRules';
 import logo from '@/data/defenceLogo.json';
 
@@ -292,7 +293,8 @@ export function defenceDeckIsWorkingDraft(deck: DefenceDeck): boolean {
     || deck.slides.some(slide => [slide.title, ...slide.bullets, slide.notes].some(text => text.trim() && unresolvedText(text)))
     || deck.slides.some(slide => slide.rulesVersion !== DEFENCE_RULES_VERSION)
     || reviewDefenceRules(deck.facts, deck.slides).length > 0
-    || auditDefenceEvidence(deck.facts, deck.evidence, deck.slides).issues.length > 0;
+    || auditDefenceEvidence(deck.facts, deck.evidence, deck.slides).issues.length > 0
+    || reviewDefenceConsistency(deck).length > 0;
 }
 
 function sourceDescription(deck: DefenceDeck): string {
@@ -313,6 +315,7 @@ function slideNotes(deck: DefenceDeck, slide: DefenceSlide, index: number): stri
     sections.push(`COMPLETE SOURCE FACT RECORD\n${FACT_KEYS.filter(key => key !== 'references').map(key => factText(deck, key)).join('\n\n')}`);
     sections.push(referencesText(deck));
     sections.push(defenceEvidenceReport(deck.facts, deck.evidence, deck.slides));
+    sections.push(defenceConsistencyReport(deck));
   }
   return sections.join('\n\n');
 }
@@ -327,6 +330,7 @@ export function buildDefenceHandout(deck: DefenceDeck): string {
     `SPEAKER NOTES\n\n${deck.slides.map((slide, index) => `Slide ${index + 1}: ${slide.title}\n${slide.notes.trim() ? slide.notes : '[No speaker notes supplied]'}\nSource keys: ${slide.sourceKeys.length ? slide.sourceKeys.map(key => `[${key}]`).join(', ') : '[None linked]'}`).join('\n\n')}`,
     `FULL SOURCE FIELDS AND ANCHORS\n\n${FACT_KEYS.filter(key => key !== 'references').map(key => factText(deck, key)).join('\n\n')}`,
     defenceEvidenceReport(deck.facts, deck.evidence, deck.slides),
+    defenceConsistencyReport(deck),
     referencesText(deck),
   ].join('\n\n') + '\n';
 }

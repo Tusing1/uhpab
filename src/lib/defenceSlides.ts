@@ -4,6 +4,7 @@ import { readResearchList } from './researchFormulation';
 import { DEFENCE_RULES_VERSION, getRuleAwareDefencePoints } from './defenceSectionRules';
 import { defenceSlideLayoutIssues } from './defenceSlidesExport';
 import { readDefenceEvidence, type DefenceEvidence } from './defenceEvidence';
+import { readDefenceSourceSnapshot, type DefenceSourceSnapshot } from './defenceConsistency';
 
 export type DefenceFactKey = 'topic' | 'candidate' | 'htin' | 'school' | 'course' | 'supervisor'
   | 'background' | 'problem' | 'aim' | 'objectives' | 'questions' | 'scope' | 'literature'
@@ -43,6 +44,8 @@ export interface DefenceDeck {
   testData?: boolean;
   generationWarnings?: string[];
   evidence?: DefenceEvidence[];
+  sourceSnapshot?: DefenceSourceSnapshot;
+  comparisonSource?: DefenceSourceSnapshot;
 }
 
 type DefenceFactField = {
@@ -425,6 +428,7 @@ export function createDefenceDeck(facts: DefenceFacts, options: {
   testData?: boolean;
   generationWarnings?: string[];
   evidence?: DefenceEvidence[];
+  sourceSnapshot?: DefenceSourceSnapshot;
 }): DefenceDeck {
   if (!hasText(options.sourceName)) throw new Error('Provide a source name for the proposal or topic.');
   if (!Number.isFinite(options.durationMinutes) || options.durationMinutes <= 0)
@@ -438,6 +442,7 @@ export function createDefenceDeck(facts: DefenceFacts, options: {
     ...(options.testData ? { testData: true } : {}),
     ...(options.generationWarnings?.length ? { generationWarnings: [...options.generationWarnings] } : {}),
     ...(options.evidence?.length ? { evidence: structuredClone(readDefenceEvidence(options.evidence)) } : {}),
+    ...(options.sourceSnapshot ? { sourceSnapshot: structuredClone(options.sourceSnapshot) } : {}),
     slides: slideDefinitions.map((_, index) => buildDefenceSlide(index, snapshot)),
   };
 }
@@ -458,6 +463,7 @@ export function validateDefenceDeck(deck: DefenceDeck, options: { allowDraft?: b
   if (deck.testData !== undefined && typeof deck.testData !== 'boolean') errors.push('Test presentation must be a boolean when supplied.');
   if (deck.generationWarnings !== undefined && (!Array.isArray(deck.generationWarnings) || !deck.generationWarnings.every(hasText))) errors.push('Generation warnings must be a list of text notes.');
   if (deck.evidence !== undefined && (!Array.isArray(deck.evidence) || readDefenceEvidence(deck.evidence).length !== deck.evidence.length)) errors.push('Some source retrieval records are invalid. Look up those sources again before exporting.');
+  for (const key of ['sourceSnapshot', 'comparisonSource'] as const) if (deck[key] !== undefined && !readDefenceSourceSnapshot(deck[key])) errors.push('A saved proposal snapshot is invalid. Reopen the original proposal before updating slides.');
   const facts = record(deck.facts);
   const validFacts = new Set<DefenceFactKey>();
   for (const field of DEFENCE_FACT_FIELDS) {

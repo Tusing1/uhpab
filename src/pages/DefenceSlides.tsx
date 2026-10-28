@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Download, FileText, Loader2, Pause, Play, Presentation, RotateCcw, Sparkles, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -28,6 +28,8 @@ import { DefenceDraftConflictError, defenceDraftSessionMatches, discardDefenceDr
 import { researchRetryAt } from '@/lib/researchServiceError';
 import { DefenceEvidenceReview } from '@/components/defence/DefenceEvidenceReview';
 import { readDefenceEvidence, type DefenceEvidence } from '@/lib/defenceEvidence';
+import { captureDefenceSource, readDefenceSourceSnapshot, type DefenceSourceSnapshot } from '@/lib/defenceConsistency';
+import { DefenceConsistencyReview } from '@/components/defence/DefenceConsistencyReview';
 
 type SourceMode = 'project' | 'upload' | 'topic';
 type Step = 'source' | 'facts' | 'slides';
@@ -93,6 +95,9 @@ export default function DefenceSlides() {
   const [file, setFile] = useState<File | null>(null);
   const [facts, setFacts] = useState<DefenceFacts>(() => emptyDefenceFacts());
   const [evidence, setEvidence] = useState<DefenceEvidence[]>([]);
+  const [sourceSnapshot, setSourceSnapshot] = useState<DefenceSourceSnapshot | null>(null);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [comparisonUndo, setComparisonUndo] = useState<DefenceDeck | null>(null);
   const [source, setSource] = useState({ name: '', projectId: undefined as string | undefined, version: undefined as string | undefined });
   const [duration, setDuration] = useState(10);
   const [testData, setTestData] = useState(false);
@@ -123,6 +128,7 @@ export default function DefenceSlides() {
   const ownerId = useRef(user?.id);
   ownerId.current = user?.id;
   const draftRequest = useRef<AbortController | null>(null);
+  const sourceReadRequest = useRef<symbol | null>(null);
   const handledRoute = useRef('');
   const latestDeck = useRef<{ ownerId?: string; deck: DefenceDeck | null }>({ ownerId: user?.id, deck: null });
   if (workspaceOwner === user?.id) latestDeck.current = { ownerId: user?.id, deck };
@@ -145,8 +151,19 @@ export default function DefenceSlides() {
     return rule ? [{ key, rule }] : [];
   }) || [];
   const projectChanged = deck?.projectId && projects.some(p => p.id === deck.projectId && p.updatedAt !== deck.sourceVersion);
+  const latestProposalSnapshot = useMemo(() => {
+    const project = projects.find(project => project.id === deck?.projectId && project.type === 'proposal');
+    if (!project) return null;
+    try { return captureDefenceSource(extractProjectDefenceFacts(project, user), { kind: 'project', name: project.title, projectId: project.id, sourceVersion: project.updatedAt }); }
+    catch { return null; }
+  }, [projects, deck?.projectId, user]);
+  const sourceUnavailable = Boolean(deck?.projectId && !isLoading && !latestProposalSnapshot);
   const resumeMatches = Boolean(draftSession && defenceDraftSessionMatches(draftSession, facts, source, evidence));
   const retrySeconds = Math.max(0, Math.ceil(((draftSession?.retryAt || 0) - retryClock) / 1000));
+  const openStudy = useCallback((next: DefenceFacts, info: { name: string; projectId?: string; version?: string }, kind: DefenceSourceSnapshot['kind']) => {
+    const snapshot = captureDefenceSource(next, { kind, name: info.name, ...(info.projectId ? { projectId: info.projectId } : {}), ...(info.version ? { sourceVersion: info.version } : {}) });
+    setFacts(next); setSource({ name: info.name, projectId: info.projectId, version: info.version }); setSourceSnapshot(snapshot); setEvidence([]); setComparisonUndo(null);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,6 +171,7 @@ export default function DefenceSlides() {
     setWorkspaceOwner(user?.id);
     setFacts(emptyDefenceFacts()); setSource({ name: '', projectId: undefined, version: undefined }); setTopic(''); setProjectId(''); setFile(null);
     setEvidence([]);
+    setSourceSnapshot(null); setComparisonOpen(false); setComparisonUndo(null);
     setDraftSession(null); setStorageWarning(''); setRecoveringDraft(true); setApplyingDraft(false); setDuration(10); setTestData(false);
     if (user?.id) listDefenceDecks(user.id).then(items => { if (!cancelled) setSaved(items); }).catch(e => { if (!cancelled) setError(e.message); });
     if (user?.id) loadDefenceDraftSession(user.id).then(session => { if (!cancelled) setDraftSession(session); })
@@ -164,7 +182,7 @@ export default function DefenceSlides() {
 
   useEffect(() => {
     setPendingDraft(null); setDraftProgress(null); setBusy(false);
-    return () => { draftRequest.current?.abort(); draftRequest.current = null; };
+    return () => { draftRequest.current?.abort(); draftRequest.current = null; sourceReadRequest.current = null; };
   }, [user?.id, location.key]);
 
   useEffect(() => {
@@ -183,18 +201,14 @@ export default function DefenceSlides() {
     if (routeProject) {
       const project = proposals.find(p => p.id === routeProject);
       if (!project) { setError('This proposal is unavailable. Choose one of your saved proposals below.'); handledRoute.current = routeKey; return; }
-      setFacts(extractProjectDefenceFacts(project, user));
-      setSource({ name: project.title, projectId: project.id, version: project.updatedAt });
-      setProjectId(project.id); setStep('facts');
-      setEvidence([]);
+      try { openStudy(extractProjectDefenceFacts(project, user), { name: project.title, projectId: project.id, version: project.updatedAt }, 'project'); setProjectId(project.id); setStep('facts'); }
+      catch (error) { setError(error instanceof Error ? error.message : 'The proposal could not be opened.'); }
     } else if (incoming?.text) {
-      setFacts(extractTextDefenceFacts(incoming.text, incoming.name || 'Reviewed proposal'));
-      setSource({ name: incoming.name || 'Reviewed proposal', projectId: undefined, version: undefined });
-      setStep('facts');
-      setEvidence([]);
+      try { openStudy(extractTextDefenceFacts(incoming.text, incoming.name || 'Reviewed proposal'), { name: incoming.name || 'Reviewed proposal' }, 'handoff'); setStep('facts'); }
+      catch (error) { setError(error instanceof Error ? error.message : 'The proposal could not be opened.'); }
     }
     handledRoute.current = routeKey;
-  }, [isLoading, proposals, user, location.key, location.search, location.state]);
+  }, [isLoading, proposals, user, location.key, location.search, location.state, openStudy]);
 
   useEffect(() => {
     if (!deck || !user?.id || workspaceOwner !== user.id) return;
@@ -229,27 +243,28 @@ export default function DefenceSlides() {
   }, [saveStatus]);
 
   const changeFact = (key: DefenceFactKey, value: string) => {
+    setComparisonUndo(null);
     setFacts(current => ({ ...current, [key]: { value, source: current[key].draft ? 'Student-edited suggested draft - not confirmed' : 'Entered by student', status: value.trim() ? 'confirmed' : 'missing', ...(current[key].draft && value.trim() ? { draft: true } : {}) } }));
   };
 
   const readSource = async () => {
+    const account = user?.id, readId = Symbol('proposal-read'); sourceReadRequest.current = readId;
     setError(''); setBusy(true);
     setEvidence([]);
     try {
       if (mode === 'project') {
         const project = proposals.find(p => p.id === projectId);
         if (!project) throw new Error('Choose a proposal first.');
-        setFacts(extractProjectDefenceFacts(project, user));
-        setSource({ name: project.title, projectId: project.id, version: project.updatedAt });
+        openStudy(extractProjectDefenceFacts(project, user), { name: project.title, projectId: project.id, version: project.updatedAt }, 'project');
       } else if (mode === 'upload') {
         if (!file) throw new Error('Choose a PDF, DOCX or TXT proposal.');
         if (file.size > 25 * 1024 * 1024) throw new Error('Choose a document smaller than 25 MB.');
         const { extractDocumentText } = await import('@/lib/documentTextExtraction');
         const extracted = await extractDocumentText(file);
+        if (ownerId.current !== account || readId !== sourceReadRequest.current) return;
         if (extracted.wordCount < 30) throw new Error('Very little readable text was found. Use a text-based PDF, DOCX or TXT document.');
         if ((extracted.pageCount || 0) > 100) throw new Error('Choose a proposal with no more than 100 pages.');
-        setFacts(extractTextDefenceFacts(extracted.text, file.name));
-        setSource({ name: file.name, projectId: undefined, version: undefined });
+        openStudy(extractTextDefenceFacts(extracted.text, file.name), { name: file.name }, 'upload');
       } else {
         if (topic.trim().length < 12) throw new Error('Enter your full research topic first.');
         const next = emptyDefenceFacts();
@@ -258,18 +273,18 @@ export default function DefenceSlides() {
           const identity: Partial<Record<DefenceFactKey, string>> = { candidate: user.name, htin: user.htin || user.studentId, school: user.schoolName, course: user.className, supervisor: user.supervisorName };
           Object.entries(identity).forEach(([key, value]) => { if (value?.trim()) next[key as DefenceFactKey] = { value, source: `profile.${key}`, status: 'found' }; });
         }
-        setFacts(next);
-        setSource({ name: topic.trim(), projectId: undefined, version: undefined });
+        openStudy(next, { name: topic.trim() }, 'topic');
       }
       setStep('facts');
-    } catch (e) { setError(e instanceof Error ? e.message : 'The proposal could not be opened. Please retry.'); }
-    finally { setBusy(false); }
+    } catch (e) { if (ownerId.current === account && readId === sourceReadRequest.current) setError(e instanceof Error ? e.message : 'The proposal could not be opened. Please retry.'); }
+    finally { if (ownerId.current === account && readId === sourceReadRequest.current) setBusy(false); }
   };
 
-  const makeDeck = (nextFacts: DefenceFacts, warnings?: string[], records = evidence) => createDefenceDeck(nextFacts, { sourceName: source.name || nextFacts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData, generationWarnings: warnings, evidence: records });
+  const makeDeck = (nextFacts: DefenceFacts, warnings?: string[], records = evidence) => createDefenceDeck(nextFacts, { sourceName: source.name || nextFacts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData, generationWarnings: warnings, evidence: records, sourceSnapshot: sourceSnapshot || undefined });
   const createSlides = (next: DefenceDeck) => {
     setFacts(next.facts); setDeck(next); setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
     setEvidence(readDefenceEvidence(next.evidence));
+    setSourceSnapshot(readDefenceSourceSnapshot(next.sourceSnapshot)); setComparisonOpen(false); setComparisonUndo(null);
     toast.success('Ten defence slides created', { description: next.generationWarnings?.length ? 'Suggested content is labelled as a working draft. Review it with your supervisor.' : 'Review the slide content and speaker notes before presenting.' });
   };
 
@@ -323,8 +338,8 @@ export default function DefenceSlides() {
     if ((!previous || nextDefenceDraftStage(previous.checkpoint)) && !getResearchKeys().length) { setError('Add your Gemini API key in Settings to generate the missing sections. Your saved progress is unchanged.'); return; }
     if (!previous && draftSession && !window.confirm('Start a new draft from the current study details? This replaces earlier saved generation progress. Saved presentations are unchanged.')) return;
     if (savedSession && step === 'facts' && !resumeMatches && !window.confirm('Open this saved study instead? Current unsaved study-detail edits will not be included. Saved presentations are unchanged.')) return;
-    let activeSession: DefenceDraftSession = previous ? { ...previous, durationMinutes: savedSession ? previous.durationMinutes : duration, testData: savedSession ? previous.testData : testData, retryAt: previous.retryAt && previous.retryAt > Date.now() ? previous.retryAt : undefined } : { id: crypto.randomUUID(), ownerId: user.id, source: { ...source }, durationMinutes: duration, testData, checkpoint: createDefenceDraftCheckpoint(input, evidence), updatedAt: new Date().toISOString() };
-    if (savedSession) { setFacts(savedSession.checkpoint.inputFacts); setEvidence(savedSession.checkpoint.inputEvidence); setSource({ name: savedSession.source.name, projectId: savedSession.source.projectId, version: savedSession.source.version }); setDuration(savedSession.durationMinutes); setTestData(savedSession.testData); }
+    let activeSession: DefenceDraftSession = previous ? { ...previous, durationMinutes: savedSession ? previous.durationMinutes : duration, testData: savedSession ? previous.testData : testData, retryAt: previous.retryAt && previous.retryAt > Date.now() ? previous.retryAt : undefined } : { id: crypto.randomUUID(), ownerId: user.id, source: { ...source }, sourceSnapshot: sourceSnapshot || undefined, durationMinutes: duration, testData, checkpoint: createDefenceDraftCheckpoint(input, evidence), updatedAt: new Date().toISOString() };
+    if (savedSession) { setFacts(savedSession.checkpoint.inputFacts); setSourceSnapshot(savedSession.sourceSnapshot || null); setEvidence(savedSession.checkpoint.inputEvidence); setSource({ name: savedSession.source.name, projectId: savedSession.source.projectId, version: savedSession.source.version }); setDuration(savedSession.durationMinutes); setTestData(savedSession.testData); }
     setStep('facts');
     const controller = new AbortController();
     draftRequest.current = controller; setBusy(true); setError('');
@@ -372,6 +387,7 @@ export default function DefenceSlides() {
   };
 
   const editSlide = (patch: Partial<DefenceSlide>) => {
+    setComparisonUndo(null);
     setDeck(current => current ? { ...current, updatedAt: new Date().toISOString(), slides: current.slides.map((slide, i) => i === slideIndex ? { ...slide, ...patch } : slide) } : null);
   };
 
@@ -415,6 +431,7 @@ export default function DefenceSlides() {
     if (!existing) return;
     setDeck(existing); setFacts(existing.facts); setDuration(existing.durationMinutes); setTestData(Boolean(existing.testData));
     setEvidence(readDefenceEvidence(existing.evidence));
+    setSourceSnapshot(readDefenceSourceSnapshot(existing.sourceSnapshot)); setComparisonOpen(false); setComparisonUndo(null);
     setSource({ name: existing.sourceName, projectId: existing.projectId, version: existing.sourceVersion });
     setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
   };
@@ -483,10 +500,12 @@ export default function DefenceSlides() {
     {step === 'slides' && deck && selectedSlide && <section className="space-y-5">
       {deck.testData && <p className="border-l-4 border-sky-500 bg-sky-50 px-4 py-3 text-sm text-sky-950">Test version. Demonstration details are not for academic submission.</p>}
       {selectedSlide.rulesVersion !== DEFENCE_RULES_VERSION && <Alert className="border-sky-300 bg-sky-50 text-sky-950"><AlertTitle>This slide uses earlier wording</AlertTitle><AlertDescription className="space-y-3"><p>Review the updated wording against the current section requirements.</p><Button variant="outline" size="sm" onClick={() => setRuleSuggestion(buildDefenceSlide(slideIndex, deck.facts))}>Review updated wording</Button></AlertDescription></Alert>}
-      {projectChanged && <Alert className="border-amber-300"><AlertTitle>The saved proposal has changed</AlertTitle><AlertDescription>This presentation uses an earlier proposal version. <Link className="underline" to={`/defence-slides?project=${deck.projectId}`}>Review the latest proposal</Link> before preparing another version.</AlertDescription></Alert>}
+      {projectChanged && <Alert className="border-amber-300"><AlertTitle>The saved proposal has changed</AlertTitle><AlertDescription className="space-y-3"><p>This presentation uses an earlier proposal version. Compare the latest fields before choosing which slides to update.</p><Button type="button" size="sm" variant="outline" onClick={() => setComparisonOpen(true)}>Compare with latest proposal</Button></AlertDescription></Alert>}
+      {sourceUnavailable && <Alert className="border-amber-300"><AlertTitle>The linked proposal is unavailable</AlertTitle><AlertDescription>Your saved presentation and source fields are kept. Reopen the proposal or compare another version before updating the slides.</AlertDescription></Alert>}
       {incomplete && <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span>{Object.values(deck.facts).some(fact => fact.draft) ? 'Working draft: review and confirm the suggested study details and sources.' : missingDefenceFacts(deck.facts).length ? `Working draft: ${missingDefenceFacts(deck.facts).length} study details need completion.` : 'Working draft: review section findings and unresolved slide wording.'}</span><Button size="sm" variant="outline" onClick={() => { setFacts(deck.facts); setStep('facts'); }}>Review details</Button></div>}
       {deck.generationWarnings?.length ? <details className="border-b py-3 text-sm"><summary className="cursor-pointer font-semibold">Draft review notes</summary><ul className="mt-3 list-disc space-y-2 pl-5 leading-6">{deck.generationWarnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul></details> : null}
-      <DefenceEvidenceReview key={`${user?.id}:${deck.id}`} facts={deck.facts} records={readDefenceEvidence(deck.evidence)} slides={deck.slides} onChange={(next, records) => { setFacts(next); setEvidence(records); setDeck(current => current ? { ...current, facts: next, evidence: records, updatedAt: new Date().toISOString() } : current); }} onReview={(field, index) => { if (index !== undefined) { setSlideIndex(index); setEditorTab('content'); document.getElementById('defence-slide-bullets')?.focus(); } else { setFacts(deck.facts); setStep('facts'); window.setTimeout(() => document.getElementById(`fact-${field || 'references'}`)?.focus(), 0); } }} />
+      <DefenceConsistencyReview key={`consistency:${user?.id}:${deck.id}`} deck={deck} latest={latestProposalSnapshot} sourceUnavailable={sourceUnavailable} open={comparisonOpen} onOpenChange={setComparisonOpen} canUndo={Boolean(comparisonUndo)} onUndo={() => { if (!comparisonUndo) return; const previous = { ...comparisonUndo, updatedAt: new Date().toISOString() }; setDeck(previous); setFacts(previous.facts); setSource({ name: previous.sourceName, projectId: previous.projectId, version: previous.sourceVersion }); setComparisonUndo(null); toast.success('Comparison update undone'); }} onApply={next => { setComparisonUndo(deck); setUndo(null); setDeck(next); setFacts(next.facts); setSource({ name: next.sourceName, projectId: next.projectId, version: next.sourceVersion }); }} onEdit={index => { setSlideIndex(index); setEditorTab('content'); setComparisonOpen(false); window.setTimeout(() => document.getElementById('defence-slide-bullets')?.focus(), 0); }} />
+      <DefenceEvidenceReview key={`evidence:${user?.id}:${deck.id}`} facts={deck.facts} records={readDefenceEvidence(deck.evidence)} slides={deck.slides} onChange={(next, records) => { setComparisonUndo(null); setFacts(next); setEvidence(records); setDeck(current => current ? { ...current, facts: next, evidence: records, updatedAt: new Date().toISOString() } : current); }} onReview={(field, index) => { if (index !== undefined) { setSlideIndex(index); setEditorTab('content'); document.getElementById('defence-slide-bullets')?.focus(); } else { setFacts(deck.facts); setStep('facts'); window.setTimeout(() => document.getElementById(`fact-${field || 'references'}`)?.focus(), 0); } }} />
       {visibleContentIssues.length > 0 && <Alert className="border-amber-300"><AlertTitle>Review these slides before downloading</AlertTitle><AlertDescription><ul className="list-disc pl-4">{visibleContentIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>Keep key points on the slide and move supporting detail to speaker notes.</AlertDescription></Alert>}
       <RuleFindings findings={deckFindings.filter(finding => selectedSlide.sourceKeys.includes(finding.key))} />
       {slidesNeedingRules.some(({ index }) => index !== slideIndex) && <div className="flex flex-wrap items-center gap-3 border-b pb-4 text-sm"><span>Before downloading, review:</span>{slidesNeedingRules.filter(({ index }) => index !== slideIndex).map(({ slide, index }) => <Button key={slide.id} size="sm" variant="outline" className="gap-2" onClick={() => { setSlideIndex(index); setEditorTab('content'); }}>Slide {index + 1}: {slide.title}<ArrowRight size={14} /></Button>)}</div>}
