@@ -47,7 +47,7 @@ function fixture() {
   facts.questions.value = `What are the individual factors associated with ${tail}?\nWhat are the health facility-related factors associated with ${tail}?`;
   facts.background.value = 'Globally, handwashing supports care (Synthetic Author, 2026). At test health centre IV, kampala, handwashing needs local review. A local evidence gap remains.';
   facts.problem.value = 'Ideally, nurses should have adequate supplies. Currently, local access remains inconsistent (Synthetic Author, 2026). A local evidence gap remains. If this persists, nurses may face service interruptions.';
-  facts.literature.value = 'A local gap was described (Synthetic Author, 2026).';
+  facts.literature.value = 'A local gap was described (Synthetic Author, 2026; Second Author, 2025).';
   facts.scope.value = `Content: The study will assess ${tail}.\nPlace: The study will be conducted at test health centre IV, kampala.\nPeriod: The study will run during November 2026.`;
   facts.justification.value = 'The study is needed because local evidence is incomplete.';
   facts.contribution.value = 'Facility managers will use the findings to guide staff education.';
@@ -56,13 +56,19 @@ function fixture() {
     version: 1, rulesVersion: 2, id: 'synthetic-defence-export', projectId: 'qa-only',
     sourceName: 'Synthetic proposal & notes', sourceVersion: 'qa-v1',
     updatedAt: '2026-10-27T08:00:00.000Z', durationMinutes: 10, facts,
+    evidence: [['Synthetic Author', '2026'], ['Second Author', '2025']].map(([author, year], index) => ({
+      id: `test-source-${index}`, title: 'Synthetic QA source, not real evidence', authors: author, year,
+      citationText: `(${author}, ${year})`, apaReference: fullReference.split('\n')[index],
+      url: `https://example.org/test-source-${index}`, notes: 'Synthetic fixture only: the comparison value is 100%. Not real evidence.',
+      retrievedAt: '2026-10-27T08:00:00.000Z', annotations: [{ url: `https://example.org/test-source-${index}`, title: 'Synthetic QA source' }],
+    })),
     slides: Array.from({ length: 10 }, (_, index) => ({
       id: `slide-${index + 1}`, role: index === 0 ? 'title' : `qa-${index}`,
       rulesVersion: 2,
       title: index === 0 ? topic : `Academic subject ${index + 1}`,
       bullets: index === 0
         ? ['Test Candidate', 'HTIN: TEST-001', 'Test School', 'Test Programme', 'Supervisor: Test Supervisor']
-        : [`Editable source point ${index + 1}: nurses & practice < 100%.`, 'A second supplied point remains editable.'],
+        : [`Editable source point ${index + 1}: nurses & practice < 100% (Synthetic Author, 2026).`, 'A second supplied point remains editable.'],
       notes: `Complete speaker notes ${index + 1}. Keep 5 < 8 & 9 > 4 as supplied.`,
       sourceKeys: index === 0 ? ['topic', 'candidate', 'htin', 'school', 'course', 'supervisor'] : ['background', 'objectives'],
     })),

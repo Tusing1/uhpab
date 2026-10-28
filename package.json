@@ -15,7 +15,7 @@
     "test:writing": "node scripts/test-student-writing.mjs",
     "test:assisted": "node scripts/test-assisted-drafting.mjs",
     "test:study-tools": "node scripts/test-study-tools.mjs",
-    "test:defence": "node scripts/test-defence-slides.mjs && node scripts/test-defence-export.mjs && node scripts/test-defence-rules.mjs && node scripts/test-defence-drafting.mjs && node scripts/test-defence-recovery.mjs",
+    "test:defence": "node scripts/test-defence-slides.mjs && node scripts/test-defence-export.mjs && node scripts/test-defence-rules.mjs && node scripts/test-defence-drafting.mjs && node scripts/test-defence-recovery.mjs && node scripts/test-defence-evidence.mjs",
     "test:keys": "node scripts/test-research-keys.mjs",
     "test:marking": "node scripts/test-strict-marking.mjs",
     "lint": "eslint .",

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { readDefenceDraftCheckpoint, sameDefenceDraftInput, type DefenceDraftCheckpoint } from './defenceDraftCheckpoint';
 import type { DefenceFacts } from './defenceSlides';
+import { readDefenceEvidence, type DefenceEvidence } from './defenceEvidence';
 
 const sourceSchema = z.object({ name: z.string().min(1).max(1000), projectId: z.string().max(200).optional(), version: z.string().max(200).optional() }).strict();
 const sessionSchema = z.object({
@@ -27,8 +28,9 @@ export function readDefenceDraftSession(value: unknown, ownerId: string): Defenc
   return checkpoint ? { ...parsed.data, source: { name: parsed.data.source.name, projectId: parsed.data.source.projectId, version: parsed.data.source.version }, id: parsed.data.id, ownerId: parsed.data.ownerId, durationMinutes: parsed.data.durationMinutes, testData: parsed.data.testData, updatedAt: parsed.data.updatedAt, checkpoint } : null;
 }
 
-export const defenceDraftSessionMatches = (session: DefenceDraftSession, facts: DefenceFacts, source: DefenceDraftSession['source']) =>
-  sameDefenceDraftInput(facts, session.checkpoint.inputFacts) && source.name === session.source.name && source.projectId === session.source.projectId && source.version === session.source.version;
+export const defenceDraftSessionMatches = (session: DefenceDraftSession, facts: DefenceFacts, source: DefenceDraftSession['source'], evidence?: DefenceEvidence[]) =>
+  sameDefenceDraftInput(facts, session.checkpoint.inputFacts) && source.name === session.source.name && source.projectId === session.source.projectId && source.version === session.source.version
+  && (evidence === undefined || JSON.stringify(readDefenceEvidence(evidence)) === JSON.stringify(session.checkpoint.inputEvidence));
 
 const openDb = () => new Promise<IDBDatabase>((resolve, reject) => {
   if (typeof indexedDB === 'undefined') { reject(new Error('Device recovery is unavailable. Progress will remain in this open page only.')); return; }

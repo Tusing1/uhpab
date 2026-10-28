@@ -4,7 +4,7 @@ Implement these workstreams in order. Completion of generation is not evidence o
 
 ## 1. Recover interrupted generation
 
-Status: Implemented and locally verified. Included in this workstream's tester release.
+Status: Implemented, verified and published in commit 07dd524.
 
 - Save validated source, study-focus and methodology stages to account-scoped IndexedDB on this device, separately from reviewed presentations.
 - Bind recovery to the exact input facts, source/project version, drafting engine, section rules and model. Changed inputs cannot silently reuse earlier output.
@@ -21,13 +21,21 @@ Verification: 15 recovery tests, the existing 91 defence tests and 20 shared ass
 
 ## 2. Trace claims to evidence
 
-Status: Pending; follows recovery.
+Status: Implemented and verified for the tester release.
 
 - Keep retrieved-source records and their provider annotations, retrieval dates and supported findings together.
 - Reconcile in-text citations with references in both directions; distinguish missing source, metadata requiring review and retrieved evidence.
 - Flag unsupported local statistics and prevent non-local findings being presented as study-facility results.
 - Provide focused source replacement/retrieval without rewriting accepted text. Revalidate only affected draft stages when evidence changes.
 - Verify with grounded, ungrounded, inaccessible, contradictory and mismatched-citation fixtures. Export the same evidence limitations seen on screen.
+
+Implementation: the defence workspace now has an Evidence and citations review on the study-details and slide-editing screens. Source records retain bibliographic metadata, provider URL/title annotations, retrieval timestamps and model-summarised findings with scope. They are stored with account-scoped presentations and recovery, never with API keys. APA matching handles parenthetical and narrative citations, grouped sources, year suffixes, organisation aliases and n.d.; it flags missing, uncited, ambiguous or incomplete entries and differing retrieved bibliography details. The original source is always available for inspection.
+
+Generated percentages must have a cited retrieved finding with the same value. A proposed study site's percentage cannot be supported merely by a general or other-site record. Existing supplied writing is flagged rather than rewritten. These are bounded checks of recorded findings, not semantic verification of every claim, a check of denominators or proof that source metadata is correct. Qualitative contradictions, unusual citation styles and source-page inaccuracies still require academic review.
+
+Focused lookup can retrieve a public URL or search only the public topic. Students explicitly preview and apply a source/reference update. Refreshing one source leaves accepted paragraphs, slides and speaker notes unchanged; the local audit updates without regenerating accepted stages or making extra text-generation calls. New draft recovery is bound to its original selected evidence as well as facts, so changed findings cannot silently reuse a different generation context. The engine version is now 2; earlier recovery records require a fresh draft, but saved presentations remain available. Unretrieved legacy references are not silently upgraded to retrieved evidence.
+
+Verification: 17 new evidence checks plus the existing 106 defence checks and 20 shared assisted-drafting checks. Fixtures cover ungrounded/inaccessible sources, annotated URL mismatches, contradictory percentages, local scope, author-year collisions, metadata differences, source refresh, changed-evidence recovery, private URL rejection, account storage and exact audit retention in PPTX notes/handouts. Controlled browser QA retrieved and refreshed a clearly labelled synthetic source, confirmed the explicit update dialog, retained one reference/source without rewriting slides, flagged a slide statistic absent from recorded findings, and restored records/edits after refresh. At 390px mobile width, document scroll width equalled the 375px content viewport with no horizontal overflow. This tests application behaviour, not real academic evidence or Google's availability.
 
 ## 3. Compare slides with the proposal
 

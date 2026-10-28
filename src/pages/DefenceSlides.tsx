@@ -26,6 +26,8 @@ import { getResearchKeys } from '@/lib/aiKeys';
 import { createDefenceDraftCheckpoint, DEFENCE_DRAFT_STAGE_LABELS, DEFENCE_DRAFT_STAGES, nextDefenceDraftStage } from '@/lib/defenceDraftCheckpoint';
 import { DefenceDraftConflictError, defenceDraftSessionMatches, discardDefenceDraftSession, loadDefenceDraftSession, saveDefenceDraftSession, withDefenceDraftLock, type DefenceDraftSession } from '@/lib/defenceDraftStore';
 import { researchRetryAt } from '@/lib/researchServiceError';
+import { DefenceEvidenceReview } from '@/components/defence/DefenceEvidenceReview';
+import { readDefenceEvidence, type DefenceEvidence } from '@/lib/defenceEvidence';
 
 type SourceMode = 'project' | 'upload' | 'topic';
 type Step = 'source' | 'facts' | 'slides';
@@ -90,6 +92,7 @@ export default function DefenceSlides() {
   const [topic, setTopic] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [facts, setFacts] = useState<DefenceFacts>(() => emptyDefenceFacts());
+  const [evidence, setEvidence] = useState<DefenceEvidence[]>([]);
   const [source, setSource] = useState({ name: '', projectId: undefined as string | undefined, version: undefined as string | undefined });
   const [duration, setDuration] = useState(10);
   const [testData, setTestData] = useState(false);
@@ -142,7 +145,7 @@ export default function DefenceSlides() {
     return rule ? [{ key, rule }] : [];
   }) || [];
   const projectChanged = deck?.projectId && projects.some(p => p.id === deck.projectId && p.updatedAt !== deck.sourceVersion);
-  const resumeMatches = Boolean(draftSession && defenceDraftSessionMatches(draftSession, facts, source));
+  const resumeMatches = Boolean(draftSession && defenceDraftSessionMatches(draftSession, facts, source, evidence));
   const retrySeconds = Math.max(0, Math.ceil(((draftSession?.retryAt || 0) - retryClock) / 1000));
 
   useEffect(() => {
@@ -150,6 +153,7 @@ export default function DefenceSlides() {
     setSaved([]); setDeck(null); setStep('source'); setSaveStatus('');
     setWorkspaceOwner(user?.id);
     setFacts(emptyDefenceFacts()); setSource({ name: '', projectId: undefined, version: undefined }); setTopic(''); setProjectId(''); setFile(null);
+    setEvidence([]);
     setDraftSession(null); setStorageWarning(''); setRecoveringDraft(true); setApplyingDraft(false); setDuration(10); setTestData(false);
     if (user?.id) listDefenceDecks(user.id).then(items => { if (!cancelled) setSaved(items); }).catch(e => { if (!cancelled) setError(e.message); });
     if (user?.id) loadDefenceDraftSession(user.id).then(session => { if (!cancelled) setDraftSession(session); })
@@ -182,10 +186,12 @@ export default function DefenceSlides() {
       setFacts(extractProjectDefenceFacts(project, user));
       setSource({ name: project.title, projectId: project.id, version: project.updatedAt });
       setProjectId(project.id); setStep('facts');
+      setEvidence([]);
     } else if (incoming?.text) {
       setFacts(extractTextDefenceFacts(incoming.text, incoming.name || 'Reviewed proposal'));
       setSource({ name: incoming.name || 'Reviewed proposal', projectId: undefined, version: undefined });
       setStep('facts');
+      setEvidence([]);
     }
     handledRoute.current = routeKey;
   }, [isLoading, proposals, user, location.key, location.search, location.state]);
@@ -228,6 +234,7 @@ export default function DefenceSlides() {
 
   const readSource = async () => {
     setError(''); setBusy(true);
+    setEvidence([]);
     try {
       if (mode === 'project') {
         const project = proposals.find(p => p.id === projectId);
@@ -259,9 +266,10 @@ export default function DefenceSlides() {
     finally { setBusy(false); }
   };
 
-  const makeDeck = (nextFacts: DefenceFacts, warnings?: string[]) => createDefenceDeck(nextFacts, { sourceName: source.name || nextFacts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData, generationWarnings: warnings });
+  const makeDeck = (nextFacts: DefenceFacts, warnings?: string[], records = evidence) => createDefenceDeck(nextFacts, { sourceName: source.name || nextFacts.topic.value, projectId: source.projectId, sourceVersion: source.version, durationMinutes: duration, testData, generationWarnings: warnings, evidence: records });
   const createSlides = (next: DefenceDeck) => {
     setFacts(next.facts); setDeck(next); setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
+    setEvidence(readDefenceEvidence(next.evidence));
     toast.success('Ten defence slides created', { description: next.generationWarnings?.length ? 'Suggested content is labelled as a working draft. Review it with your supervisor.' : 'Review the slide content and speaker notes before presenting.' });
   };
 
@@ -278,7 +286,8 @@ export default function DefenceSlides() {
     const account = user.id, session = draftSession;
     setApplyingDraft(true);
     try {
-      const next = makeDeck(pendingDraft.facts, pendingDraft.warnings);
+      const records = [...pendingDraft.evidence, ...evidence.filter(source => !pendingDraft.evidence.some(item => item.url === source.url))];
+      const next = makeDeck(pendingDraft.facts, pendingDraft.warnings, records);
       let cleared = !session;
       await withDefenceDraftLock(account, async () => {
         try { await saveDefenceDeck(account, next); }
@@ -314,8 +323,8 @@ export default function DefenceSlides() {
     if ((!previous || nextDefenceDraftStage(previous.checkpoint)) && !getResearchKeys().length) { setError('Add your Gemini API key in Settings to generate the missing sections. Your saved progress is unchanged.'); return; }
     if (!previous && draftSession && !window.confirm('Start a new draft from the current study details? This replaces earlier saved generation progress. Saved presentations are unchanged.')) return;
     if (savedSession && step === 'facts' && !resumeMatches && !window.confirm('Open this saved study instead? Current unsaved study-detail edits will not be included. Saved presentations are unchanged.')) return;
-    let activeSession: DefenceDraftSession = previous ? { ...previous, durationMinutes: savedSession ? previous.durationMinutes : duration, testData: savedSession ? previous.testData : testData, retryAt: previous.retryAt && previous.retryAt > Date.now() ? previous.retryAt : undefined } : { id: crypto.randomUUID(), ownerId: user.id, source: { ...source }, durationMinutes: duration, testData, checkpoint: createDefenceDraftCheckpoint(input), updatedAt: new Date().toISOString() };
-    if (savedSession) { setFacts(savedSession.checkpoint.inputFacts); setSource({ name: savedSession.source.name, projectId: savedSession.source.projectId, version: savedSession.source.version }); setDuration(savedSession.durationMinutes); setTestData(savedSession.testData); }
+    let activeSession: DefenceDraftSession = previous ? { ...previous, durationMinutes: savedSession ? previous.durationMinutes : duration, testData: savedSession ? previous.testData : testData, retryAt: previous.retryAt && previous.retryAt > Date.now() ? previous.retryAt : undefined } : { id: crypto.randomUUID(), ownerId: user.id, source: { ...source }, durationMinutes: duration, testData, checkpoint: createDefenceDraftCheckpoint(input, evidence), updatedAt: new Date().toISOString() };
+    if (savedSession) { setFacts(savedSession.checkpoint.inputFacts); setEvidence(savedSession.checkpoint.inputEvidence); setSource({ name: savedSession.source.name, projectId: savedSession.source.projectId, version: savedSession.source.version }); setDuration(savedSession.durationMinutes); setTestData(savedSession.testData); }
     setStep('facts');
     const controller = new AbortController();
     draftRequest.current = controller; setBusy(true); setError('');
@@ -405,6 +414,7 @@ export default function DefenceSlides() {
     const existing = saved.find(d => d.id === id);
     if (!existing) return;
     setDeck(existing); setFacts(existing.facts); setDuration(existing.durationMinutes); setTestData(Boolean(existing.testData));
+    setEvidence(readDefenceEvidence(existing.evidence));
     setSource({ name: existing.sourceName, projectId: existing.projectId, version: existing.sourceVersion });
     setSlideIndex(0); setUndo(null); setStep('slides'); setError('');
   };
@@ -465,6 +475,7 @@ export default function DefenceSlides() {
           </div>
         </section>)}
       </div>
+      <DefenceEvidenceReview key={`${user?.id}:${source.name}:${source.version || ''}`} facts={facts} records={evidence} onChange={(next, records) => { setFacts(next); setEvidence(records); }} onReview={field => { if (field) document.getElementById(`fact-${field}`)?.focus(); }} />
       <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background/95 p-4 shadow-lg backdrop-blur"><p className="text-sm text-muted-foreground">{missing.length || suggested.length ? 'Working draft for review' : 'Study details ready'}<span className="block text-xs">{resumeMatches ? 'Completed stages will be reused.' : 'Saved on this device when slides are created.'}</span></p><Button className="gap-2" disabled={busy || recoveringDraft || draftMissing && draftable.length > 0 && retrySeconds > 0 && !(resumeMatches && draftSession && !nextDefenceDraftStage(draftSession.checkpoint))} onClick={() => generate()}>{busy ? <Loader2 size={16} className="animate-spin" /> : draftMissing && draftable.length ? <Sparkles size={16} /> : <Presentation size={16} />}{busy ? 'Drafting...' : draftMissing && draftable.length ? resumeMatches && draftSession ? nextDefenceDraftStage(draftSession.checkpoint) ? 'Resume draft' : 'Review completed draft' : 'Generate draft slides' : deck ? 'Create new version' : 'Create 10 slides'}</Button></div>
       </fieldset>}
     </section>}
@@ -475,6 +486,7 @@ export default function DefenceSlides() {
       {projectChanged && <Alert className="border-amber-300"><AlertTitle>The saved proposal has changed</AlertTitle><AlertDescription>This presentation uses an earlier proposal version. <Link className="underline" to={`/defence-slides?project=${deck.projectId}`}>Review the latest proposal</Link> before preparing another version.</AlertDescription></Alert>}
       {incomplete && <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950"><span>{Object.values(deck.facts).some(fact => fact.draft) ? 'Working draft: review and confirm the suggested study details and sources.' : missingDefenceFacts(deck.facts).length ? `Working draft: ${missingDefenceFacts(deck.facts).length} study details need completion.` : 'Working draft: review section findings and unresolved slide wording.'}</span><Button size="sm" variant="outline" onClick={() => { setFacts(deck.facts); setStep('facts'); }}>Review details</Button></div>}
       {deck.generationWarnings?.length ? <details className="border-b py-3 text-sm"><summary className="cursor-pointer font-semibold">Draft review notes</summary><ul className="mt-3 list-disc space-y-2 pl-5 leading-6">{deck.generationWarnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul></details> : null}
+      <DefenceEvidenceReview key={`${user?.id}:${deck.id}`} facts={deck.facts} records={readDefenceEvidence(deck.evidence)} slides={deck.slides} onChange={(next, records) => { setFacts(next); setEvidence(records); setDeck(current => current ? { ...current, facts: next, evidence: records, updatedAt: new Date().toISOString() } : current); }} onReview={(field, index) => { if (index !== undefined) { setSlideIndex(index); setEditorTab('content'); document.getElementById('defence-slide-bullets')?.focus(); } else { setFacts(deck.facts); setStep('facts'); window.setTimeout(() => document.getElementById(`fact-${field || 'references'}`)?.focus(), 0); } }} />
       {visibleContentIssues.length > 0 && <Alert className="border-amber-300"><AlertTitle>Review these slides before downloading</AlertTitle><AlertDescription><ul className="list-disc pl-4">{visibleContentIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>Keep key points on the slide and move supporting detail to speaker notes.</AlertDescription></Alert>}
       <RuleFindings findings={deckFindings.filter(finding => selectedSlide.sourceKeys.includes(finding.key))} />
       {slidesNeedingRules.some(({ index }) => index !== slideIndex) && <div className="flex flex-wrap items-center gap-3 border-b pb-4 text-sm"><span>Before downloading, review:</span>{slidesNeedingRules.filter(({ index }) => index !== slideIndex).map(({ slide, index }) => <Button key={slide.id} size="sm" variant="outline" className="gap-2" onClick={() => { setSlideIndex(index); setEditorTab('content'); }}>Slide {index + 1}: {slide.title}<ArrowRight size={14} /></Button>)}</div>}
