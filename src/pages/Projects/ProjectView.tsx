@@ -18,7 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { MoreVertical, Edit, Trash2, Download, AlertCircle, CalendarDays, Clock, Library, FileText, Loader2, Presentation } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, Download, AlertCircle, CalendarDays, Clock, Library, FileText, Loader2, Presentation, FileSearch } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -187,6 +187,7 @@ const ProjectView = () => {
                 Continue writing
               </Button>
               {projectData?.type === 'proposal' && <Button variant="outline" className="gap-2" onClick={() => navigate(`/defence-slides?project=${projectId}`)}><Presentation size={16} />Defence slides</Button>}
+              <Button variant="outline" className="gap-2" onClick={() => navigate('/document-analysis', { state: { projectReviewId: projectId } })}><FileSearch size={16} />Check saved text</Button>
               <Button onClick={handleDownload} disabled={isDownloading} variant="outline" className="gap-2 bg-white/80">
                 {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 {isDownloading ? 'Preparing DOCX' : 'Download DOCX'}

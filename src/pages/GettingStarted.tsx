@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { studentPremiumPricing } from "@/data/pricing";
+import { isSupabaseConfigured } from "@/lib/runtimeConfig";
+import SchoolConnectionUnavailable from "@/components/school/SchoolConnectionUnavailable";
 import {
   ArrowRight,
   BookOpen,
@@ -245,6 +247,8 @@ const GettingStarted = () => {
   const schoolSupervisor = isSchoolSupervisor();
   const roadmapSteps = schoolAdmin ? schoolSteps : schoolSupervisor ? supervisorSteps : studentSteps;
   const quickTips = schoolAdmin ? schoolQuickTips : schoolSupervisor ? supervisorQuickTips : studentQuickTips;
+
+  if (isSupabaseConfigured && (schoolAdmin || schoolSupervisor)) return <SchoolConnectionUnavailable />;
 
   return (
     <DashboardLayout>

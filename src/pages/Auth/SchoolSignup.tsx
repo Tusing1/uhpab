@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { findSchoolById } from '@/data/schools';
+import { isSupabaseConfigured } from '@/lib/runtimeConfig';
 
 const customSchoolPrefix = 'custom-school:';
 const getCustomSchoolName = (schoolValue: string) =>
@@ -34,6 +35,7 @@ const SchoolSignup: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSupabaseConfigured) return;
     setLoading(true);
 
     try {
@@ -59,6 +61,11 @@ const SchoolSignup: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (isSupabaseConfigured) return <AuthShell eyebrow="School workspace" title="School collaboration is not available yet" description="Candidate registration, assignments and supervisor feedback are not currently connected across accounts." icon={<School className="h-6 w-6" />} sideTitle="Research tools remain available" sideDescription="Students can create, review and download their own work while school collaboration is being prepared." sideItems={['Create a proposal or report', 'Review work against the guide', "Download and share through your school's agreed channel"]} footer={<Button variant="outline" asChild className="w-full"><Link to="/login">Sign in</Link></Button>}>
+    <p className="text-sm leading-6 text-muted-foreground">School accounts are not open for registration while shared candidate records and online supervisor submissions are being prepared.</p>
+    <Button asChild className="mt-5 w-full"><Link to="/">Return to home</Link></Button>
+  </AuthShell>;
 
   return (
     <AuthShell

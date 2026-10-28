@@ -3,6 +3,8 @@ import { Navigate, useLocation } from "react-router-dom";
 
 import RouteLoadingScreen from "@/components/app/RouteLoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
+import { isSupabaseConfigured } from "@/lib/runtimeConfig";
+import SchoolConnectionUnavailable from "@/components/school/SchoolConnectionUnavailable";
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -42,6 +44,10 @@ const RequireAuth = ({
 
   if (schoolStudentOnly && !isSchoolStudent()) {
     return <Navigate to={isSchoolAdmin() ? "/school-dashboard" : isSchoolSupervisor() ? "/supervisor-dashboard" : "/dashboard"} replace />;
+  }
+
+  if (isSupabaseConfigured && (schoolAdminOnly || schoolSupervisorOnly || schoolStudentOnly)) {
+    return <SchoolConnectionUnavailable />;
   }
 
   if (redirectSchoolAdminTo && isSchoolAdmin()) {

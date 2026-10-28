@@ -192,9 +192,9 @@ const SchoolStudentWorkspace = () => {
       persistWorkspace(nextWorkspace);
       setSelectedFile(null);
       setManualText("");
-      toast.success("Submission uploaded", {
+      toast.success("Test submission saved on this device", {
         id: toastId,
-        description: "Your supervisor can now review the latest version.",
+        description: "This local demonstration does not send the submission to your supervisor.",
       });
     } catch (error) {
       console.error(error);
@@ -217,8 +217,8 @@ const SchoolStudentWorkspace = () => {
     const nextWorkspace = respondToCorrectionRequest(workspace, requestId, response);
     persistWorkspace(nextWorkspace);
     setResponseDrafts((current) => ({ ...current, [requestId]: "" }));
-    toast.success("Response sent", {
-      description: "Your supervisor will see this in the correction queue.",
+    toast.success("Test response saved on this device", {
+      description: "This local demonstration does not send responses to another account.",
     });
   };
 
@@ -232,8 +232,8 @@ const SchoolStudentWorkspace = () => {
     const nextWorkspace = respondToSupervisorComment(workspace, commentId, reply);
     persistWorkspace(nextWorkspace);
     setCommentReplyDrafts((current) => ({ ...current, [commentId]: "" }));
-    toast.success("Comment reply sent", {
-      description: "Your supervisor can see the reply in the review thread.",
+    toast.success("Test reply saved on this device", {
+      description: "This local demonstration does not send replies to another account.",
     });
   };
 
@@ -466,7 +466,7 @@ const SchoolStudentWorkspace = () => {
                 <WorkspaceEmptyState
                   icon={<MessageSquareReply size={20} />}
                   title="No supervisor comments yet"
-                  description="When your supervisor comments on the document, the notes will appear here."
+                  description="Test comments saved in this browser appear here. They are not shared between accounts."
                 />
               )}
             </div>
@@ -523,7 +523,7 @@ const SchoolStudentWorkspace = () => {
                 <WorkspaceStatusNote
                   tone="info"
                   title={selectedAssignment.section}
-                  description={`Due ${formatDate(selectedAssignment.dueDate)}. Your supervisor will see the extracted text after upload.`}
+                  description={`Due ${formatDate(selectedAssignment.dueDate)}. Extracted text is saved only in this browser for the demonstration.`}
                 />
               )}
             </div>
@@ -593,7 +593,7 @@ const SchoolStudentWorkspace = () => {
                 <WorkspaceEmptyState
                   icon={<MessageSquareReply size={20} />}
                   title="No correction requests"
-                  description="Your supervisor has not sent any correction tasks yet."
+                  description="There are no test correction tasks saved in this browser."
                 />
               )}
             </div>

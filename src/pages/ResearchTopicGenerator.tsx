@@ -22,6 +22,7 @@ import {
 import { AlertCircle, ArrowRight, CheckCircle2, FileText, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { hasSpecificStudySetting } from "@/lib/researchFormulation";
+import { neutralTopicSubject } from "@/lib/topicWording";
 
 type TopicSuggestion = {
   topic: string;
@@ -166,13 +167,13 @@ const cleanPhrase = (value: string) =>
     .trim();
 
 const stripLeadPhrases = (value: string) =>
-  cleanPhrase(value)
+  neutralTopicSubject(cleanPhrase(value)
     .replace(/^(i want to study|i want to research|i am interested in|i need a topic on|topic on|research on)\s+/i, "")
     .replace(/^(prevalence and factors associated with|factors affecting|factors associated with|factors influencing|predictors of|determinants of|barriers to|prevalence of|knowledge and attitudes? towards|knowledge attitudes? and practices towards)\s+/i, "")
     .replace(/^(?:high|low) rates? of\s+/i, "")
     .replace(/\s+(among|at)\s+.+$/i, "")
     .replace(/\s+(among|at|in)$/i, "")
-    .trim();
+    .trim());
 
 const inferSubject = (problem: string, focus: string) => {
   const providedFocus = stripLeadPhrases(focus);

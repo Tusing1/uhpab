@@ -358,8 +358,8 @@ const SupervisorStudentReview = () => {
     persistWorkspace(nextWorkspace);
     setCommentText("");
     setSelectedParagraphIndex(null);
-    toast.success("Supervisor comment saved", {
-      description: `${commentTagMeta[commentTag].label} comment sent to ${student.name}.`,
+    toast.success("Test comment saved on this device", {
+      description: `${commentTagMeta[commentTag].label} comment was not sent to ${student.name}.`,
     });
   };
 
@@ -408,8 +408,8 @@ const SupervisorStudentReview = () => {
     persistWorkspace(nextWorkspace);
     setCorrectionTitle("Required research corrections");
     setCorrectionInstructions("");
-    toast.success("Correction request sent", {
-      description: `${student.name} will see the correction task in their workspace.`,
+    toast.success("Test correction saved on this device", {
+      description: `The correction task was not sent to ${student.name}.`,
     });
   };
 

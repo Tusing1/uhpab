@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { readPrivateResearchFile, usesPrivateCloud, isPrivateResearchEnabled } from "@/lib/privateResearchStorage";
 import { getBrowserGeminiApiKey } from "@/lib/aiKeys";
-import { markingGuideAdaptation } from "@/data/markingGuide";
+import { getDocumentMarkingGuide, markingGuideAdaptation } from "@/data/markingGuide";
 import { Progress } from "@/components/ui/progress";
 import { OperationProgress } from "@/components/ui/operation-progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -27,6 +27,9 @@ import {
 } from "@/components/workspace/WorkspaceWorkflow";
 import { analyzeDocument, type AnalysisResult } from "@/utils/documentAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProjects } from "@/contexts/ProjectContext";
+import { isMatchingProposalSource, projectReviewText } from "@/lib/projectReviewText";
+import { markingPassage } from "@/lib/markingImprovement";
 import {
   createDocumentFingerprint,
   findReusableAnalysis,
@@ -147,6 +150,7 @@ const inferSectionFromHandoff = (handoff: ReviewToolHandoff) => {
 
 const DocumentAnalysis = () => {
   const { user } = useAuth();
+  const { projects, isLoading: projectsLoading } = useProjects();
   const privateMarkingDisabled = !isPrivateResearchEnabled(user?.id || 'guest');
   const navigate = useNavigate();
   const location = useLocation();
@@ -172,8 +176,13 @@ const DocumentAnalysis = () => {
   const [processingConfirmed, setProcessingConfirmed] = useState(false);
   const [keepDocument, setKeepDocument] = useState(false);
   const [retentionBusy, setRetentionBusy] = useState(false);
+  const [projectReviewNotice, setProjectReviewNotice] = useState("");
+  const processedProjectReview = useRef("");
 
   const sectionOptions = documentType === "report" ? reportSections : proposalSections;
+  const currentGuide = useMemo(() => getDocumentMarkingGuide(documentType), [documentType]);
+  const currentGuideTotal = currentGuide.reduce((total, section) => total + section.marks, 0);
+  const methodologyMarks = currentGuide.find(section => section.id === 'methodology')?.marks ?? 0;
   const scorePercent = useMemo(() => {
     if (!result || !result.totalGuidelines) return 0;
     return Math.round((result.matchedGuidelines / result.totalGuidelines) * 100);
@@ -181,6 +190,7 @@ const DocumentAnalysis = () => {
   const markedEvidence = useMemo(() => (result ? sampleAnalysisEvidence(result).slice(0, 5) : []), [result]);
   const resultReused = hasReusedResult(cacheNotes);
   const routeAnalysisRecordId = useMemo(() => getRouteAnalysisRecordId(location.state), [location.state]);
+  const routeProjectReviewId = typeof location.state?.projectReviewId === 'string' ? location.state.projectReviewId : null;
   const handoffSourceLabel = handoff ? getToolHandoffLabel(handoff.sourceTool) : null;
   const hasManualText = manualText.trim().length > 0;
 
@@ -200,15 +210,18 @@ const DocumentAnalysis = () => {
     criterion: MarkingCriterion,
     sourceRecord?: StoredAnalysisRecord | null
   ) => {
+    const passage = markingPassage(criterion);
+    if (!passage) {
+      toast.info('No passage was identified to improve. Add the missing text to your document, or paste the relevant section into Improve my writing.');
+      return;
+    }
     const baseRecord = sourceRecord ?? activeRecord;
     const handoffPayload: ReviewToolHandoff = {
       sourceTool: "document-analysis",
       fileName: baseRecord?.fileName || file?.name,
       documentType: baseRecord?.documentType || documentType,
       section: sectionTitle,
-      selectedText:
-        criterion.evidenceSnippet ||
-        `${criterion.label}. ${formatCriterionFinding(criterion.guidance, criterion.status)}`,
+      selectedText: passage,
       issueLabel: criterion.label,
       pageNumber: criterion.pageNumber,
     };
@@ -275,12 +288,12 @@ const DocumentAnalysis = () => {
 
   const improveStoredAnalysisRecord = (record: StoredAnalysisRecord) => {
     const section = record.result.rubricScore?.sections.find((item) =>
-      item.criteria.some((criterion) => criterion.status !== "met")
+      item.criteria.some((criterion) => criterion.status !== "met" && markingPassage(criterion))
     );
-    const criterion = section?.criteria.find((item) => item.status !== "met");
+    const criterion = section?.criteria.find((item) => item.status !== "met" && markingPassage(item));
 
     if (!section || !criterion) {
-      toast.success("No missing or partial marking-guide criterion found in this saved result");
+      toast.info("No quoted passage is available to improve. Add the missing text to your document or paste a relevant section into Improve my writing.");
       return;
     }
 
@@ -328,6 +341,7 @@ const DocumentAnalysis = () => {
 
   useEffect(() => {
     if (routeAnalysisRecordId) return;
+    if (routeProjectReviewId) return;
 
     const routeState = isReviewToolHandoff(location.state) ? location.state : null;
     const incoming = routeState ?? loadToolHandoff();
@@ -349,7 +363,24 @@ const DocumentAnalysis = () => {
     setAnalysisStatus("idle");
     setAnalysisProgress(0);
     setAnalysisStage("Preparing document");
-  }, [location.state, routeAnalysisRecordId]);
+  }, [location.state, routeAnalysisRecordId, routeProjectReviewId]);
+
+  useEffect(() => {
+    if (!routeProjectReviewId || projectsLoading || !user?.id) return;
+    const requestKey = `${user.id}:${routeProjectReviewId}`;
+    if (processedProjectReview.current === requestKey) return;
+    const project = projects.find(item => item.id === routeProjectReviewId && item.userId === user.id);
+    processedProjectReview.current = requestKey;
+    if (!project) {
+      setFile(null); setHandoff(null); setManualText(''); setResult(null); setActiveRecord(null); setProcessingConfirmed(false);
+      setProjectReviewNotice('This saved project could not be found for your account. Open My research work and try again.');
+      return;
+    }
+    setFile(null); setHandoff(null); setManualText(projectReviewText(project));
+    setManualFileName(textFileNameFrom(project.title)); setDocumentType(project.type); setComponent('full');
+    setResult(null); setActiveRecord(null); setCacheNotes([]); setAnalysisStatus('idle'); setProcessingConfirmed(false);
+    setProjectReviewNotice('Loaded from your saved project. Changes here do not change the project. Unsaved edits, unsaved prefilled pages, images, layout and page numbers are not included. Check the exported document separately for formatting.');
+  }, [projects, projectsLoading, routeProjectReviewId, user?.id]);
 
   const returnToSourceTool = () => {
     if (!handoff) return;
@@ -359,6 +390,7 @@ const DocumentAnalysis = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setProjectReviewNotice("");
       setHandoff(null);
       setResult(null);
       setActiveRecord(null);
@@ -518,18 +550,19 @@ const DocumentAnalysis = () => {
                 </div>
                 <div>
                   <h2 className="font-semibold">Marking guide focus</h2>
-                  <p className="text-sm text-muted-foreground">The research report guide totals 100 marks.</p>
+                  <p className="text-sm text-muted-foreground">The adapted {documentType} practice guide totals {currentGuideTotal} marks.</p>
                 </div>
               </div>
               <div className="mt-4 grid gap-2 text-sm text-foreground/80">
-                <div className="rounded-lg border bg-muted/45 p-3">Methodology carries the largest report section weight: 22 marks.</div>
-                <div className="rounded-lg border bg-muted/45 p-3">Discussion, conclusion, recommendations, and practice implications carry 19 marks.</div>
-                <div className="rounded-lg border bg-muted/45 p-3">References and appendices are small but easy to lose marks on.</div>
+                <div className="rounded-lg border bg-muted/45 p-3">Methodology carries {methodologyMarks} marks.</div>
+                {documentType === 'report' ? <div className="rounded-lg border bg-muted/45 p-3">Discussion, conclusion, recommendations, and practice implications carry 19 marks.</div> : <div className="rounded-lg border bg-muted/45 p-3">The proposal guide excludes report results and discussion, and includes a work plan and budget.</div>}
+                <div className="rounded-lg border bg-muted/45 p-3">These are practice marks, not an official examiner award.</div>
               </div>
             </>
           }
         />
 
+        {projectReviewNotice && <Alert className="mt-6"><AlertTitle>Saved project text</AlertTitle><AlertDescription>{projectReviewNotice}</AlertDescription></Alert>}
         {privateMarkingDisabled && <Alert className="mt-6"><AlertTitle>Private marking is coming soon</AlertTitle><AlertDescription>Document submission and marking are disabled while secure storage and automatic deletion are being set up. No document will be uploaded or sent for marking. You can still read the marking guide and continue writing your project.</AlertDescription></Alert>}
         <section className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
           <Card className="study-card animate-fade-up rounded-lg p-6 [animation-delay:120ms]">
@@ -797,7 +830,7 @@ const DocumentAnalysis = () => {
                                     <Badge variant="outline" className={statusStyles[criterion.status]}>
                                       {statusLabels[criterion.status]}: {criterion.awarded}/{criterion.marks}
                                     </Badge>
-                                    {criterion.status !== "met" && (
+                                    {criterion.status !== "met" && markingPassage(criterion) && (
                                       <Button
                                         type="button"
                                         variant="outline"
@@ -808,6 +841,7 @@ const DocumentAnalysis = () => {
                                         Improve
                                       </Button>
                                     )}
+                                    {criterion.status !== "met" && !markingPassage(criterion) && <span className="text-xs text-muted-foreground">No passage identified to improve</span>}
                                   </div>
                                 </div>
                               </div>
@@ -971,7 +1005,14 @@ const DocumentAnalysis = () => {
                   const { extractDocumentText } = await import('@/lib/documentTextExtraction');
                   const text = file ? (await extractDocumentText(file)).text : manualText;
                   if (!text.trim()) throw new Error('Open or upload the original proposal before creating slides.');
-                  navigate('/defence-slides', { state: { defenceSource: { text, name: activeRecord?.fileName || file?.name || manualFileName } } });
+                  const sourceProject = routeProjectReviewId
+                    ? projects.find(project => project.id === routeProjectReviewId && isMatchingProposalSource(project, user?.id, text))
+                    : undefined;
+                  if (sourceProject) {
+                    navigate(`/defence-slides?project=${encodeURIComponent(sourceProject.id)}`);
+                  } else {
+                    navigate('/defence-slides', { state: { defenceSource: { text, name: activeRecord?.fileName || file?.name || manualFileName } } });
+                  }
                 } catch (e) { toast.error(e instanceof Error ? e.message : 'The proposal could not be opened.'); }
                 finally { setPreparingSlides(false); }
               },

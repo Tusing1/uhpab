@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReportProblem } from '@/contexts/feedbackContextValue';
+import { isSupabaseConfigured } from '@/lib/runtimeConfig';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
@@ -600,6 +601,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </header>
         
         {/* Main */}
+        {!isSupabaseConfigured && schoolStaff && (/^\/(school-dashboard|student-workspace|supervisor-dashboard|supervisor-students)/.test(location.pathname) || location.pathname === '/getting-started') && (
+          <div role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <div className="container"><strong>Local demonstration.</strong> Candidate records, submissions and comments stay in this browser and are not sent to other accounts. Use test information only.</div>
+          </div>
+        )}
         <main className="flex-1">
           {children}
         </main>

@@ -72,7 +72,21 @@ Verification so far: 10 focused validation/redaction checks, 146 defence checks 
 
 ## 5. Walk through the student journey
 
-Status: Pending; final integration validation.
+Status: In progress. A synthetic topic-to-marking walkthrough has identified and addressed several obstacles; full integration validation is not yet complete.
+
+Walkthrough findings and fixes:
+
+- Critical: school candidate records, submissions, reviews and comments are browser-local, not shared between accounts. Live school-only screens are now paused with an explanation; existing local data is preserved. Local demonstrations remain available with an explicit warning and local-only confirmation messages. A real school workflow requires a shared, access-controlled backend and independent cross-account verification.
+- High: the school enquiry form reported success without sending a message. It now clearly states that enquiries are unavailable. Unsupported school pricing and collaboration claims were also removed.
+- High: marking feedback without an identified passage could send examiner instructions to the correction editor as if they were student writing. Only an actual evidence passage can now be handed off.
+- Medium: a saved proposal had to be downloaded and uploaded again for marking, and the marking overview always described the report guide. Saved project text can now open directly in the correct proposal or report guide. The screen explains that unsaved material, page numbers, images and formatting are not included.
+- Medium: the marking-to-defence action lost the topic when given saved project text as a generic document. Unchanged, owned proposal text now reconnects to the original project; changed or uploaded content remains a separate handoff unless its text exactly matches the project.
+- Medium: topic templates could turn a low level of a practice into barriers to the low level. The qualifier is removed for recognised behavioural outcomes, while clinical terms such as low birth weight are preserved.
+- Medium: a missing research key error pointed to settings without a direct action. The editor now offers an Open Settings action.
+
+Verification so far: a local synthetic topic, project and saved paragraph were taken through the 64-mark proposal screen, using a local fixture rather than Gemini. The marking result explicitly contained no real academic assessment. The missing-passage state was verified in the browser, and the project-to-defence action retained the saved topic. A synthetic marking PDF downloaded successfully; the first two rendered pages were inspected for table and footer overflow. Ten focused journey checks, 17 marking checks, 14 writing checks, 146 defence checks, 20 assisted-drafting checks and 10 feedback checks passed. No actual student result or source accuracy was inferred from the fixture.
+
+Still required: a full existing-proposal walkthrough with an authorised real document, live-provider behaviour, the remaining exported pages and presentation in this journey, originality and correction flows, rehearsal, and mobile checks. Supervisor sharing cannot be verified end-to-end until the shared backend exists. The tester-feedback inbox also still needs a designated support account. Repository-wide TypeScript checks have pre-existing unrelated errors.
 
 - Test both topic-only and existing-proposal paths, using clearly labelled synthetic fixtures and permissioned real documents.
 - Follow topic selection, proposal writing, source management, marking-guide review, corrections, supervisor feedback, defence drafting, rehearsal and downloads.

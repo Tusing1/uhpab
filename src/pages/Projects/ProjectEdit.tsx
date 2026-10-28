@@ -2831,7 +2831,7 @@ const ProjectEdit = () => {
                   setFormData((prev:typeof formData)=>{const next=proposal.workspace?updateProjectStudyWorkspace(prev,proposal.workspace):prev;return {...next,chapters:{...next.chapters,_writingUndo:{...next.chapters._writingUndo,[`${selectedSection}.${selectedComponent}`]:proposal.current}}};});
                   setTemporaryContent(proposal.proposed);setDraftNotices(proposal.notices);setReviewed(false);setIsEditing(true);setPendingDraft(null);
                 }} />}
-                {generationError && <Alert variant="destructive" className="my-3"><AlertTitle>{generationError.title}</AlertTitle><AlertDescription>{generationError.message}{generationError.retryable && <Button variant="outline" size="sm" disabled={isGenerating || isSaving || !!currentNeeds.length} onClick={() => handleImproveWithAI(generationError.action)} className="ml-2">Retry generation</Button>}</AlertDescription></Alert>}
+                {generationError && <Alert variant="destructive" className="my-3"><AlertTitle>{generationError.title}</AlertTitle><AlertDescription>{generationError.message}{generationError.title === 'Check your research key' && <Button variant="outline" size="sm" onClick={() => navigate('/settings#ai')} className="ml-2">Open Settings</Button>}{generationError.retryable && <Button variant="outline" size="sm" disabled={isGenerating || isSaving || !!currentNeeds.length} onClick={() => handleImproveWithAI(generationError.action)} className="ml-2">Retry generation</Button>}</AlertDescription></Alert>}
                 {isGenerating ? (
                   <div role="status" className="flex flex-col items-center justify-center gap-4 py-16">
                     <Loader2 className="h-8 w-8 animate-spin" />

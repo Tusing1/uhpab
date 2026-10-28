@@ -18,6 +18,7 @@
     "test:defence": "node scripts/test-defence-slides.mjs && node scripts/test-defence-export.mjs && node scripts/test-defence-rules.mjs && node scripts/test-defence-drafting.mjs && node scripts/test-defence-recovery.mjs && node scripts/test-defence-evidence.mjs && node scripts/test-defence-consistency.mjs",
     "test:keys": "node scripts/test-research-keys.mjs",
     "test:feedback": "node scripts/test-tester-feedback.mjs",
+    "test:journey": "node scripts/test-student-journey.mjs",
     "test:marking": "node scripts/test-strict-marking.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

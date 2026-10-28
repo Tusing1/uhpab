@@ -71,7 +71,7 @@ const escapeHtml = (value = '') =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const stripHtmlWithBreaks = (html = '') =>
+export const stripHtmlWithBreaks = (html = '') =>
   html
     .replace(/<li[^>]*>/gi, '\n- ')
     .replace(/<\/li>/gi, '\n')

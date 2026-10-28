@@ -61,8 +61,8 @@ await build({
   entryPoints: ['src/components/layout/DashboardLayout.tsx'], outfile: 'tmp/dashboard-layout-qa.mjs',
   bundle: true, packages: 'external', platform: 'node', format: 'esm', jsx: 'automatic', alias: { '@': resolve('src') },
   plugins: [{ name: 'role-fixtures', setup(build) {
-    build.onResolve({ filter: /^@\/contexts\/AuthContext$/ }, args => ({ path: args.path, namespace: 'role' }));
-    build.onLoad({ filter: /.*/, namespace: 'role' }, () => ({ loader: 'js', contents: `export const useAuth=()=>({
+    build.onResolve({ filter: /^@\/(contexts\/AuthContext|lib\/runtimeConfig)$/ }, args => ({ path: args.path, namespace: 'role' }));
+    build.onLoad({ filter: /.*/, namespace: 'role' }, ({ path }) => ({ loader: 'js', contents: path.endsWith('runtimeConfig') ? 'export const isSupabaseConfigured=false;' : `export const useAuth=()=>({
       user:globalThis.dashboardFixture.user,logout:async()=>{},
       isPremium:()=>globalThis.dashboardFixture.user.role==='premium',
       isSchoolAdmin:()=>globalThis.dashboardFixture.user.role==='school-admin',
