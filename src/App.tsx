@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FeatureAccessProvider } from "@/contexts/FeatureAccessContext";
 import { ProjectProvider } from "@/contexts/ProjectContext";
+import { FeedbackProvider } from "@/contexts/FeedbackContext";
 
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -44,6 +45,7 @@ const SupervisorStudents = lazy(() => import("./pages/SupervisorStudents"));
 const SupervisorStudentReview = lazy(() => import("./pages/SupervisorStudentReview"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+const Feedback = lazy(() => import("./pages/Feedback"));
 
 const privateRoute = (element: React.ReactNode) => <RequireAuth>{element}</RequireAuth>;
 const researcherRoute = (element: React.ReactNode) => (
@@ -100,6 +102,7 @@ const AppRoutes = () => (
       <Route path="/plagiarism-checker" element={privateRoute(<PlagiarismChecker />)} />
       <Route path="/research-topic-generator" element={privateRoute(<ResearchTopicGenerator />)} />
       <Route path="/settings" element={privateRoute(<Settings />)} />
+      <Route path="/feedback" element={privateRoute(<Feedback />)} />
       <Route path="/content-improvement" element={privateRoute(<ContentImprovement />)} />
       <Route path="/humanizer" element={privateRoute(<Humanizer />)} />
       <Route path="/privacy" element={<Privacy />} />
@@ -120,7 +123,7 @@ const App = () => (
             <ProjectProvider>
               <FeatureAccessProvider>
                 <BrowserRouter>
-                  <AppRoutes />
+                  <FeedbackProvider><AppRoutes /></FeedbackProvider>
                 </BrowserRouter>
               </FeatureAccessProvider>
             </ProjectProvider>

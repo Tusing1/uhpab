@@ -56,13 +56,19 @@ Verification: 23 new checks, bringing the defence suite to 146, plus 20 shared a
 
 ## 4. Capture tester feedback safely
 
-Status: Pending.
+Status: Implemented locally; privacy and retention tests passed and the production database is installed. Public website verification and assignment of a platform support account remain outstanding.
 
 - Add Report a problem from tool pages and generation/export errors, with category, description and optional screenshot.
 - Preview the report and request consent before sending. Never automatically attach document text, prompts, API keys, identifiers or browser storage.
 - Include only minimal approved diagnostic context: tool, app release, operation stage, sanitised error code and browser information.
 - Add authenticated, rate-limited submission storage and an admin triage workflow with status and resolution notes.
 - Verify consent, redaction, access controls, duplicate submission prevention, upload restrictions and visible success/failure feedback.
+
+Implementation: a report action is available from the workspace header and defence generation/export failures. A review screen shows the description, optional diagnostic fields and optional screenshot before explicit consent. Common secret, email, URL, identifier and path patterns are redacted from descriptions, but this is not a guarantee of identifying all private information. Screenshots are voluntarily selected, checked, resized and re-encoded; visible content is not redacted. Reports are tied to the sender's account and can be tracked or deleted in Feedback and support. Technical context is allowlisted and excludes page URLs, prompts, research text, provider messages, keys and browser storage.
+
+The database accepts only authenticated, validated submissions. Per-account locks and independent rate slots enforce five reports per hour and 20 per day, including after report deletion. Retrying the same request and identical recent reports returns the existing receipt. Only explicitly provisioned platform support accounts can access the triage inbox; school administrators and supervisors do not receive access by role. Status, an optional sender-visible reply and required internal resolution notes are recorded. An optimistic timestamp prevents stale overwrites. Reports expire after 90 days, and an hourly job removes expired reports, screenshots, internal history and old rate slots. Submitters can delete their own reports earlier.
+
+Verification so far: 10 focused validation/redaction checks, 146 defence checks and 20 assisted-drafting checks. SQL tests ran with synthetic data inside a rollback-only transaction against the target Supabase project; they covered consent, unrecognised fields, redaction, PNG bounds, duplicate requests, rate limits, account isolation, support-only triage, stale updates, internal-note privacy, expiry and cascade deletion. Per-account locks prevent parallel rate-check races, though simultaneous network submissions have not been separately load-tested. A separate rolled-back test verified the cleanup schedule. The tested migration and hourly schedule were then installed in the target project, with zero support accounts provisioned. The project has no Supabase migration ledger; this migration was applied through its SQL editor and must not be blindly reapplied by a future migration push. Desktop preview, a JPEG attachment, file-type mismatch rejection and a 390px mobile layout were checked with a demo account and synthetic text. A real authenticated submission still needs end-to-end verification.
 
 ## 5. Walk through the student journey
 

@@ -30,6 +30,8 @@ import { DefenceEvidenceReview } from '@/components/defence/DefenceEvidenceRevie
 import { readDefenceEvidence, type DefenceEvidence } from '@/lib/defenceEvidence';
 import { captureDefenceSource, readDefenceSourceSnapshot, type DefenceSourceSnapshot } from '@/lib/defenceConsistency';
 import { DefenceConsistencyReview } from '@/components/defence/DefenceConsistencyReview';
+import { useReportProblem } from '@/contexts/feedbackContextValue';
+import { feedbackErrorCode, type FeedbackContext } from '@/lib/testerFeedback';
 
 type SourceMode = 'project' | 'upload' | 'topic';
 type Step = 'source' | 'facts' | 'slides';
@@ -87,6 +89,8 @@ export default function DefenceSlides() {
   const { user } = useAuth();
   const { projects, isLoading } = useProjects();
   const location = useLocation();
+  const reportProblem = useReportProblem();
+  const [reportContext, setReportContext] = useState<FeedbackContext>({ tool: 'defence-slides' });
   const [workspaceOwner, setWorkspaceOwner] = useState(user?.id);
   const [mode, setMode] = useState<SourceMode>('project');
   const [step, setStep] = useState<Step>('source');
@@ -378,7 +382,9 @@ export default function DefenceSlides() {
       if (controller.signal.aborted) toast.info('Draft generation stopped', { id: notice, description: 'Completed stages have been kept. Your presentation is unchanged.' });
       else {
         const message = e instanceof Error ? e.message : 'Draft generation failed. Your existing work is unchanged.';
-        setError(message); toast.error('The draft could not be completed', { id: notice, description: message });
+        const context: FeedbackContext = { tool: 'defence-slides', stage: nextDefenceDraftStage(activeSession.checkpoint) || 'generate', errorCode: feedbackErrorCode(e) };
+        setReportContext(context);
+        setError(message); toast.error('The draft could not be completed', { id: notice, description: message, action: { label: 'Report problem', onClick: () => reportProblem(context) } });
       }
     } finally {
       if (draftRequest.current === controller) { draftRequest.current = null; setBusy(false); setDraftProgress(null); }
@@ -422,7 +428,9 @@ export default function DefenceSlides() {
       toast.success('Download started', { id: notice, description: name });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'The export could not be prepared. Please retry.';
-      setError(message); toast.error('Download could not start', { id: notice, description: message });
+      const context: FeedbackContext = { tool: 'defence-slides', stage: 'export', errorCode: 'export-failed' };
+      setReportContext(context);
+      setError(message); toast.error('Download could not start', { id: notice, description: message, action: { label: 'Report problem', onClick: () => reportProblem(context) } });
     } finally { setExporting(false); }
   };
 
@@ -445,7 +453,7 @@ export default function DefenceSlides() {
     <nav aria-label="Presentation steps" className="flex flex-wrap gap-1 border-b pb-3">
       {(['source', 'facts', 'slides'] as Step[]).map((item, i) => <Button key={item} variant={step === item ? 'secondary' : 'ghost'} disabled={busy || (item === 'facts' && !source.name) || (item === 'slides' && !deck)} onClick={() => { setStep(item); setError(''); }} className="gap-2"><span className="text-xs text-muted-foreground">{i + 1}.</span>{['Choose proposal', 'Review study details', 'Edit slides'][i]}</Button>)}
     </nav>
-    {error && <Alert variant="destructive"><AlertTitle>Something needs attention</AlertTitle><AlertDescription>{error}{/key|401|403|quota|billing/i.test(error) && <Link to="/settings" className="ml-2 font-medium underline">Open Settings</Link>}</AlertDescription></Alert>}
+    {error && <Alert variant="destructive"><AlertTitle>Something needs attention</AlertTitle><AlertDescription>{error}{/key|401|403|quota|billing/i.test(error) && <Link to="/settings" className="ml-2 font-medium underline">Open Settings</Link>}<Button variant="outline" size="sm" className="mt-3 block" onClick={() => reportProblem(reportContext)}>Report this problem</Button></AlertDescription></Alert>}
     {storageWarning && <Alert className="border-amber-300"><AlertTitle>Device recovery needs attention</AlertTitle><AlertDescription>{storageWarning}</AlertDescription></Alert>}
     {recoveringDraft && <p role="status" className="text-sm text-muted-foreground">Checking saved draft progress...</p>}
     {draftSession && !busy && !pendingDraft && step !== 'slides' && <section aria-label="Saved draft progress" className="space-y-4 border-y py-5">

@@ -21,9 +21,11 @@ import {
   UserCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  Presentation
+  Presentation,
+  MessageSquareWarning
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useReportProblem } from '@/contexts/feedbackContextValue';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
@@ -134,6 +136,7 @@ const getPageLabel = (pathname: string) => {
     '/chapter-work': 'Work on a chapter',
     '/premium': 'Premium',
     '/settings': 'Settings',
+    '/feedback': 'Feedback and support',
   };
 
   return labels[pathname] || (pathname.startsWith('/chapter-work/') ? 'Work on a chapter' : 'UHPAB Research');
@@ -196,6 +199,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, logout, isPremium, isSchoolAdmin, isSchoolSupervisor, isSchoolStudent } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const reportProblem = useReportProblem();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(
@@ -415,6 +419,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       items: [
         { to: '/guidelines', icon: <BookOpen size={18} />, label: 'UHPAB guidelines' },
         { to: '/getting-started', icon: <HelpCircle size={18} />, label: 'Start here' },
+        { to: '/feedback', icon: <MessageSquareWarning size={18} />, label: 'Feedback and support' },
       ],
     },
   ];
@@ -577,6 +582,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             </div>
             
             <div className="ml-auto flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => reportProblem()} aria-label="Report a problem" title="Report a problem"><MessageSquareWarning size={18} /></Button>
               {showPrimaryAction && (
                 <Button
                   variant="default"
