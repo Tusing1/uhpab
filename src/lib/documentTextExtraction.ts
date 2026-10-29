@@ -1,6 +1,7 @@
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+import { detectDocumentSection, partitionPageLines } from './documentSectionDetection';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -31,105 +32,13 @@ const normalizeText = (text: string) =>
 
 const fileExtension = (file: File) => file.name.split(".").pop()?.toLowerCase() || "";
 
-const preliminaryPatterns = [
-  {
-    key: "preliminary",
-    chapter: "Preliminary pages",
-    pattern: /(title page|table of contents|list of tables|list of figures|abstract|definition of terms|abbreviations|acronyms)/i,
-  },
-];
-
-const chapterPatterns = [
-  {
-    key: "introduction",
-    chapter: "Chapter One",
-    pattern: /chapter\s*(one|1)\b/i,
-  },
-  {
-    key: "literature",
-    chapter: "Chapter Two",
-    pattern: /chapter\s*(two|2)\b/i,
-  },
-  {
-    key: "methodology",
-    chapter: "Chapter Three",
-    pattern: /chapter\s*(three|3)\b/i,
-  },
-  {
-    key: "results",
-    chapter: "Results / Findings",
-    pattern: /chapter\s*(four|4)\b/i,
-  },
-  {
-    key: "discussion",
-    chapter: "Discussion / Conclusion / Recommendations",
-    pattern: /chapter\s*(five|5)\b/i,
-  },
-];
-
-const sectionKeywordPatterns = [
-  {
-    key: "introduction",
-    chapter: "Chapter One",
-    pattern: /(background of the study|problem statement|statement of the problem|purpose of the study|research objectives|research questions|justification|significance of the study)/i,
-  },
-  {
-    key: "literature",
-    chapter: "Chapter Two",
-    pattern: /(literature review|review of literature|theoretical framework|conceptual framework)/i,
-  },
-  {
-    key: "methodology",
-    chapter: "Chapter Three",
-    pattern: /(methodology|methods|study design|research design|study setting|study population|sample size|sampling|ethical considerations)/i,
-  },
-  {
-    key: "results",
-    chapter: "Results / Findings",
-    pattern: /(results|findings|data presentation|analysis and interpretation)/i,
-  },
-  {
-    key: "discussion",
-    chapter: "Discussion / Conclusion / Recommendations",
-    pattern: /(discussion|conclusion|recommendations|nursing practice|health practice|implications)/i,
-  },
-  {
-    key: "references",
-    chapter: "References",
-    pattern: /\b(references|bibliography)\b/i,
-  },
-  {
-    key: "appendices",
-    chapter: "Appendices",
-    pattern: /\b(appendix|appendices|questionnaire|consent form|approval letter|introduction letter)\b/i,
-  },
-];
-
-const detectSection = (text: string, previous?: Pick<ExtractedDocumentChunk, "sectionTitle" | "chapter">) => {
-  const headingWindow = text.slice(0, 1400);
-  const dottedLeaderCount = headingWindow.match(/\.{5,}/g)?.length ?? 0;
-  if (/table of contents/i.test(headingWindow) || dottedLeaderCount >= 3) {
-    return { sectionTitle: "preliminary", chapter: "Preliminary pages" };
-  }
-
-  const match = [...preliminaryPatterns, ...chapterPatterns, ...sectionKeywordPatterns].find((section) =>
-    section.pattern.test(headingWindow)
-  );
-
-  if (match) {
-    return { sectionTitle: match.key, chapter: match.chapter };
-  }
-
-  return previous ?? { sectionTitle: "unknown", chapter: "Unknown section" };
-};
-
 const chunkPlainText = (text: string): ExtractedDocumentChunk[] => {
   const paragraphs = normalizeText(text).split(/\n{2,}/).filter(Boolean);
   const chunks: ExtractedDocumentChunk[] = [];
   let previous: Pick<ExtractedDocumentChunk, "sectionTitle" | "chapter"> | undefined;
 
   paragraphs.forEach((paragraph) => {
-    const detected = detectSection(paragraph, previous);
+    const detected = detectDocumentSection(paragraph, previous);
     previous = detected;
     chunks.push({
       pageNumber: null,
@@ -182,22 +91,21 @@ const extractTextFromPdf = async (file: File): Promise<ExtractedDocumentText> =>
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
+    const lines: string[] = [];
+    let line = '';
+    for (const item of content.items) {
+      if (!('str' in item)) continue;
+      line += `${line ? ' ' : ''}${item.str}`;
+      if (item.hasEOL) { lines.push(line.trim()); line = ''; }
+    }
+    if (line.trim()) lines.push(line.trim());
+    const pageText = lines.join('\n').trim();
 
     if (pageText) {
-      const detected = detectSection(pageText, previous);
-      previous = detected;
+      const detected = partitionPageLines(lines, pageNumber, previous);
+      previous = detected.lastSection;
       pages.push(`Page ${pageNumber}\n${pageText}`);
-      chunks.push({
-        pageNumber,
-        sectionTitle: detected.sectionTitle,
-        chapter: detected.chapter,
-        text: pageText,
-      });
+      chunks.push(...detected.chunks);
     }
   }
 

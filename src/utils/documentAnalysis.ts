@@ -1,5 +1,6 @@
 import { getDocumentMarkingGuide, MARKING_RUBRIC_VERSION } from '@/data/markingGuide';
 import { extractDocumentText } from '@/lib/documentTextExtraction';
+import { applyUserSelectedSection } from '@/lib/documentSectionDetection';
 import { scoreMarkingGuideSections } from '@/lib/markingGuideScoring';
 import { markResearchStrictly } from '@/lib/strictResearchMarking';
 import { generateContent } from '@/integrations/gemini';
@@ -22,6 +23,7 @@ export const analyzeDocument = async (file: File, documentType: DocumentType, co
   if (!guide.length) throw new Error('Choose a valid marking-guide area for this document type.');
   if (file.size > 25 * 1024 * 1024) throw new Error('Use a document smaller than 25 MB.');
   const extracted = await extractDocumentText(file);
+  extracted.chunks = applyUserSelectedSection(extracted.chunks, component.toLowerCase());
   if (extracted.characterCount < 100 || extracted.wordCount < 20) throw new Error('The document has too little readable text to mark. Upload a text-based PDF or DOCX, or paste its text. Scanned pages need OCR first.');
   if (extracted.pageCount && extracted.pageCount > 100) throw new Error('Upload up to 100 pages or review a chapter separately.');
   let rubricScore: RubricScore;

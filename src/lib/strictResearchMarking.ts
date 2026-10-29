@@ -101,13 +101,12 @@ export const markResearchStrictly = async (
   for (const section of guide) {
     const relevant = getRelevantChunksForMarkingSection(extracted, section.id);
     const indices = new Set(relevant.map(chunk => extracted.chunks.indexOf(chunk)));
-    // If section detection failed, inspect all readable text rather than
-    // inventing a missing section from a classifier's absence of a match.
-    const chunks = relevant.length ? chunkLibrary.filter(chunk => indices.has(Number(chunk.id.match(/^c(\d+)/)?.[1]))) : chunkLibrary;
+    const chunks = chunkLibrary.filter(chunk => indices.has(Number(chunk.id.match(/^c(\d+)/)?.[1])));
     const criteria: RubricCriterionScore[] = [];
     if (!chunks.length) {
-      for (const criterion of section.criteria) criteria.push({ ...criterion, awarded: 0, status: 'missing', guidance: 'This assessment area was not found in the readable document sections.', found: [], missing: [criterion.label], improvements: [criterion.guidance], assessmentState: 'assessed' });
+      for (const criterion of section.criteria) criteria.push({ ...criterion, awarded: 0, status: 'missing', guidance: 'The relevant section could not be identified in the readable text. Human review is required; its absence has not been established.', found: [], missing: ['Section not identified; human review required.'], improvements: ['Check the original document and make the section heading clear before trying again.'], assessmentState: 'unassessable' });
       done += section.criteria.length;
+      options.onProgress?.(done, total, section.title);
     } else {
       if (chunks.reduce((sum, chunk) => sum + chunk.text.length, 0) > 160000) throw new Error(`${section.title} is too long for a complete review. Split the document into chapters; no truncated score has been produced.`);
       for (let i = 0; i < section.criteria.length; i += 3) {

@@ -66,11 +66,19 @@ await check('Basic redaction removes known names, email, contacts and HTIN', () 
 });
 await check('Strict prompt and evidence validator run together, not keyword scores', async () => {
   let prompt = '';
-  const extracted = { chunks: [{ text: chunks[0].text, sectionTitle: 'unknown', chapter: 'Unknown', pageNumber: 4 }], text: chunks[0].text, pageCount: 1, wordCount: 20, characterCount: 100, sourceType: 'text' };
+  const extracted = { chunks: [{ text: chunks[0].text, sectionTitle: 'introduction', chapter: 'Chapter One', pageNumber: 4 }], text: chunks[0].text, pageCount: 1, wordCount: 20, characterCount: 100, sourceType: 'text' };
   const result = await engine.markResearchStrictly(extracted, [{ id: 'introduction', title: 'Introduction', marks: 3, criteria }], async value => { prompt = value; return JSON.stringify(response()); }, { documentType: 'proposal' });
   assert.equal(result.awarded, 2.25); assert.equal(result.assessmentMode, 'strict');
   assert.ok(prompt.includes('heading, keyword, template')); assert.ok(prompt.includes('Document: proposal'));
   assert.equal(result.total, 3);
+});
+await check('An unidentified section never borrows text from another chapter', async () => {
+  const extracted = { chunks: [{ text: chunks[0].text, sectionTitle: 'methodology', chapter: 'Chapter Three', pageNumber: 4 }], text: chunks[0].text, pageCount: 1, wordCount: 20, characterCount: 100, sourceType: 'pdf' };
+  let calls = 0;
+  const score = await engine.markResearchStrictly(extracted, [{ id: 'introduction', title: 'Introduction', marks: 3, criteria }], async () => { calls++; return JSON.stringify(response()); });
+  assert.equal(calls, 0); assert.equal(score.awarded, 0); assert.equal(score.provisional, true);
+  assert.equal(score.sections[0].criteria[0].assessmentState, 'unassessable');
+  assert.match(score.sections[0].criteria[0].guidance, /absence has not been established/);
 });
 await check('Retention defaults to exactly seven days, including older local records', () => {
   const now = Date.parse('2026-10-17T12:00:00Z');

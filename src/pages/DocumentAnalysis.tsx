@@ -31,6 +31,7 @@ import { useProjects } from "@/contexts/ProjectContext";
 import { isMatchingProposalSource, projectReviewText } from "@/lib/projectReviewText";
 import { markingPassage } from "@/lib/markingImprovement";
 import {
+  ANALYSIS_ENGINE_VERSION,
   createDocumentFingerprint,
   findReusableAnalysis,
   getAnalysisRecord,
@@ -193,6 +194,7 @@ const DocumentAnalysis = () => {
   const routeProjectReviewId = typeof location.state?.projectReviewId === 'string' ? location.state.projectReviewId : null;
   const handoffSourceLabel = handoff ? getToolHandoffLabel(handoff.sourceTool) : null;
   const hasManualText = manualText.trim().length > 0;
+  const earlierEngineResult = Boolean(activeRecord && (activeRecord.engineVersion ?? 0) < ANALYSIS_ENGINE_VERSION);
 
   const exportMarkingGuideReport = () => {
     if (!result) return;
@@ -201,7 +203,8 @@ const DocumentAnalysis = () => {
       documentType,
       component,
       activeRecord?.fileName || file?.name || "document",
-      user?.name || user?.email
+      user?.name || user?.email,
+      earlierEngineResult
     );
   };
 
@@ -282,7 +285,8 @@ const DocumentAnalysis = () => {
       record.documentType,
       record.component,
       record.fileName,
-      user?.name || user?.email
+      user?.name || user?.email,
+      (record.engineVersion ?? 0) < ANALYSIS_ENGINE_VERSION
     );
   };
 
@@ -601,7 +605,7 @@ const DocumentAnalysis = () => {
                 className="min-h-52 resize-y bg-white/80 leading-6"
               />
               <p className="text-xs leading-5 text-muted-foreground">
-                Text checks use the same marking guide. Uploaded files are still best when page evidence is required.
+                Use clear chapter headings for a full document. For an unheaded excerpt, choose its section under Part to check. Uploaded files are best when page evidence is required.
               </p>
             </div>
 
@@ -751,6 +755,7 @@ const DocumentAnalysis = () => {
 
             {result && (
               <div className="space-y-5">
+                {earlierEngineResult && <Alert><AlertTitle>Earlier marking engine</AlertTitle><AlertDescription>This saved report predates the current section checks. It may have used evidence from the wrong chapter. Keep it for history, but run a fresh review before relying on its marks.</AlertDescription></Alert>}
                 <Alert>
                   <AlertTitle>{result.rubricScore?.provisional ? 'Provisional practice assessment' : 'Practice assessment, not an official UHPAB grade'}</AlertTitle>
                   <AlertDescription>Marks require substantive evidence, not headings alone. Unassessable requirements receive no confirmed credit and need human review. Layout, source authenticity and scanned content cannot be certified from extracted text.</AlertDescription>
@@ -823,12 +828,12 @@ const DocumentAnalysis = () => {
                                       </p>
                                     )}
                                     {!!criterion.found?.length && <div className="mt-2 text-xs leading-5"><strong>Found</strong><ul className="list-disc pl-4">{criterion.found.map((finding, i) => <li key={i}>{finding}</li>)}</ul></div>}
-                                    {!!criterion.missing?.length && <div className="mt-2 text-xs leading-5"><strong>Missing / weak{criterion.assessmentState === 'unassessable' ? ' / needs human assessment' : ''}</strong><ul className="list-disc pl-4">{criterion.missing.map((finding, i) => <li key={i}>{finding}</li>)}</ul></div>}
+                                    {!!criterion.missing?.length && <div className="mt-2 text-xs leading-5"><strong>{criterion.assessmentState === 'unassessable' ? 'Human assessment needed' : 'Missing / weak'}</strong><ul className="list-disc pl-4">{criterion.missing.map((finding, i) => <li key={i}>{finding}</li>)}</ul></div>}
                                     {!!criterion.improvements?.length && <div className="mt-2 text-xs leading-5"><strong>Required improvement</strong><ul className="list-disc pl-4">{criterion.improvements.map((finding, i) => <li key={i}>{finding}</li>)}</ul></div>}
                                   </div>
                                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                                    <Badge variant="outline" className={statusStyles[criterion.status]}>
-                                      {statusLabels[criterion.status]}: {criterion.awarded}/{criterion.marks}
+                                    <Badge variant="outline" className={criterion.assessmentState === 'unassessable' ? statusStyles.partial : statusStyles[criterion.status]}>
+                                      {criterion.assessmentState === 'unassessable' ? `Human review: ${criterion.awarded}/${criterion.marks} confirmed` : `${statusLabels[criterion.status]}: ${criterion.awarded}/${criterion.marks}`}
                                     </Badge>
                                     {criterion.status !== "met" && markingPassage(criterion) && (
                                       <Button

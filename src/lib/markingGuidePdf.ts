@@ -7,7 +7,7 @@ const clean = (value: string) => value.replace(/[\u2018\u2019]/g, "'").replace(/
 const mark = (value: number) => String(Math.round(value * 100) / 100);
 
 export const createMarkingGuidePdfDocument = (
-  result: AnalysisResult, documentType: DocumentType, component: string, fileName: string, studentName?: string
+  result: AnalysisResult, documentType: DocumentType, component: string, fileName: string, studentName?: string, olderEngine = false
 ) => {
   const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
   const widths = [10, 43, 62, 59, 20, 73];
@@ -49,7 +49,7 @@ export const createMarkingGuidePdfDocument = (
       text(metadata.join('\n'), left, 31, 9);
       y = 34 + metadata.length * 4;
       text(`Confirmed credit: ${mark(result.matchedGuidelines)} / ${mark(result.totalGuidelines)}${rubric?.provisional ? ' | PROVISIONAL - human checks outstanding' : ''}`, left, y + 3, 11, true);
-      const notice = 'Full credit requires substantive, study-specific evidence. Unassessable checks earn no confirmed credit; visual formatting, source authenticity and unreadable material require human review. Proposal scores exclude report-only requirements.';
+      const notice = `${olderEngine ? 'HISTORICAL REPORT: Earlier section detection may have used evidence from another chapter. Recheck before relying on these marks. ' : ''}Full credit requires substantive, study-specific evidence. Unassessable checks earn no confirmed credit; visual formatting, source authenticity and unreadable material require human review. Proposal scores exclude report-only requirements.`;
       doc.setFontSize(8.5);
       const lines = doc.splitTextToSize(notice, 267);
       text(lines.join('\n'), left, y + 11, 8.5);
@@ -108,8 +108,8 @@ export const createMarkingGuidePdfDocument = (
   return doc;
 };
 
-export const downloadMarkingGuidePdf = (result: AnalysisResult, documentType: DocumentType, component: string, fileName: string, studentName?: string) => {
-  const doc = createMarkingGuidePdfDocument(result, documentType, component, fileName, studentName);
+export const downloadMarkingGuidePdf = (result: AnalysisResult, documentType: DocumentType, component: string, fileName: string, studentName?: string, olderEngine = false) => {
+  const doc = createMarkingGuidePdfDocument(result, documentType, component, fileName, studentName, olderEngine);
   const url = URL.createObjectURL(doc.output('blob'));
   triggerBrowserDownload(url, sanitizeFileName(`marking-report-${fileName || 'document'}.pdf`), { message: 'Marking table PDF export started' });
   window.setTimeout(() => URL.revokeObjectURL(url), 5000);

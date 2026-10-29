@@ -19,7 +19,7 @@ type EvidenceMatch = {
 type CriterionRule = (chunks: ExtractedDocumentChunk[], criterion: MarkingCriterion) => CriterionScore;
 
 const sectionAliases: Record<string, string[]> = {
-  preliminary: ["preliminary", "unknown"],
+  preliminary: ["preliminary"],
   introduction: ["introduction"],
   literature: ["literature"],
   methodology: ["methodology"],
@@ -633,16 +633,14 @@ export const getRelevantChunksForMarkingSection = (
 
   const aliases = sectionAliases[sectionId] ?? [sectionId];
   const sectionChunks = extracted.chunks.filter((chunk) => aliases.includes(chunk.sectionTitle));
-  if (sectionChunks.length > 0) return sectionChunks;
-
   if (sectionId === "preliminary") {
-    return extracted.chunks.slice(0, Math.min(3, extracted.chunks.length));
+    const firstKnown = extracted.chunks.findIndex(chunk => chunk.sectionTitle !== 'unknown' && chunk.sectionTitle !== 'preliminary');
+    const end = firstKnown >= 0 && extracted.chunks[firstKnown].sectionTitle === 'introduction' ? firstKnown : Math.min(3, extracted.chunks.length);
+    const opening = extracted.chunks.slice(0, end)
+      .filter(chunk => chunk.sectionTitle === 'unknown');
+    return [...opening, ...sectionChunks];
   }
-
-  if (sectionId === "references" || sectionId === "appendices") {
-    return extracted.chunks.slice(Math.max(0, extracted.chunks.length - 3));
-  }
-
+  if (sectionChunks.length > 0) return sectionChunks;
   return [];
 };
 

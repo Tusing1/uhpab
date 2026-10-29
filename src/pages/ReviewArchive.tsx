@@ -261,7 +261,8 @@ export const ReviewArchivePanel = ({ className }: ReviewArchivePanelProps) => {
         item.record.documentType,
         item.record.component,
         item.record.fileName,
-        reviewerName
+        reviewerName,
+        (item.record.engineVersion ?? 0) < ANALYSIS_ENGINE_VERSION
       );
       return;
     }

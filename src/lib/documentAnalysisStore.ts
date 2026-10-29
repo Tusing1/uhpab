@@ -4,7 +4,7 @@ import { usesPrivateCloud, listPrivateResearchRecords, getPrivateResearchRecord,
 const DB_NAME = "uhpab-document-analysis";
 const DB_VERSION = 1;
 const STORE_NAME = "analysisDocuments";
-export const ANALYSIS_ENGINE_VERSION = 7;
+export const ANALYSIS_ENGINE_VERSION = 8;
 
 export type DocumentFingerprint = {
   contentHash: string;

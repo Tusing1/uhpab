@@ -20,6 +20,8 @@
     "test:feedback": "node scripts/test-tester-feedback.mjs",
     "test:journey": "node scripts/test-student-journey.mjs",
     "test:originality-scope": "node scripts/test-originality-scope.mjs",
+    "test:document-sections": "node scripts/test-document-sections.mjs",
+    "test:document-extraction": "node scripts/test-document-extraction.mjs",
     "test:marking": "node scripts/test-strict-marking.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
